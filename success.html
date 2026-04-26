@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Successful | Durian Paradise</title>
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(216, 230, 191, 0.55), transparent 28%),
+        radial-gradient(circle at top right, rgba(247, 201, 153, 0.35), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(242, 219, 182, 0.45), transparent 26%),
+        linear-gradient(180deg, #f6f0e6 0%, #ede3d4 100%);
+      color: #111;
+      padding: 24px;
+    }
+    .card {
+      width: min(640px, 100%);
+      background: rgba(252, 249, 245, 0.92);
+      border: 1px solid rgba(170, 156, 138, 0.18);
+      border-radius: 24px;
+      padding: 34px;
+      text-align: center;
+      box-shadow: 0 18px 36px rgba(104, 73, 36, 0.08);
+    }
+    h1 { font-size: clamp(32px, 5vw, 52px); margin-bottom: 14px; }
+    p { font-size: 18px; color: #4c4034; margin-bottom: 22px; }
+    a {
+      display: inline-block;
+      background: linear-gradient(135deg, #6f5330 0%, #9d7741 100%);
+      color: #fffaf1;
+      padding: 14px 24px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Payment Successful</h1>
+    <p>Your durian order has gone through successfully. We’ll contact you if we need any follow-up details.</p>
+    <a href="index.html">Return to Homepage</a>
+  </main>
+  <script>
+    localStorage.removeItem("durianParadiseCart");
+    localStorage.removeItem("durianParadisePendingPayment");
+    localStorage.removeItem("durianParadiseReferral");
+  </script>
+</body>
+</html>

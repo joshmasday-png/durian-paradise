@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Durian Paradise | Group 1 Durians</title>
+  <link rel="stylesheet" href="shopping.css" />
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+  <link rel="preload" as="image" href="images/group1-main-fast-std-trim.jpg" fetchpriority="high" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(216, 230, 191, 0.55), transparent 28%),
+        radial-gradient(circle at top right, rgba(247, 201, 153, 0.35), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(242, 219, 182, 0.45), transparent 26%),
+        linear-gradient(180deg, #f6f0e6 0%, #ede3d4 100%);
+      color: #111;
+      line-height: 1.45;
+    }
+
+    body.page-loading {
+      opacity: 0;
+    }
+
+    body.page-ready {
+      opacity: 1;
+      transition: opacity 0.18s ease;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    :root {
+      --main-image-ratio: 4 / 3;
+      --main-image-max-width: 520px;
+      --main-image-max-height: 420px;
+      --thumb-size-desktop: 96px;
+      --thumb-size-mobile: 80px;
+      --gallery-width-desktop: 300px;
+      --gallery-height-desktop: 225px;
+      --gallery-height-mobile: 220px;
+    }
+
+    .container {
+      width: min(1260px, 92%);
+      margin: 0 auto;
+    }
+
+    .topbar {
+      background: rgba(244, 234, 218, 0.92);
+      border-bottom: 1px solid rgba(120, 100, 76, 0.18);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .topbar-inner {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      padding: 18px 0;
+      min-height: 92px;
+    }
+
+    .site-logo {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .site-logo img {
+      width: 88px;
+      height: 78px;
+      max-height: 78px;
+      object-fit: fill;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .nav a,
+    .nav-toggle {
+      font-size: 18px;
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .nav a:hover,
+    .nav-toggle:hover {
+      text-decoration: underline;
+    }
+
+    .nav-group {
+      position: relative;
+      padding-bottom: 12px;
+      margin-bottom: -12px;
+    }
+
+    .nav-menu {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 220px;
+      display: none;
+      padding: 12px;
+      background: rgba(245, 237, 225, 0.98);
+      border: 1px solid rgba(120, 100, 76, 0.16);
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(88, 66, 38, 0.14);
+    }
+
+    .nav-group:hover .nav-menu,
+    .nav-group:focus-within .nav-menu {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-menu a {
+      padding: 10px 12px;
+      border-radius: 10px;
+    }
+
+    .nav-menu a:hover {
+      background: rgba(230, 215, 192, 0.72);
+      text-decoration: none;
+    }
+
+    .btn {
+      display: inline-block;
+      border: none;
+      background: #111;
+      color: #fff;
+      padding: 15px 24px;
+      font-size: 18px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: #666;
+    }
+
+    .btn.disabled-look {
+      background: #888;
+    }
+
+    .btn.enabled {
+      background: #111;
+    }
+
+    .section {
+      padding: 38px 0;
+    }
+
+    .product-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 26px;
+      align-items: start;
+      scroll-margin-top: 96px;
+    }
+
+    .main-image-wrap {
+      background: rgba(246, 239, 228, 0.92);
+      overflow: hidden;
+      border: 1px solid rgba(120, 100, 76, 0.16);
+      max-width: var(--main-image-max-width);
+      aspect-ratio: var(--main-image-ratio);
+      max-height: var(--main-image-max-height);
+    }
+
+    .main-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .thumb-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .thumb {
+      width: var(--thumb-size-desktop);
+      min-width: var(--thumb-size-desktop);
+      height: var(--thumb-size-desktop);
+      border: 2px solid transparent;
+      background: #111;
+      cursor: pointer;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .thumb.active {
+      border-color: #111;
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-title {
+      font-size: clamp(28px, 3vw, 42px);
+      line-height: 1.08;
+      margin: 0 0 18px;
+      font-weight: 700;
+    }
+
+    .subline {
+      font-size: 26px;
+      margin: 0 0 24px;
+      color: #222;
+    }
+
+    .pricing-note {
+      font-size: 14px;
+      color: #5a4a3b;
+      margin: -10px 0 24px;
+    }
+
+    .short-desc {
+      font-size: 18px;
+      color: #222;
+      margin-bottom: 28px;
+    }
+
+    .order-label-row,
+    .pricing-note,
+    .subline,
+    .option-grid,
+    .cart-row,
+    .party-order-card {
+      display: none;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 14px 18px;
+      align-items: center;
+      margin: 22px 0;
+    }
+
+    .option-label {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    select {
+      width: 100%;
+      font-size: 18px;
+      padding: 15px 18px;
+      border: 2px solid #2271b1;
+      background: rgba(246, 239, 228, 0.96);
+      outline: none;
+    }
+
+    .cart-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin: 20px 0 18px;
+      flex-wrap: wrap;
+    }
+
+    .meta {
+      font-size: 18px;
+      color: #222;
+      margin-top: 8px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 42px;
+      border-bottom: 1px solid rgba(120, 100, 76, 0.16);
+      margin-top: 40px;
+      margin-bottom: 30px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 0 0 14px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab-btn.active {
+      color: #111;
+      border-bottom-color: #111;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .tab-panel h2 {
+      font-size: 42px;
+      margin: 10px 0 28px;
+    }
+
+    .variety-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 0 0 30px;
+    }
+
+    .chip {
+      padding: 10px 16px;
+      border: 1px solid rgba(120, 100, 76, 0.2);
+      background: rgba(246, 239, 228, 0.92);
+      border-radius: 999px;
+      font-size: 16px;
+    }
+
+    .variety-block {
+      margin-bottom: 64px;
+      scroll-margin-top: 110px;
+    }
+
+    .variety-block h3 {
+      font-size: 34px;
+      margin: 0 0 22px;
+      line-height: 1.08;
+    }
+
+    .variety-gallery {
+      display: flex;
+      gap: 0;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+      background: #111;
+      width: fit-content;
+      max-width: 100%;
+      border: 1px solid rgba(120, 100, 76, 0.16);
+    }
+
+    .variety-gallery .smart-image-frame {
+      width: var(--gallery-width-desktop);
+      max-width: 100%;
+      height: var(--gallery-height-desktop);
+      border-right: 1px solid rgba(120, 100, 76, 0.16);
+    }
+
+    .variety-gallery > img {
+      width: var(--gallery-width-desktop);
+      max-width: 100%;
+      height: var(--gallery-height-desktop);
+      object-fit: contain;
+      display: block;
+      background: #111;
+      border-right: 1px solid rgba(120, 100, 76, 0.16);
+    }
+
+    .variety-gallery .smart-image-frame:last-child {
+      border-right: none;
+    }
+
+    .variety-gallery > img:last-child {
+      border-right: none;
+    }
+
+    .variety-gallery.solid-black-gallery {
+      background: #111;
+    }
+
+    .variety-gallery.solid-black-gallery .smart-image-frame {
+      background: #111;
+    }
+
+    .variety-gallery.solid-black-gallery .smart-image-frame::before {
+      display: none;
+    }
+
+    .variety-gallery.solid-black-gallery > img {
+      background: #111;
+    }
+
+    .variety-block p {
+      font-size: 18px;
+      margin: 0 0 18px;
+    }
+
+    .variety-block strong {
+      font-weight: 700;
+    }
+
+    .info-table {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 10px 20px;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+
+    .info-table div:nth-child(odd) {
+      font-weight: 700;
+    }
+
+    .review-box,
+    .info-box {
+      background: rgba(245, 237, 225, 0.94);
+      padding: 24px;
+      border: 1px solid rgba(120, 100, 76, 0.16);
+    }
+
+    .order-online {
+      background: rgba(245, 237, 225, 0.94);
+      border: 1px solid rgba(120, 100, 76, 0.16);
+      padding: 28px;
+      margin-top: 36px;
+    }
+
+    .order-online h3 {
+      font-size: 34px;
+      margin: 0 0 18px;
+    }
+
+    .order-online p {
+      font-size: 18px;
+      margin: 0 0 12px;
+    }
+
+    .related-products {
+      margin-top: 40px;
+    }
+
+    .persistent-reviews {
+      margin-top: 32px;
+    }
+
+    .persistent-reviews h4 {
+      font-size: 24px;
+      margin: 0 0 18px;
+    }
+
+    .related-products h4 {
+      font-size: 20px;
+      margin: 0 0 20px;
+    }
+
+    .related-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 240px));
+      gap: 24px;
+    }
+
+    .related-card {
+      display: block;
+    }
+
+    .related-card .card-img-wrapper {
+      border: 1px solid rgba(120, 100, 76, 0.16);
+    }
+
+    .related-card h5 {
+      font-size: 20px;
+      margin: 14px 0 0;
+      line-height: 1.18;
+      text-align: center;
+    }
+
+    .placeholder-wrap {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #e1e1e1, #cfcfcf);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #444;
+      font-size: 18px;
+      padding: 20px;
+    }
+
+    footer {
+      background: rgba(234, 222, 206, 0.9);
+      border-top: 1px solid rgba(120, 100, 76, 0.14);
+      margin-top: 50px;
+      padding: 28px 0;
+      font-size: 17px;
+      color: #333;
+      text-align: center;
+    }
+
+    @media (max-width: 1100px) {
+      .product-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .main-image-wrap {
+        max-width: 520px;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .nav {
+        width: 100%;
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding: 0 2px;
+        gap: 16px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .nav a,
+      .nav-toggle {
+        white-space: nowrap;
+        text-align: left;
+        min-width: auto;
+        max-width: none;
+        font-size: 14px;
+        padding: 6px 0;
+        line-height: 1.1;
+        flex: 0 0 auto;
+      }
+
+      .nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .topbar-inner {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: nowrap;
+        padding-top: 14px;
+        padding-bottom: 14px;
+        min-height: 88px;
+        gap: 10px;
+      }
+
+      .site-logo {
+        position: static;
+        transform: none;
+        justify-content: center;
+        flex: 0 0 auto;
+      }
+
+      .site-logo img {
+        width: 80px;
+        height: 70px;
+      }
+
+      .product-title {
+        font-size: 34px;
+      }
+
+      .subline {
+        font-size: 24px;
+      }
+
+      .tab-panel h2 {
+        font-size: 38px;
+      }
+
+      .variety-block h3,
+      .order-online h3 {
+        font-size: 32px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .product-title {
+        font-size: 32px;
+      }
+
+      .option-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .option-label {
+        font-size: 24px;
+      }
+
+      .variety-gallery .smart-image-frame {
+        width: 100%;
+        height: var(--gallery-height-mobile);
+        border-right: none;
+        border-bottom: 1px solid rgba(120, 100, 76, 0.16);
+      }
+
+      .variety-gallery .smart-image-frame:last-child {
+        border-bottom: none;
+      }
+
+      .variety-gallery > img {
+        width: 100%;
+        height: var(--gallery-height-mobile);
+        border-right: none;
+        border-bottom: 1px solid rgba(120, 100, 76, 0.16);
+      }
+
+      .variety-gallery > img:last-child {
+        border-bottom: none;
+      }
+
+      .thumb {
+        width: var(--thumb-size-mobile);
+        min-width: var(--thumb-size-mobile);
+        height: var(--thumb-size-mobile);
+      }
+
+      .main-image {
+        height: 100%;
+      }
+
+      .info-table {
+        grid-template-columns: 1fr;
+      }
+
+      .related-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body class="page-loading">
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="site-logo" href="index.html" aria-label="DurianParadises.com home">
+        <img src="images/logo-header.png" alt="Durian Paradise logo" />
+      </a>
+      <nav class="nav">
+        <a href="index.html">Home</a>
+        <a href="index.html#order-now">Order Now</a>
+        <div class="nav-group">
+          <button class="nav-toggle" type="button">Types of Durian</button>
+          <div class="nav-menu">
+            <a href="#group1">Group 1</a>
+            <a href="group-2-durians.html#group2-header">Group 2</a>
+            <a href="group-3-durians.html#group3-header">Group 3</a>
+          </div>
+        </div>
+        <a href="contact-us.html">Contact Us</a>
+        <a href="index.html#reviews">Reviews</a>
+        <a href="#variants">Variants</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <section id="group1" class="product-layout section">
+      <div>
+        <div class="main-image-wrap">
+          <img
+            id="mainProductImage"
+            class="main-image"
+            src="images/group1-main-fast-std-trim.jpg"
+            alt="Main product placeholder"
+            loading="eager"
+            fetchpriority="high"
+            decoding="sync"
+          />
+        </div>
+
+        <div class="thumb-row">
+          <button class="thumb active" data-image="images/group1-main-fast-std-trim.jpg">
+            <img src="images/group1-main-fast-std-trim.jpg" alt="Thumbnail 1" loading="eager" fetchpriority="high" decoding="sync" />
+          </button>
+
+          <button class="thumb" data-image="images/group1-thumb-2-std-trim.png">
+            <img src="images/group1-thumb-2-std-trim.png" alt="Thumbnail 2" loading="eager" decoding="sync" />
+          </button>
+
+          <button class="thumb" data-image="images/group1-thumb-3-std-trim.png">
+            <img src="images/group1-thumb-3-std-trim.png" alt="Thumbnail 3" loading="eager" decoding="sync" />
+          </button>
+
+          <button class="thumb" data-image="images/group1-thumb-4-std-trim.png">
+            <img src="images/group1-thumb-4-std-trim.png" alt="Thumbnail 4" loading="eager" decoding="sync" />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h1 class="product-title">Group 1 Durians</h1>
+
+        <p class="short-desc">
+        D145 Cheh Kah, D2 Dato Nina, D13, D13.5, D24, D78, D88, D100, D101, D160 Tek Kah – Green Bamboo,
+          D162 Tawa, Golden Phoenix, Kasap Merah, Kampung Durians, Lao Tai Po, Mini Mao Shan Wang (MSW),
+          Red Prawn, Tek Kah, XO
+        </p>
+
+        <div class="meta">SKU: G1 &nbsp;&nbsp; Category: Durian, Fruits, Malaysia</div>
+
+      </div>
+    </section>
+
+    <section id="details" class="section">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="description">Description</button>
+      </div>
+
+      <div id="description" class="tab-panel active">
+        <h2 id="variants">Variants</h2>
+
+        <div class="variety-nav">
+          <a class="chip" href="#red-prawn">Red Prawn</a>
+          <a class="chip" href="#kampung-durians">Kampung Durians</a>
+          <a class="chip" href="#lao-tai-po">Lao Tai Po</a>
+          <a class="chip" href="#mini-msw">Mini Mao Shan Wang</a>
+          <a class="chip" href="#golden-phoenix">Golden Phoenix</a>
+          <a class="chip" href="#kasap-merah">Kasap Merah</a>
+          <a class="chip" href="#xo">XO</a>
+        <a class="chip" href="#cheh-kak">D145 Cheh Kah</a>
+          <a class="chip" href="#d2">D2 – Dato Nina</a>
+          <a class="chip" href="#d13">D13</a>
+          <a class="chip" href="#d135">D13.5</a>
+          <a class="chip" href="#d24">D24</a>
+          <a class="chip" href="#d78">D78</a>
+          <a class="chip" href="#d88">D88</a>
+          <a class="chip" href="#d100">D100</a>
+          <a class="chip" href="#d101">D101</a>
+          <a class="chip" href="#d160">D160 – Tek Kah</a>
+          <a class="chip" href="#d162">D162 – Tawa</a>
+        </div>
+
+        <article id="cheh-kak" class="variety-block">
+          <h3>D145 Cheh Kah</h3>
+          <div class="variety-gallery">
+            <img src="images/cheh-kak-1-std.png" alt="D145 Cheh Kah image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/cheh-kak-2-std.png" alt="D145 Cheh Kah image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Old-school charm. Rich and earthy. D145 Cheh Kah is positioned here as a classic, traditional
+            option for durian lovers who like a heritage-style experience.
+          </p>
+          <p>
+            This one is for the purists — no frills, just honest durian.
+          </p>
+          <p><strong>Taste & Texture:</strong> Milky-white to yellow flesh, creamy and smooth, with a more traditional flavour profile.</p>
+          <p><strong>Status:</strong> Heritage favourite among old-school durian fans.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="d2" class="variety-block">
+          <h3>D2 – Dato Nina</h3>
+          <div class="variety-gallery">
+            <img src="images/d2-dato-nina-1-std.png" alt="D2 Dato Nina image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d2-dato-nina-2-std.png" alt="D2 Dato Nina image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Elegant, delicate and more niche. D2 – Dato Nina is presented as a refined option with a softer,
+            more composed profile.
+          </p>
+          <p>
+            Good for customers who appreciate subtlety and nuance.
+          </p>
+          <p><strong>Taste & Texture:</strong> Thick, creamy flesh with a softer sweetness and a more composed finish.</p>
+          <p><strong>Status:</strong> Rarer pick for enthusiasts.</p>
+          <p><strong>Season:</strong> Early season — typically May to July</p>
+        </article>
+
+        <article id="d13" class="variety-block">
+          <h3>D13</h3>
+          <div class="variety-gallery">
+            <img src="images/d13-1-std.png" alt="D13 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d13-2-std.png" alt="D13 image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Sweet, bright and crowd-friendly. D13 is a beginner-friendly durian variant with a more
+            cheerful and approachable profile.
+          </p>
+          <p>
+            A strong option for sharing with friends or people trying durian more casually.
+          </p>
+          <p><strong>Taste & Texture:</strong> Sweeter, smoother flesh with a creamy finish and lighter overall intensity.</p>
+          <p><strong>Status:</strong> Easy entry point into the category.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="d135" class="variety-block">
+          <h3>D13.5</h3>
+          <div class="variety-gallery">
+            <img src="images/d13-5-1-std.png" alt="D13.5 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d13-5-2-std.png?v=2" alt="D13.5 image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Richer and bolder than D13. D13.5 is positioned as a natural next step for those who want
+            more depth without going too intense.
+          </p>
+          <p>
+            Ideal for customers ready to level up slightly.
+          </p>
+          <p><strong>Taste & Texture:</strong> Thicker, creamier and fuller-bodied than D13.</p>
+          <p><strong>Status:</strong> Under-the-radar step-up option.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="d24" class="variety-block">
+          <h3>D24</h3>
+          <div class="variety-gallery">
+            <img src="images/d24-1.png" alt="D24 image 1" loading="lazy" decoding="async" />
+            <img src="images/d24-2-std.png" alt="D24 image 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Classic. Reliable. Always hits the spot. D24, also known as Sultan, is the go-to durian for those who appreciate balance.
+            Not too sweet, not too bitter — just the right harmony of flavour packed into firm, pale yellow flesh.
+            It is the variety many grew up with, and for good reason.
+          </p>
+          <p>
+            A great choice if you are looking for something satisfying, flavourful, and easy to share.
+          </p>
+          <p><strong>Taste & Texture:</strong> Flesh is pale yellow to mustard yellow, creamy and sometimes sticky, with thick soft flesh and a bittersweet profile.</p>
+          <p><strong>Status:</strong> A crowd-pleaser and longtime staple across Malaysia and Singapore.</p>
+          <p><strong>Season:</strong> June to September</p>
+        </article>
+
+        <article id="d78" class="variety-block">
+          <h3>D78</h3>
+          <div class="variety-gallery">
+            <img src="images/d78-1-std.png" alt="D78 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d78-2-std.png?v=2" alt="D78 image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Balanced. Creamy. Quietly addictive. D78 does not boast, but it delivers — a dependable mid-range durian that often flies under the radar.
+            With a smooth, buttery texture and a mellow bittersweet profile, it sits right in the middle and wears that well.
+          </p>
+          <p>
+            It is ideal for people who want something balanced without going too sweet or too intense.
+          </p>
+          <p><strong>Taste & Texture:</strong> Pale yellow dry flesh, mildly sweet, creamy, with a slightly bitter note and hints of nuttiness.</p>
+          <p><strong>Status:</strong> A quiet contender known among insiders and loved by those who seek balance.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="d88" class="variety-block">
+          <h3>D88</h3>
+          <div class="variety-gallery">
+            <img src="images/d88-1-std.png?v=2" alt="D88 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d88-2-std.png?v=3" alt="D88 image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Bold. Buttery. No-nonsense. D88 is for those who like their durians with a bit of punch.
+            Its rich, custardy flesh gives you a firmer bitterness up front, followed by a lingering sweetness that coats the palate.
+          </p>
+          <p>
+            Slightly firmer than some creamier varieties, D88 offers a satisfying bite and a fuller durian experience.
+          </p>
+          <p><strong>Taste & Texture:</strong> Dry pale yellow flesh, sometimes with a pinkish hue, firm, creamy and slightly fibrous, with large fleshy seeds.</p>
+          <p><strong>Status:</strong> A popular choice among seasoned durian eaters — bold but not overpowering.</p>
+          <p><strong>Season:</strong> June to September</p>
+        </article>
+
+        <article id="d100" class="variety-block">
+          <h3>D100</h3>
+          <div class="variety-gallery">
+            <img src="images/d100-1-std.png" alt="D100 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d100-2-std.png?v=2" alt="D100 image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Silky. Sweet. Sneakily addictive. D100 is the smooth talker of the durian world — gentle on the nose, but rich on the tongue.
+            Its flesh is soft, velvety, and almost mousse-like, with a light sweetness that slowly reveals subtle layers of bitterness.
+          </p>
+          <p>
+            Ideal for those who enjoy a mellow but layered durian experience.
+          </p>
+          <p><strong>Taste & Texture:</strong> Thick white-to-yellow flesh, creamy, moist, and rich, with a stronger emphasis on bitterness beneath the sweetness.</p>
+          <p><strong>Status:</strong> A quiet favourite among those who prefer elegance over intensity.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="d101" class="variety-block">
+          <h3>D101</h3>
+          <div class="variety-gallery">
+            <img src="images/d101-1-std.png" alt="D101 image placeholder 1" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Smooth. Sweet. Super likeable. D101 is the ultimate people-pleaser — mild enough for beginners,
+            yet creamy and satisfying enough for durian lovers who want something easygoing.
+          </p>
+          <p>
+            Perfect if you want a fuss-free, feel-good durian that almost everyone can agree on.
+          </p>
+          <p><strong>Taste & Texture:</strong> Golden yellow or orange flesh, creamy, slightly moist and a bit fibrous, with a gently sweet finish.</p>
+          <p><strong>Status:</strong> A staple at many stalls — friendly, reliable, and easy to love.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="d160" class="variety-block">
+          <h3>D160 – Tek Kah (Green Bamboo)</h3>
+          <div class="variety-gallery">
+            <img src="images/d160-tek-kah-1-std.png" alt="D160 Tek Kah image placeholder 1" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Clean. Cool. Confident. D160, better known as Tek Kah or Green Bamboo, stands out with a sharp, refined flavour profile that durian purists love.
+            Its firm, slightly dry flesh carries a bold bitterness with just enough sweetness to keep things balanced.
+          </p>
+          <p>
+            A top choice for those who crave that classic, punchy old-school bitterness with structure and edge.
+          </p>
+          <p><strong>Taste & Texture:</strong> Bittersweet with a strong floral fragrance, firm pale greyish-yellow flesh, smooth and creamy with large seeds.</p>
+          <p><strong>Status:</strong> A connoisseur’s pick — strong character and a cult following.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="d162" class="variety-block">
+          <h3>D162 – Tawa</h3>
+          <div class="variety-gallery">
+            <img src="images/d162-tawa-1-std.png" alt="D162 Tawa image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d162-tawa-2-std.png?v=2" alt="D162 Tawa image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Strong. Sharp. Not for the faint-hearted. D162 is a bold, assertive durian that speaks directly to hardcore fans.
+            With a thick, creamy texture and a strong bitter bite right from the start, this variety does not hold back.
+          </p>
+          <p>
+            Best enjoyed by those who like their durian intense, unapologetic, and packed with personality.
+          </p>
+          <p><strong>Taste & Texture:</strong> Pale yellow flesh, less creamy and more pungent, less fibrous, with a firm texture and balanced bittersweet flavour.</p>
+          <p><strong>Status:</strong> A heavyweight pick among veteran durian lovers.</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="red-prawn" class="variety-block">
+          <h3>Red Prawn</h3>
+          <div class="variety-gallery">
+            <img src="images/red-prawn-whole-std.png" alt="Red Prawn durian whole" loading="lazy" decoding="async" />
+            <img src="images/red-prawn-open.png?v=2" alt="Red Prawn durian opened" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Don't let the name throw you, there's nothing fishy about <strong>Red Prawn</strong>
+            (<em>Ang Hei</em>). This fan favorite is all about comfort and indulgence. With its
+            peachy-red hue and ultra-creamy flesh, Red Prawn delivers a naturally sweet taste that's
+            milder and rounder than its more intense cousins. It's the kind of durian you can keep
+            eating without realizing how far you've gone.
+          </p>
+          <p>
+            This is a rich, moist to wet durian - perfect for durian fans or anyone who just wants
+            something smooth, sweet, and deeply satisfying.
+          </p>
+          <p>
+            <strong>Taste &amp; Texture:</strong> It is known for its light pinkish tone to orangey in colour,
+            creamy and smooth and fiberless, custard-like consistency, sweet, sticky and sometimes has a
+            bitter taste with a milky or champagne-like alcoholic flavour, seeds range from small to large.
+          </p>
+          <p><strong>Vibe:</strong> Less bite, more bliss; great for sharing (or not)</p>
+          <p><strong>Season:</strong> June to August</p>
+        </article>
+
+        <article id="kampung-durians" class="variety-block">
+          <h3>Kampung Durians</h3>
+          <div class="variety-gallery solid-black-gallery">
+            <img src="images/group1-thumb-2-std.png?v=4" alt="Kampung durian image 1" loading="lazy" decoding="async" />
+            <img src="images/kampung-durian.png?v=2" alt="Kampung durian image 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Wild. Diverse. Full of surprises. Kampung durians aren't from cloned or grafted trees, but
+            grown naturally from seeds, which means every fruit is a little different. You might get one
+            that's sweet and floral, another that's deeply bitter and funky, or one with a perfect
+            bittersweet balance. No two seeds taste exactly alike, and that's part of the charm.
+          </p>
+          <p>
+            Ideal for durian lovers who enjoy variety, mystery, and the thrill of the unexpected - like a
+            lucky dip in fruit form.
+          </p>
+          <p>
+            <strong>Taste &amp; Texture:</strong> Range from bitter, sweet or bittersweet, creamy, thick
+            custard-like flesh, flesh ranges from yellow to white and even orange in colour, seeds can be
+            big and some small, can be fibrous for some, older trees durians have even notes of alcohol
+            hints with bitter taste.
+          </p>
+          <p>
+            <strong>Status:</strong> The original durian experience - beloved for its natural diversity and
+            nostalgic kampung character.
+          </p>
+          <p><strong>Season:</strong> June to September</p>
+        </article>
+
+        <article id="lao-tai-po" class="variety-block">
+          <h3>Lao Tai Po</h3>
+          <div class="variety-gallery">
+            <img src="images/lao-tai-po-1-std.png" alt="Lao Tai Po image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/lao-tai-po-2-std.png?v=2" alt="Lao Tai Po image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Old-school. Bold. Packed with attitude. Lao Tai Po, which means "Old Grandmother", lives up to
+            its name with a deep, mature flavour profile that doesn't hold back. Expect a thick, slightly
+            dry texture paired with a strong, lingering bitterness and a sharp, fermented edge. It's the
+            kind of durian that hits you fast and stays with you: raw, real, and unforgettable.
+          </p>
+          <p>
+            Perfect for seasoned durian fans who like their fruit strong, funky, and full of old-soul
+            character.
+          </p>
+          <p>
+            <strong>Taste &amp; Texture:</strong> Flesh is pale, almost white yellow in colour, its also thick,
+            moist and wrinkly texture that tends to breaks easily, its known for its bittersweet flavour
+            with a combination of buttery and creamy texture, seeds range from small to large in size.
+          </p>
+          <p>
+            <strong>Status:</strong> A vintage variety cherished by hardcore durian purists and older generations.
+          </p>
+          <p><strong>Season:</strong> July to September</p>
+        </article>
+
+        <article id="mini-msw" class="variety-block">
+          <h3>Mini Mao Shan Wang (MSW)</h3>
+          <div class="variety-gallery">
+            <img src="images/mini-msw-std.png?v=2" alt="Mini Mao Shan Wang durian" loading="lazy" decoding="async" />
+            <img src="images/mini-msw-2-std.png" alt="Mini Mao Shan Wang durian image 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Prepare your senses for the king of all kings - <em>Mao Shan Wang</em>, also known as
+            <em>Musang King</em>. With its golden-yellow flesh and unmistakably rich, buttery texture, this
+            is the durian that aficionados dream of. Bold and unapologetically intense, every bite
+            delivers a luxurious blend of bittersweet creaminess, laced with notes of roasted almonds and
+            a whisper of cognac.
+          </p>
+          <p>
+            Encased in a green husk marked by its signature starburst at the base, the Mao Shan Wang
+            doesn't just stand out - it rules. Whether you're a lifelong fan or a first-time thrill
+            seeker, this is the durian that sets the bar.
+          </p>
+          <p>
+            <strong>Taste &amp; Texture:</strong> Flesh is mostly yellow in colour, bittersweet yet creamy,
+            buttery and smooth, sometimes with a slightly fibrous texture, less bitter than old trees,
+            mostly small seeds.
+          </p>
+          <p><strong>Status:</strong> Malaysia's most coveted durian, often imitated, never duplicated</p>
+          <p><strong>Season:</strong> From June to August</p>
+        </article>
+
+        <article id="golden-phoenix" class="variety-block">
+          <h3>Golden Phoenix</h3>
+          <div class="variety-gallery solid-black-gallery">
+            <img src="images/golden-phoenix-1-std.png" alt="Golden Phoenix image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/golden-phoenix-2-std.png" alt="Golden Phoenix image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Light. Lush. Deceptively potent. Golden Phoenix, or <em>Jin Feng</em>, may look dainty with its
+            pale, almost ivory-coloured flesh, but don't be fooled: it delivers a sharp, complex punch.
+            With a distinct bitter edge, slight fermentation notes, and a drier, custard-like texture,
+            it's a favorite among those who like their durian lean but layered. It's also one of the
+            earliest varieties to arrive each season - a welcome preview of what's to come.
+          </p>
+          <p>
+            Ideal for those who like a strong flavour without the heavy richness.
+          </p>
+          <p>
+            <strong>Taste &amp; Texture:</strong> Flesh is dry, pale yellow to creamy whitish in colour,
+            bitter taste with a potential alcoholic aftertaste, flesh is typically moist and thick and
+            sometimes creamy or buttery small seeds.
+          </p>
+          <p><strong>Status:</strong> A sought-after early-season variety - bold, elegant, and memorable.</p>
+          <p><strong>Season:</strong> May to July</p>
+        </article>
+
+        <article id="kasap-merah" class="variety-block">
+          <h3>Kasap Merah</h3>
+          <div class="variety-gallery">
+            <img src="images/kasap-merah-1-std.png" alt="Kasap Merah image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/kasap-merah-2-std.png?v=2" alt="Kasap Merah image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Rare. Rustic. Strikingly unique. Kasap Merah stands out with its distinctive reddish-orange
+            flesh; a visual feast before the first bite. But it's more than just good looks. This heritage
+            kampung-style durian offers a firm, slightly fibrous bite with a bold, earthy flavour profile
+            that leans toward the bitter end. It's less about creamy sweetness and more about texture,
+            depth, and character.
+          </p>
+          <p>
+            Best suited for adventurous eaters and old-school durian lovers looking for something off the
+            beaten track.
+          </p>
+          <p>
+            <strong>Taste &amp; Texture:</strong> Flesh is pale yellow to almost white in colour, creamy, soft
+            and fleshy, has a moist to wet texture, sometimes sticky flesh, mildly sweet, known for its
+            bittersweet flavour profile with an alcoholic taste, best to take it chilled.
+          </p>
+          <p><strong>Status:</strong> A rare kampung variety treasured by collectors and traditionalists.</p>
+          <p><strong>Season:</strong> July to September</p>
+        </article>
+
+        <article id="xo" class="variety-block">
+          <h3>XO</h3>
+          <div class="variety-gallery">
+            <img src="images/xo-1-std.png" alt="XO image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/xo-2-std.png?v=2" alt="XO image placeholder 2" loading="lazy" decoding="async" />
+          </div>
+          <p>
+            Sharp. Boozy. Not for beginners. XO is the rebellious, late-night version of durian - rich
+            with fermentation notes and an unmistakable alcoholic bite. Aged longer inside the husk before
+            opening, this variety develops a sharp bitterness and strong aroma that hits immediately. The
+            flesh is soft, wet, and almost slippery, with an aftertaste that lingers like a fine spirit.
+          </p>
+          <p>
+            Perfect for seasoned durian eaters who crave complexity, intensity, and a bit of edge.
+          </p>
+          <p>
+            <strong>Taste &amp; Texture:</strong> It's known for its bitter taste with a distinctive alcoholic
+            aftertaste, flesh is pale yellow and can appear watery, creamy, texture generally soft &amp;
+            moist. It has a strong pungent aroma sometimes described as a mix of sweet, fruity and even
+            onion or garlic notes.
+          </p>
+          <p><strong>Status:</strong> A cult favorite among hardcore durian lovers and late-season loyalists.</p>
+          <p><strong>Season:</strong> July to September</p>
+        </article>
+      </div>
+
+      <div id="info" class="tab-panel">
+        <h2>Additional information</h2>
+        <div class="info-box">
+          <div class="info-table">
+            <div>SKU</div><div>G1</div>
+            <div>Category</div><div>Durian, Fruits, Malaysia</div>
+            <div>Available group sizes</div><div>8 pax – 21kg, 13 pax – 24kg, 18 pax – 27kg</div>
+            <div>Estimated durian count</div><div>11 to 19 durians depending on selection</div>
+      <div>Subcategories</div><div>D145 Cheh Kah, D2 Dato Nina, D13, D13.5, D24, D78, D88, D100, D101, D160 Tek Kah, D162 Tawa, Red Prawn, Kampung Durians, Lao Tai Po, Mini Mao Shan Wang, Golden Phoenix, Kasap Merah, XO</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="persistent-reviews">
+        <h4>Reviews</h4>
+        <div class="reviews-feed" data-reviews-feed>
+          <div class="review-empty">Loading reviews...</div>
+        </div>
+      </div>
+
+        <div class="related-products">
+          <h4>Related products</h4>
+          <div class="related-grid">
+            <a class="related-card" href="group-2-durians.html#group2-header">
+              <div class="card-img-wrapper">
+                <img src="images/group2-card-fast-std.jpg" alt="Group 2 related product placeholder" loading="lazy" decoding="async" />
+              </div>
+              <h5>Group 2 Durians - Mao Shan Wang</h5>
+            </a>
+            <a class="related-card" href="group-3-durians.html#group3-header">
+              <div class="card-img-wrapper">
+                <img src="images/group3-card-fast-std.jpg" alt="Group 3 related product placeholder" loading="lazy" decoding="async" />
+              </div>
+              <h5>Group 3 Durians - Black Gold, Black Thorns Orchee</h5>
+            </a>
+          </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    © Durian Paradise 2026 · 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 · UEN 53490378M
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    const mainImage = document.getElementById('mainProductImage');
+    const thumbs = document.querySelectorAll('.thumb');
+
+    thumbs.forEach((thumb) => {
+      thumb.addEventListener('click', () => {
+        const nextImage = thumb.getAttribute('data-image');
+        mainImage.src = nextImage;
+
+        thumbs.forEach((t) => t.classList.remove('active'));
+        thumb.classList.add('active');
+      });
+    });
+
+
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
+
+        tabButtons.forEach((btn) => btn.classList.remove('active'));
+        tabPanels.forEach((panel) => panel.classList.remove('active'));
+
+        button.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You Have Been Referred | Durian Paradise</title>
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "Inter", Arial, sans-serif;
+      color: #1f1a15;
+      background:
+        radial-gradient(circle at top left, rgba(216, 230, 191, 0.55), transparent 28%),
+        radial-gradient(circle at top right, rgba(247, 201, 153, 0.35), transparent 22%),
+        linear-gradient(180deg, #f6f0e6 0%, #ede3d4 100%);
+    }
+
+    .referral-card {
+      width: min(720px, 100%);
+      padding: clamp(28px, 6vw, 52px);
+      border-radius: 30px;
+      background: rgba(252, 249, 245, 0.92);
+      border: 1px solid rgba(120, 100, 76, 0.14);
+      box-shadow: 0 24px 52px rgba(72, 49, 25, 0.13);
+      text-align: center;
+    }
+
+    .referral-logo {
+      width: 92px;
+      height: 82px;
+      object-fit: contain;
+      margin: 0 auto 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(232, 221, 203, 0.9);
+      color: #6f5330;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 6vw, 54px);
+      line-height: 1.05;
+      margin-bottom: 16px;
+    }
+
+    p {
+      font-size: clamp(16px, 2.4vw, 20px);
+      color: #4d3d2f;
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    .referral-note {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(245, 237, 225, 0.92);
+      border: 1px solid rgba(120, 100, 76, 0.12);
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6f5330 0%, #9d7741 100%);
+      color: #fffaf1;
+      font-size: 17px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 16px 30px rgba(104, 73, 36, 0.2);
+    }
+
+    .button[aria-disabled="true"] {
+      pointer-events: none;
+      opacity: 0.5;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="referral-card">
+    <img class="referral-logo" src="images/logo-header.png" alt="Durian Paradise" />
+    <div class="badge">Referral Invitation</div>
+    <h1 data-referral-title>You have been referred to this website</h1>
+    <p data-referral-copy>Press the button below to visit Durian Paradise. If you place an order within the referral period, the referral reward will be recorded automatically.</p>
+    <div class="referral-note" data-referral-note>Checking referral link...</div>
+    <a class="button" href="/" data-referral-continue aria-disabled="true">Visit Durian Paradise</a>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = String(params.get("code") || "").trim();
+    const isExpired = params.get("expired") === "1";
+    const isInvalid = params.get("invalid") === "1";
+    const title = document.querySelector("[data-referral-title]");
+    const copy = document.querySelector("[data-referral-copy]");
+    const note = document.querySelector("[data-referral-note]");
+    const button = document.querySelector("[data-referral-continue]");
+
+    function disableReferral(message) {
+      title.textContent = "This referral link is not active";
+      copy.textContent = "You can still visit Durian Paradise, but no referral voucher will be issued from this link.";
+      note.textContent = message;
+      button.href = "/";
+      button.removeAttribute("aria-disabled");
+    }
+
+    if (!code || isInvalid) {
+      disableReferral("This referral link is missing or invalid.");
+    } else if (isExpired) {
+      disableReferral("This referral link has expired after 30 days.");
+    } else {
+      fetch(`/api/referrals/${encodeURIComponent(code)}`)
+        .then((response) => response.json().then((payload) => ({ response, payload })))
+        .then(({ response, payload }) => {
+          if (!response.ok || !payload.referral) {
+            disableReferral("This referral link could not be found.");
+            return;
+          }
+
+          if (!payload.referral.isActive) {
+            disableReferral("This referral link has expired after 30 days.");
+            return;
+          }
+
+          const expiry = new Date(payload.referral.expiresAt).toLocaleDateString("en-SG", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+          });
+          note.textContent = `Referral valid until ${expiry}. If you skip this link and enter the website normally, the referral voucher will not be issued.`;
+          button.href = `/r/${encodeURIComponent(code)}`;
+          button.removeAttribute("aria-disabled");
+        })
+        .catch(() => {
+          disableReferral("Unable to check this referral link right now.");
+        });
+    }
+  </script>
+</body>
+</html>

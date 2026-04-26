@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: durian-paradise
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 24.13.1
+      - key: SITE_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: REVIEWS_FILE_PATH
+        value: /var/data/reviews.json
+      - key: ORDERS_FILE_PATH
+        value: /var/data/orders.json
+      - key: REFERRALS_FILE_PATH
+        value: /var/data/referrals.json
+      - key: ANALYTICS_FILE_PATH
+        value: /var/data/analytics.json
+      - key: BUSINESS_UEN
+        value: 53490378M
+      - key: PAYMENT_PROVIDER
+        value: pending_dynamic_sgqr
+      - key: PAYMENT_PROVIDER_NAME
+        value: PayNow / SGQR
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ORDER_EMAIL_FROM
+        value: Durian Paradise <orders@durianparadises.com>
+      - key: ORDER_EMAIL_REPLY_TO
+        value: durianparadise6940@gmail.com
+      - key: ORDER_NOTIFICATION_EMAIL
+        value: durianparadise6940@gmail.com
+      - key: ANALYTICS_AUTH_USER
+        sync: false
+      - key: ANALYTICS_AUTH_PASSWORD
+        sync: false
+    disk:
+      name: durian-paradise-data
+      mountPath: /var/data
+      sizeGB: 1

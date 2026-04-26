@@ -1,0 +1,14 @@
+{
+  "name": "durian-paradise",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Durian Paradise storefront with dynamic Stripe checkout",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "stripe": "^18.2.0"
+  }
+}
