@@ -4,11 +4,15 @@ const CART_STORAGE_KEY = "durianParadiseCart";
 const REVIEWS_API_PATH = "/api/reviews";
 const PAYMENT_ORDERS_API_PATH = "/api/payment-orders";
 const REFERRALS_API_PATH = "/api/referrals";
+const REFERRAL_REWARDS_LOOKUP_API_PATH = "/api/referral-rewards/lookup";
 const ANALYTICS_EVENTS_API_PATH = "/api/analytics/events";
 const PENDING_PAYMENT_STORAGE_KEY = "durianParadisePendingPayment";
 const REFERRAL_STORAGE_KEY = "durianParadiseReferral";
 const OWNED_REFERRALS_STORAGE_KEY = "durianParadiseOwnedReferrals";
 const VISITOR_STORAGE_KEY = "durianParadiseVisitorId";
+let phoneMatchedReferralRewards = [];
+let referralRewardLookupTimer = 0;
+let lastReferralRewardLookupKey = "";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-SG", {
@@ -238,6 +242,122 @@ function markOwnedReferralRewardsAsClaimed(rewardClaims, orderId) {
   }));
 
   saveOwnedReferrals(ownedReferrals);
+}
+
+function getRewardIdentityKey(reward) {
+  return `${reward && reward.referralCode ? reward.referralCode : ""}::${reward && reward.id ? reward.id : ""}`;
+}
+
+function mergeReferralRewards(rewardGroups) {
+  const merged = [];
+  const seen = new Set();
+
+  rewardGroups.forEach((group) => {
+    (Array.isArray(group) ? group : []).forEach((reward) => {
+      const key = getRewardIdentityKey(reward);
+
+      if (seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+      merged.push(reward);
+    });
+  });
+
+  return merged;
+}
+
+function getDisplayableReferralRewards() {
+  return mergeReferralRewards([
+    getActiveOwnedReferralRewards(),
+    phoneMatchedReferralRewards
+  ]);
+}
+
+function normalizePhoneLookupKey(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  return digits.length >= 8 ? digits.slice(-8) : digits;
+}
+
+function updateReferralRewardsStatus(message = "", isError = false) {
+  const status = document.querySelector("[data-referral-rewards-status]");
+
+  if (!status) {
+    return;
+  }
+
+  status.textContent = message;
+  status.classList.toggle("is-error", Boolean(isError && message));
+}
+
+async function lookupReferralRewardsByPhone(phone) {
+  const lookupKey = normalizePhoneLookupKey(phone);
+
+  if (!lookupKey) {
+    lastReferralRewardLookupKey = "";
+    phoneMatchedReferralRewards = [];
+    updateReferralRewardsStatus("");
+    renderCart();
+    return;
+  }
+
+  lastReferralRewardLookupKey = lookupKey;
+  updateReferralRewardsStatus("Checking referral rewards for this number...");
+
+  try {
+    const response = await fetch(REFERRAL_REWARDS_LOOKUP_API_PATH, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ phone })
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (lastReferralRewardLookupKey !== lookupKey) {
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Unable to check referral rewards right now.");
+    }
+
+    phoneMatchedReferralRewards = Array.isArray(payload.rewards) ? payload.rewards : [];
+
+    if (!phoneMatchedReferralRewards.length) {
+      updateReferralRewardsStatus("No referral rewards are currently waiting for this contact number.");
+    } else if (phoneMatchedReferralRewards.length === 1) {
+      updateReferralRewardsStatus("1 referral reward is ready and will be applied at checkout.");
+    } else {
+      updateReferralRewardsStatus(`${phoneMatchedReferralRewards.length} referral rewards are ready and will be applied at checkout.`);
+    }
+
+    renderCart();
+  } catch (error) {
+    if (lastReferralRewardLookupKey !== lookupKey) {
+      return;
+    }
+
+    phoneMatchedReferralRewards = [];
+    updateReferralRewardsStatus(
+      error && error.message ? error.message : "Unable to check referral rewards right now.",
+      true
+    );
+    renderCart();
+  }
+}
+
+function scheduleReferralRewardsLookup(phone) {
+  window.clearTimeout(referralRewardLookupTimer);
+  referralRewardLookupTimer = window.setTimeout(() => {
+    lookupReferralRewardsByPhone(phone);
+  }, 220);
 }
 
 async function refreshOwnedReferralRewards() {
@@ -844,6 +964,18 @@ function injectCartStyles() {
       grid-column: 1 / -1;
     }
 
+    .checkout-help {
+      margin-top: 8px;
+      color: #5a4a3b;
+      font-size: 13px;
+      line-height: 1.45;
+      grid-column: 1 / -1;
+    }
+
+    .checkout-help.is-error {
+      color: #8a3a2d;
+    }
+
     .checkout-field {
       display: grid;
       gap: 6px;
@@ -873,11 +1005,11 @@ function injectCartStyles() {
       resize: vertical;
     }
 
-    .checkout-field:nth-of-type(3) {
+    .checkout-field:nth-of-type(4) {
       grid-column: auto;
     }
 
-    .checkout-field:nth-of-type(4) {
+    .checkout-field:nth-of-type(5) {
       grid-column: 1 / -1;
     }
 
@@ -1113,8 +1245,8 @@ function injectCartStyles() {
         padding: 10px;
       }
 
-      .checkout-field:nth-of-type(3),
-      .checkout-field:nth-of-type(4) {
+      .checkout-field:nth-of-type(4),
+      .checkout-field:nth-of-type(5) {
         grid-column: auto;
       }
 
@@ -1290,60 +1422,18 @@ function revealPageWhenCriticalImagesReady() {
     return;
   }
 
-  const criticalImages = Array.from(
-    document.querySelectorAll('img[fetchpriority="high"], img[data-critical-image="true"]')
-  ).filter((image, index, all) => all.indexOf(image) === index);
+  window.requestAnimationFrame(revealPage);
+}
 
-  if (!criticalImages.length) {
-    revealPage();
+function runNonCriticalTask(task, timeout = 400) {
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(() => {
+      task();
+    }, { timeout });
     return;
   }
 
-  let remaining = criticalImages.length;
-  let revealed = false;
-
-  const finish = () => {
-    if (revealed) {
-      return;
-    }
-
-    revealed = true;
-    window.requestAnimationFrame(revealPage);
-  };
-
-  const markReady = () => {
-    remaining -= 1;
-
-    if (remaining <= 0) {
-      finish();
-    }
-  };
-
-  const timeoutId = window.setTimeout(finish, 1400);
-  const wrappedFinish = () => {
-    window.clearTimeout(timeoutId);
-    finish();
-  };
-
-  criticalImages.forEach((image) => {
-    if (image.complete && image.naturalWidth > 0) {
-      markReady();
-      return;
-    }
-
-    const onDone = () => {
-      image.removeEventListener("load", onDone);
-      image.removeEventListener("error", onDone);
-      markReady();
-    };
-
-    image.addEventListener("load", onDone, { once: true });
-    image.addEventListener("error", onDone, { once: true });
-  });
-
-  if (remaining <= 0) {
-    wrappedFinish();
-  }
+  window.setTimeout(task, 0);
 }
 
 function bindNavMenus() {
@@ -1494,6 +1584,7 @@ function ensureCartUI() {
             <label for="checkout-phone">Contact Number</label>
             <input id="checkout-phone" type="tel" maxlength="40" autocomplete="tel" data-checkout-phone required />
           </div>
+          <div class="checkout-help" data-referral-rewards-status></div>
           <div class="checkout-field">
             <label for="checkout-email">Email</label>
             <input id="checkout-email" type="email" maxlength="120" autocomplete="email" data-checkout-email required />
@@ -1731,7 +1822,7 @@ function renderPaymentRequestCard(pendingPayment) {
 
 function renderCart() {
   const cart = loadCart();
-  const activeReferralRewards = getActiveOwnedReferralRewards();
+  const activeReferralRewards = getDisplayableReferralRewards();
   const countEls = document.querySelectorAll("[data-cart-count]");
   const body = document.querySelector("[data-cart-body]");
   const totalEl = document.querySelector("[data-cart-total]");
@@ -1794,6 +1885,7 @@ function bindCartUI() {
   const body = document.querySelector("[data-cart-body]");
   const checkout = document.querySelector("[data-cart-checkout]");
   const paymentRequest = document.querySelector("[data-payment-request]");
+  const phoneInput = document.querySelector("[data-checkout-phone]");
 
   if (trigger) {
     trigger.addEventListener("click", openCartDrawer);
@@ -1895,15 +1987,28 @@ function bindCartUI() {
     });
   }
 
+  if (phoneInput) {
+    const syncReferralLookup = () => {
+      scheduleReferralRewardsLookup(phoneInput.value.trim());
+    };
+
+    phoneInput.addEventListener("input", syncReferralLookup);
+    phoneInput.addEventListener("blur", syncReferralLookup);
+
+    if (phoneInput.value.trim()) {
+      syncReferralLookup();
+    }
+  }
+
   if (checkout) {
     checkout.addEventListener("click", async () => {
       const cart = loadCart();
-      const activeReferralRewards = getActiveOwnedReferralRewards();
+      const activeReferralRewards = getDisplayableReferralRewards();
       const referralRewardClaims = activeReferralRewards.map((reward) => ({
         referralCode: reward.referralCode,
         rewardId: reward.id,
         ownerToken: reward.ownerToken
-      }));
+      })).filter((claim) => claim.referralCode && claim.rewardId && claim.ownerToken);
       const nameInput = document.querySelector("[data-checkout-name]");
       const phoneInput = document.querySelector("[data-checkout-phone]");
       const emailInput = document.querySelector("[data-checkout-email]");
@@ -1990,6 +2095,8 @@ function bindCartUI() {
         });
         clearStoredReferralCode();
         markOwnedReferralRewardsAsClaimed(referralRewardClaims, payload.order.id);
+        phoneMatchedReferralRewards = [];
+        updateReferralRewardsStatus("");
         renderCart();
         const updatedPaymentRequest = document.querySelector("[data-payment-request]");
         if (updatedPaymentRequest) {
@@ -2259,12 +2366,24 @@ function bindReferralForm() {
   const output = document.querySelector("[data-referral-output]");
   const linkEl = document.querySelector("[data-referral-link]");
   const copyButton = document.querySelector("[data-copy-referral-link]");
+  const ownerPhoneInput = document.querySelector("[data-referral-owner-phone]");
 
   if (!message || !submit || !output || !linkEl) {
     return;
   }
 
   submit.addEventListener("click", async () => {
+    const ownerPhone = ownerPhoneInput ? ownerPhoneInput.value.trim() : "";
+
+    if (!ownerPhone) {
+      message.textContent = "Enter the contact number you will use for your future purchase first.";
+      message.className = "referral-message is-error";
+      if (ownerPhoneInput) {
+        ownerPhoneInput.focus();
+      }
+      return;
+    }
+
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
@@ -2275,7 +2394,9 @@ function bindReferralForm() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          ownerPhone
+        })
       });
       const result = await response.json();
 
@@ -2286,7 +2407,7 @@ function bindReferralForm() {
       storeOwnedReferral(result.referral);
       linkEl.textContent = result.referral.link;
       output.classList.add("is-visible");
-      message.textContent = "Referral link ready.";
+      message.textContent = "Referral link ready. Use the same contact number at checkout to redeem rewards automatically.";
       message.className = "referral-message is-success";
       refreshOwnedReferralRewards().catch(() => {});
     } catch (error) {
@@ -2330,7 +2451,11 @@ document.addEventListener("DOMContentLoaded", () => {
   renderCart();
   bindReviewForm();
   bindReferralForm();
-  loadReviews();
-  refreshOwnedReferralRewards().catch(() => {});
   revealPageWhenCriticalImagesReady();
+  runNonCriticalTask(() => {
+    loadReviews();
+  }, 700);
+  runNonCriticalTask(() => {
+    refreshOwnedReferralRewards().catch(() => {});
+  }, 900);
 });

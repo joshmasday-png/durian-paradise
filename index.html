@@ -6,12 +6,6 @@
   <title>Durian Paradise</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
   <link rel="preload" as="image" href="images/hero-bg-fast.jpg" fetchpriority="high" />
-  <link rel="preload" as="image" href="images/durian-handpicked-fast-std.jpg" />
-  <link rel="preload" as="image" href="images/order-direct-durian.jpeg" />
-  <link rel="preload" as="image" href="images/certification-std.png" />
-  <link rel="preload" as="image" href="images/group-1-fast-std.jpg" />
-  <link rel="preload" as="image" href="images/group-2-fast-std.jpg" />
-  <link rel="preload" as="image" href="images/group-3-fast-std.jpg" />
   <link rel="prefetch" href="group-1-durians.html" />
   <link rel="stylesheet" href="shopping.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -942,7 +936,7 @@
   <section class="section split-section">
     <div class="container split-grid">
       <div class="split-image">
-        <img src="images/durian-handpicked-fast-std.jpg" alt="Hand-picked durians" loading="eager" fetchpriority="high" decoding="sync" />
+        <img src="images/durian-handpicked-fast-std.jpg" alt="Hand-picked durians" loading="lazy" decoding="async" />
       </div>
       <div class="split-text">
         <h2>Guaranteed Hand-Picked Quality Durians</h2>
@@ -965,7 +959,7 @@
           <a href="#online-delivery" class="btn-email">Order Now</a>
         </div>
         <div class="order-direct__image">
-          <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" loading="eager" fetchpriority="high" decoding="sync" />
+          <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" loading="lazy" decoding="async" />
         </div>
       </div>
 
@@ -985,7 +979,7 @@
           <div class="referral-card">
             <span class="order-badge party">Referral Program</span>
             <h2>Refer A Friend</h2>
-            <p>Copy your referral link and send it to a friend. Referral links are valid for 30 days. After 30 days, the link will no longer be active. The reward cycle repeats every 3 successful referred orders, so the 4th referred order starts again at the $5 reward.</p>
+            <p>Copy your referral link and send it to a friend. Enter the same contact number you will later use at checkout so your reward can be matched automatically, even if you return on another device. Referral links are valid for 30 days. After 30 days, the link will no longer be active. The reward cycle repeats every 3 successful referred orders, so the 4th referred order starts again at the $5 reward.</p>
 
             <div class="referral-rewards">
               <div class="referral-reward">
@@ -1000,6 +994,18 @@
                 <strong>3rd Referral</strong>
                 <span>1 box of Group 1 durians of 500g free</span>
               </div>
+            </div>
+
+            <div class="referral-field">
+              <label for="referral-owner-phone">Your Checkout Contact Number</label>
+              <input
+                id="referral-owner-phone"
+                type="tel"
+                maxlength="40"
+                autocomplete="tel"
+                placeholder="Use the same number when you place your order"
+                data-referral-owner-phone
+              />
             </div>
 
             <div class="referral-actions">
@@ -1234,7 +1240,7 @@
     <div class="container">
       <h2>Certifications</h2>
       <div class="cert-card">
-        <img src="images/certification-std.png" alt="Certification" loading="eager" fetchpriority="high" decoding="sync" />
+        <img src="images/certification-std.png" alt="Certification" loading="lazy" decoding="async" />
         <p class="cert-note">WSQ Food Safety and Hygiene-1</p>
       </div>
     </div>
@@ -1247,21 +1253,21 @@
         <div class="product-grid">
           <a class="product-card" href="group-1-durians.html">
             <div class="card-img-wrapper">
-              <img src="images/group-1-fast-std.jpg" alt="Group 1 Durians" loading="eager" fetchpriority="high" decoding="sync" />
+              <img src="images/group-1-fast-std.jpg" alt="Group 1 Durians" loading="lazy" decoding="async" />
             </div>
             <h3>Group 1 Durians</h3>
             <p>Select a group size to see pricing</p>
           </a>
           <a class="product-card" href="group-2-durians.html#group2-header">
             <div class="card-img-wrapper">
-              <img src="images/group-2-fast-std.jpg" alt="Group 2 Durians" loading="eager" fetchpriority="high" decoding="sync" />
+              <img src="images/group-2-fast-std.jpg" alt="Group 2 Durians" loading="lazy" decoding="async" />
             </div>
             <h3>Group 2 Durians - Mao Shan Wang</h3>
             <p>Select a group size to see pricing</p>
           </a>
           <a class="product-card" href="group-3-durians.html#group3-header">
             <div class="card-img-wrapper">
-              <img src="images/group-3-fast-std.jpg" alt="Group 3 Durians" loading="eager" fetchpriority="high" decoding="sync" />
+              <img src="images/group-3-fast-std.jpg" alt="Group 3 Durians" loading="lazy" decoding="async" />
             </div>
             <h3>Group 3 Durians - Black Gold, Black Thorns Orchee</h3>
             <p>Select a group size to see pricing</p>

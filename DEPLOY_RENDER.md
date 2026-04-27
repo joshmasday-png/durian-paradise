@@ -72,7 +72,7 @@ The live data files will be stored at:
 
 PayNow UEN payment orders create the exact amount and order reference for customers to key into their banking app. Automatic bank confirmation still needs a connected bank/SGQR provider API.
 
-The referral backend records referral conversions and issued rewards. Applying the reward automatically on a future purchase requires matching the returning customer by contact number or adding customer accounts/admin approval.
+The referral backend records referral conversions and issued rewards. Referrers should generate their referral link using the same contact number they plan to use at checkout, because rewards are now matched automatically by that checkout number even if they return on a different browser or device.
 
 Order-confirmation emails and customer-paid notifications require an email provider API key. This project is ready for Resend using `RESEND_API_KEY`; without that key, orders still save, but email sending is skipped.
 

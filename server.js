@@ -6,6 +6,7 @@ const path = require("path");
 const Stripe = require("stripe");
 
 const app = express();
+app.set("trust proxy", true);
 const port = process.env.PORT || 3000;
 const siteUrl = process.env.SITE_URL || "https://www.durianparadises.com";
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
@@ -196,7 +197,25 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, {
+  setHeaders(res, filePath) {
+    const extension = path.extname(filePath).toLowerCase();
+
+    if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico"].includes(extension)) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      return;
+    }
+
+    if ([".css", ".js"].includes(extension)) {
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return;
+    }
+
+    if (extension === ".html") {
+      res.setHeader("Cache-Control", "no-cache");
+    }
+  }
+}));
 
 function ensureJsonFile(filePath, defaultValue) {
   if (!fs.existsSync(filePath)) {
@@ -306,6 +325,34 @@ function makeOwnerToken() {
   return `owner-${Math.random().toString(36).slice(2, 12)}-${Date.now().toString(36)}`;
 }
 
+function getRequestOrigin(req) {
+  const forwardedProtocol = String(req.get("x-forwarded-proto") || "").split(",")[0].trim();
+  const protocol = forwardedProtocol || req.protocol || "https";
+  const host = String(req.get("x-forwarded-host") || req.get("host") || "").split(",")[0].trim();
+
+  if (!host) {
+    return "";
+  }
+
+  return `${protocol}://${host}`;
+}
+
+function getPublicSiteUrl(req) {
+  const requestOrigin = getRequestOrigin(req);
+
+  if (requestOrigin) {
+    return requestOrigin.replace(/\/$/, "");
+  }
+
+  const configuredUrl = String(siteUrl || "").trim().replace(/\/$/, "");
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  return "https://www.durianparadises.com";
+}
+
 function makeOrderId(existingOrders) {
   const orders = Array.isArray(existingOrders) ? existingOrders : [];
   const highestOrderNumber = orders.reduce((max, order) => {
@@ -370,6 +417,23 @@ function sanitizeOwnerToken(rawToken) {
   return String(rawToken || "")
     .trim()
     .slice(0, 120);
+}
+
+function sanitizePhone(rawPhone) {
+  return String(rawPhone || "")
+    .trim()
+    .replace(/[^\d+()\s-]/g, "")
+    .slice(0, 40);
+}
+
+function normalizePhoneMatchKey(rawPhone) {
+  const digitsOnly = String(rawPhone || "").replace(/\D/g, "");
+
+  if (!digitsOnly) {
+    return "";
+  }
+
+  return digitsOnly.length >= 8 ? digitsOnly.slice(-8) : digitsOnly;
 }
 
 function sanitizeAnalyticsType(rawType) {
@@ -465,11 +529,66 @@ function normalizeReferralEntry(referral) {
 
   referral.code = sanitizeReferralCode(referral.code);
   referral.ownerToken = sanitizeOwnerToken(referral.ownerToken);
+  const referrer = referral.referrer && typeof referral.referrer === "object"
+    ? referral.referrer
+    : {};
+  const referrerPhone = sanitizePhone(referrer.phone);
+  const referrerPhoneMatch = normalizePhoneMatchKey(referrer.phoneMatch || referrerPhone);
+  referral.referrer = referrerPhone || referrerPhoneMatch
+    ? {
+        phone: referrerPhone,
+        phoneMatch: referrerPhoneMatch
+      }
+    : null;
   referral.visitors = Array.isArray(referral.visitors) ? referral.visitors : [];
   referral.conversions = Array.isArray(referral.conversions) ? referral.conversions : [];
   referral.rewards = Array.isArray(referral.rewards) ? referral.rewards.map(normalizeReferralReward) : [];
 
   return referral;
+}
+
+function dedupeReferralRewards(rewards) {
+  const seen = new Set();
+
+  return (Array.isArray(rewards) ? rewards : []).filter((reward) => {
+    const key = `${sanitizeReferralCode(reward && reward.referralCode)}::${sanitizeText(reward && reward.id, 80)}`;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function getClaimableReferralRewardsByPhone(phone) {
+  const phoneMatch = normalizePhoneMatchKey(phone);
+
+  if (!phoneMatch) {
+    return [];
+  }
+
+  return readReferrals().reduce((result, referral) => {
+    normalizeReferralEntry(referral);
+
+    if (!referral.referrer || referral.referrer.phoneMatch !== phoneMatch) {
+      return result;
+    }
+
+    referral.rewards.forEach((reward) => {
+      if (reward.status !== "issued_for_next_purchase") {
+        return;
+      }
+
+      result.push({
+        ...reward,
+        referralCode: referral.code
+      });
+    });
+
+    return result;
+  }, []);
 }
 
 function normalizeReviewImage(rawImage) {
@@ -805,6 +924,47 @@ function claimReferralRewards(rewardClaims, orderId) {
   return claimedRewards;
 }
 
+function claimReferralRewardsByPhone(phone, orderId) {
+  const phoneMatch = normalizePhoneMatchKey(phone);
+
+  if (!phoneMatch) {
+    return [];
+  }
+
+  const referrals = readReferrals();
+  const claimedRewards = [];
+  let hasChanges = false;
+
+  referrals.forEach((referral) => {
+    normalizeReferralEntry(referral);
+
+    if (!referral.referrer || referral.referrer.phoneMatch !== phoneMatch) {
+      return;
+    }
+
+    referral.rewards.forEach((reward) => {
+      if (reward.status !== "issued_for_next_purchase") {
+        return;
+      }
+
+      reward.status = "claimed";
+      reward.claimedAt = new Date().toISOString();
+      reward.claimedOrderId = orderId;
+      claimedRewards.push({
+        ...reward,
+        referralCode: referral.code
+      });
+      hasChanges = true;
+    });
+  });
+
+  if (hasChanges) {
+    writeReferrals(referrals);
+  }
+
+  return claimedRewards;
+}
+
 function buildOrderEmail(order) {
   const breakdown = order.summary.priceBreakdown || {};
   const itemLinesText = order.items
@@ -1070,6 +1230,15 @@ app.post("/api/reviews", (req, res) => {
 
 app.post("/api/referrals", (req, res) => {
   const referrals = readReferrals();
+  const ownerPhone = sanitizePhone(req.body && req.body.ownerPhone);
+  const ownerPhoneMatch = normalizePhoneMatchKey(ownerPhone);
+
+  if (!ownerPhoneMatch) {
+    return res.status(400).json({
+      error: "Please enter the contact number the referrer will use for future purchases."
+    });
+  }
+
   let code = makeReferralCode();
 
   while (referrals.some((entry) => entry.code === code)) {
@@ -1080,9 +1249,12 @@ app.post("/api/referrals", (req, res) => {
   const expiresAt = new Date(createdAt.getTime() + (30 * 24 * 60 * 60 * 1000));
   const referral = {
     code,
-    link: `${siteUrl.replace(/\/$/, "")}/referral.html?code=${code}`,
+    link: `${getPublicSiteUrl(req)}/referral.html?code=${code}`,
     ownerToken: makeOwnerToken(),
-    referrer: null,
+    referrer: {
+      phone: ownerPhone,
+      phoneMatch: ownerPhoneMatch
+    },
     clicks: 0,
     visitors: [],
     conversions: [],
@@ -1102,6 +1274,20 @@ app.post("/api/referrals", (req, res) => {
       ownerToken: referral.ownerToken
     }
   });
+});
+
+app.post("/api/referral-rewards/lookup", (req, res) => {
+  const phone = sanitizePhone(req.body && req.body.phone);
+  const rewards = dedupeReferralRewards(getClaimableReferralRewardsByPhone(phone)).map((reward) => ({
+    id: reward.id,
+    type: reward.type,
+    label: reward.label,
+    discountAmount: reward.discountAmount,
+    message: reward.message,
+    referralCode: reward.referralCode
+  }));
+
+  return res.json({ rewards });
 });
 
 app.get("/api/referrals/:code", (req, res) => {
@@ -1279,7 +1465,10 @@ app.post("/api/payment-orders", async (req, res) => {
       throw new Error("Online Delivery requires a minimum of 3 boxes.");
     }
 
-    const claimedReferralRewards = claimReferralRewards(req.body && req.body.referralRewardClaims, orderId);
+    const claimedReferralRewards = dedupeReferralRewards([
+      ...claimReferralRewards(req.body && req.body.referralRewardClaims, orderId),
+      ...claimReferralRewardsByPhone(customerPhone, orderId)
+    ]);
     const summary = summarizeOrder(items, claimedReferralRewards);
 
     if (referralCode) {
