@@ -964,18 +964,6 @@ function injectCartStyles() {
       grid-column: 1 / -1;
     }
 
-    .checkout-help {
-      margin-top: 8px;
-      color: #5a4a3b;
-      font-size: 13px;
-      line-height: 1.45;
-      grid-column: 1 / -1;
-    }
-
-    .checkout-help.is-error {
-      color: #8a3a2d;
-    }
-
     .checkout-field {
       display: grid;
       gap: 6px;
@@ -1584,7 +1572,6 @@ function ensureCartUI() {
             <label for="checkout-phone">Contact Number</label>
             <input id="checkout-phone" type="tel" maxlength="40" autocomplete="tel" data-checkout-phone required />
           </div>
-          <div class="checkout-help" data-referral-rewards-status></div>
           <div class="checkout-field">
             <label for="checkout-email">Email</label>
             <input id="checkout-email" type="email" maxlength="120" autocomplete="email" data-checkout-email required />
@@ -2366,29 +2353,19 @@ function bindReferralForm() {
   const output = document.querySelector("[data-referral-output]");
   const linkEl = document.querySelector("[data-referral-link]");
   const copyButton = document.querySelector("[data-copy-referral-link]");
-  const ownerPhoneInput = document.querySelector("[data-referral-owner-phone]");
+  const checkoutPhoneInput = document.querySelector("[data-checkout-phone]");
 
   if (!message || !submit || !output || !linkEl) {
     return;
   }
 
   submit.addEventListener("click", async () => {
-    const ownerPhone = ownerPhoneInput ? ownerPhoneInput.value.trim() : "";
-
-    if (!ownerPhone) {
-      message.textContent = "Enter the contact number you will use for your future purchase first.";
-      message.className = "referral-message is-error";
-      if (ownerPhoneInput) {
-        ownerPhoneInput.focus();
-      }
-      return;
-    }
-
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
 
     try {
+      const ownerPhone = checkoutPhoneInput ? checkoutPhoneInput.value.trim() : "";
       const response = await fetch(REFERRALS_API_PATH, {
         method: "POST",
         headers: {
@@ -2407,7 +2384,7 @@ function bindReferralForm() {
       storeOwnedReferral(result.referral);
       linkEl.textContent = result.referral.link;
       output.classList.add("is-visible");
-      message.textContent = "Referral link ready. Use the same contact number at checkout to redeem rewards automatically.";
+      message.textContent = "Referral link ready.";
       message.className = "referral-message is-success";
       refreshOwnedReferralRewards().catch(() => {});
     } catch (error) {

@@ -877,7 +877,7 @@ function normalizeRewardClaims(rawClaims) {
   }, []);
 }
 
-function claimReferralRewards(rewardClaims, orderId) {
+function claimReferralRewards(rewardClaims, orderId, customerPhone) {
   const claims = normalizeRewardClaims(rewardClaims);
 
   if (!claims.length) {
@@ -887,6 +887,8 @@ function claimReferralRewards(rewardClaims, orderId) {
   const referrals = readReferrals();
   const claimedRewards = [];
   let hasChanges = false;
+  const sanitizedPhone = sanitizePhone(customerPhone);
+  const phoneMatch = normalizePhoneMatchKey(customerPhone);
 
   claims.forEach((claim) => {
     const referral = referrals.find((entry) => entry.code === claim.referralCode);
@@ -905,6 +907,13 @@ function claimReferralRewards(rewardClaims, orderId) {
 
     if (!reward || reward.status === "claimed") {
       return;
+    }
+
+    if (phoneMatch) {
+      referral.referrer = {
+        phone: sanitizedPhone,
+        phoneMatch
+      };
     }
 
     reward.status = "claimed";
@@ -1233,12 +1242,6 @@ app.post("/api/referrals", (req, res) => {
   const ownerPhone = sanitizePhone(req.body && req.body.ownerPhone);
   const ownerPhoneMatch = normalizePhoneMatchKey(ownerPhone);
 
-  if (!ownerPhoneMatch) {
-    return res.status(400).json({
-      error: "Please enter the contact number the referrer will use for future purchases."
-    });
-  }
-
   let code = makeReferralCode();
 
   while (referrals.some((entry) => entry.code === code)) {
@@ -1251,10 +1254,12 @@ app.post("/api/referrals", (req, res) => {
     code,
     link: `${getPublicSiteUrl(req)}/referral.html?code=${code}`,
     ownerToken: makeOwnerToken(),
-    referrer: {
-      phone: ownerPhone,
-      phoneMatch: ownerPhoneMatch
-    },
+    referrer: ownerPhoneMatch
+      ? {
+          phone: ownerPhone,
+          phoneMatch: ownerPhoneMatch
+        }
+      : null,
     clicks: 0,
     visitors: [],
     conversions: [],
@@ -1466,7 +1471,7 @@ app.post("/api/payment-orders", async (req, res) => {
     }
 
     const claimedReferralRewards = dedupeReferralRewards([
-      ...claimReferralRewards(req.body && req.body.referralRewardClaims, orderId),
+      ...claimReferralRewards(req.body && req.body.referralRewardClaims, orderId, customerPhone),
       ...claimReferralRewardsByPhone(customerPhone, orderId)
     ]);
     const summary = summarizeOrder(items, claimedReferralRewards);
