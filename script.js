@@ -13,6 +13,8 @@ const VISITOR_STORAGE_KEY = "durianParadiseVisitorId";
 let phoneMatchedReferralRewards = [];
 let referralRewardLookupTimer = 0;
 let lastReferralRewardLookupKey = "";
+let reviewsLoadPromise = null;
+let lastOwnedReferralRefreshAt = 0;
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-SG", {
@@ -392,6 +394,17 @@ async function refreshOwnedReferralRewards() {
 
   saveOwnedReferrals(updatedReferrals);
   renderCart();
+}
+
+function refreshOwnedReferralRewardsIfNeeded(force = false) {
+  const now = Date.now();
+
+  if (!force && now - lastOwnedReferralRefreshAt < 60 * 1000) {
+    return Promise.resolve();
+  }
+
+  lastOwnedReferralRefreshAt = now;
+  return refreshOwnedReferralRewards().catch(() => {});
 }
 
 function getStoredReferralCode() {
@@ -1603,6 +1616,7 @@ function openCartDrawer() {
   overlay.classList.add("is-open");
   drawer.setAttribute("aria-hidden", "false");
   trigger.setAttribute("aria-expanded", "true");
+  refreshOwnedReferralRewardsIfNeeded();
 }
 
 function closeCartDrawer() {
@@ -2293,6 +2307,43 @@ async function loadReviews() {
   }
 }
 
+function loadReviewsWhenNeeded() {
+  if (reviewsLoadPromise) {
+    return reviewsLoadPromise;
+  }
+
+  const feed = document.querySelector("[data-reviews-feed]");
+
+  if (!feed) {
+    return Promise.resolve();
+  }
+
+  const shouldLoadImmediately = window.location.hash === "#reviews"
+    || feed.getBoundingClientRect().top < (window.innerHeight * 1.2);
+
+  if (shouldLoadImmediately || !("IntersectionObserver" in window)) {
+    reviewsLoadPromise = loadReviews();
+    return reviewsLoadPromise;
+  }
+
+  reviewsLoadPromise = new Promise((resolve) => {
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) {
+        return;
+      }
+
+      observer.disconnect();
+      Promise.resolve(loadReviews()).finally(resolve);
+    }, {
+      rootMargin: "320px 0px"
+    });
+
+    observer.observe(feed);
+  });
+
+  return reviewsLoadPromise;
+}
+
 function bindReviewForm() {
   const form = document.querySelector("[data-review-form]");
   const message = document.querySelector("[data-review-message]");
@@ -2353,11 +2404,43 @@ function bindReferralForm() {
   const output = document.querySelector("[data-referral-output]");
   const linkEl = document.querySelector("[data-referral-link]");
   const copyButton = document.querySelector("[data-copy-referral-link]");
+  const shareButton = document.querySelector("[data-share-referral-link]");
   const checkoutPhoneInput = document.querySelector("[data-checkout-phone]");
 
   if (!message || !submit || !output || !linkEl) {
     return;
   }
+
+  if (shareButton && navigator.share) {
+    shareButton.hidden = false;
+  }
+
+  const getReferralLinkText = () => linkEl.textContent.trim();
+
+  const copyReferralLink = async () => {
+    const link = getReferralLinkText();
+
+    if (!link) {
+      return false;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(link);
+      return true;
+    }
+
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(linkEl);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    try {
+      return document.execCommand("copy");
+    } finally {
+      selection.removeAllRanges();
+    }
+  };
 
   submit.addEventListener("click", async () => {
     message.textContent = "Creating referral link...";
@@ -2384,9 +2467,10 @@ function bindReferralForm() {
       storeOwnedReferral(result.referral);
       linkEl.textContent = result.referral.link;
       output.classList.add("is-visible");
+      output.scrollIntoView({ behavior: "smooth", block: "nearest" });
       message.textContent = "Referral link ready.";
       message.className = "referral-message is-success";
-      refreshOwnedReferralRewards().catch(() => {});
+      refreshOwnedReferralRewardsIfNeeded(true);
     } catch (error) {
       message.textContent = error && error.message ? error.message : "Unable to create referral link.";
       message.className = "referral-message is-error";
@@ -2396,15 +2480,42 @@ function bindReferralForm() {
   });
 
   if (copyButton) {
-    copyButton.addEventListener("click", () => {
-      const link = linkEl.textContent.trim();
-      if (!link || !navigator.clipboard) {
+    copyButton.addEventListener("click", async () => {
+      try {
+        const copied = await copyReferralLink();
+
+        if (!copied) {
+          throw new Error("Unable to copy referral link.");
+        }
+
+        message.textContent = "Referral link copied.";
+        message.className = "referral-message is-success";
+      } catch (_error) {
+        message.textContent = "Unable to copy automatically. You can still select the link and share it manually.";
+        message.className = "referral-message is-error";
+      }
+    });
+  }
+
+  if (shareButton) {
+    shareButton.addEventListener("click", async () => {
+      const link = getReferralLinkText();
+
+      if (!link || !navigator.share) {
         return;
       }
 
-      navigator.clipboard.writeText(link);
-      message.textContent = "Referral link copied.";
-      message.className = "referral-message is-success";
+      try {
+        await navigator.share({
+          title: "Durian Paradise Referral Link",
+          text: "Use my Durian Paradise referral link:",
+          url: link
+        });
+        message.textContent = "Referral link ready to share.";
+        message.className = "referral-message is-success";
+      } catch (_error) {
+        // User cancelled sharing; keep the current state unchanged.
+      }
     });
   }
 }
@@ -2430,9 +2541,6 @@ document.addEventListener("DOMContentLoaded", () => {
   bindReferralForm();
   revealPageWhenCriticalImagesReady();
   runNonCriticalTask(() => {
-    loadReviews();
+    loadReviewsWhenNeeded();
   }, 700);
-  runNonCriticalTask(() => {
-    refreshOwnedReferralRewards().catch(() => {});
-  }, 900);
 });

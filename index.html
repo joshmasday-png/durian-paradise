@@ -565,6 +565,17 @@
       color: #2d241c;
     }
 
+    .referral-output__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .referral-output__note {
+      font-size: 14px;
+      color: #5a4a3b;
+    }
+
     .referral-message {
       min-height: 20px;
       margin-top: 10px;
@@ -803,6 +814,16 @@
         height: 70px;
       }
 
+      .split-section,
+      .certifications,
+      .referral-section,
+      .order-hub,
+      .reviews-section,
+      footer {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 900px;
+      }
+
       .nav {
         width: 100%;
         flex: 0 0 auto;
@@ -883,6 +904,18 @@
       .reviews-feed,
       .review-form-card {
         padding: 22px;
+      }
+
+      .referral-actions,
+      .referral-output__actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .referral-actions .btn-email,
+      .referral-output__actions .btn-email {
+        width: 100%;
+        justify-content: center;
       }
 
       .order-direct__image {
@@ -1003,7 +1036,11 @@
             <div class="referral-output" data-referral-output>
               <strong>Your referral link</strong>
               <code data-referral-link></code>
-              <button class="btn-email" type="button" data-copy-referral-link>Copy Referral Link</button>
+              <div class="referral-output__actions">
+                <button class="btn-email" type="button" data-copy-referral-link>Copy Referral Link</button>
+                <button class="btn-email" type="button" data-share-referral-link hidden>Share Referral Link</button>
+              </div>
+              <div class="referral-output__note">Use copy or share to send this referral link from any device.</div>
             </div>
           </div>
         </div>

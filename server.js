@@ -974,6 +974,95 @@ function claimReferralRewardsByPhone(phone, orderId) {
   return claimedRewards;
 }
 
+function issueReferralRewardForOrder(order) {
+  if (!order || !order.id || !order.referral) {
+    return null;
+  }
+
+  const referralCode = sanitizeReferralCode(order.referral.code);
+
+  if (!referralCode) {
+    return null;
+  }
+
+  if (order.referral.conversionRecordedAt) {
+    return order.referral;
+  }
+
+  const referrals = readReferrals();
+  const referral = referrals.find((entry) => entry.code === referralCode);
+
+  if (!referral || new Date(referral.expiresAt).getTime() < Date.now()) {
+    return {
+      ...order.referral,
+      code: referralCode,
+      status: "inactive",
+      reward: order.referral.reward || null
+    };
+  }
+
+  normalizeReferralEntry(referral);
+  const conversions = Array.isArray(referral.conversions) ? referral.conversions : [];
+  const existingConversion = conversions.find((entry) => String(entry.orderId || "") === String(order.id));
+  const existingReward = Array.isArray(referral.rewards)
+    ? referral.rewards.find((entry) => String(entry.orderId || "") === String(order.id))
+    : null;
+
+  if (existingConversion) {
+    return {
+      ...order.referral,
+      code: referralCode,
+      status: existingReward ? "reward_issued" : "recorded",
+      reward: existingReward || null,
+      conversionRecordedAt: existingConversion.createdAt || ""
+    };
+  }
+
+  const nextCount = conversions.length + 1;
+  const conversion = {
+    orderId: order.id,
+    orderTotal: order.summary && order.summary.totalDisplay ? order.summary.totalDisplay : "",
+    customerPhone: sanitizePhone(order.customer && order.customer.phone),
+    createdAt: new Date().toISOString()
+  };
+
+  conversions.push(conversion);
+  referral.conversions = conversions;
+  referral.lastConvertedAt = conversion.createdAt;
+
+  let issuedReward = null;
+  const reward = getReferralReward(nextCount);
+
+  if (reward) {
+    issuedReward = {
+      id: makeRecordId("reward"),
+      type: reward.type,
+      label: reward.label,
+      discountAmount: reward.discountAmount,
+      message: reward.message,
+      referralCount: nextCount,
+      referralCycle: Math.floor((nextCount - 1) / 3) + 1,
+      orderId: order.id,
+      status: "issued_for_next_purchase",
+      createdAt: conversion.createdAt,
+      claimedAt: "",
+      claimedOrderId: ""
+    };
+    referral.rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
+    referral.rewards.push(issuedReward);
+  }
+
+  writeReferrals(referrals);
+
+  return {
+    ...order.referral,
+    code: referralCode,
+    status: issuedReward ? "reward_issued" : "recorded",
+    reward: issuedReward,
+    conversionRecordedAt: conversion.createdAt
+  };
+}
+
 function buildOrderEmail(order) {
   const breakdown = order.summary.priceBreakdown || {};
   const itemLinesText = order.items
@@ -1417,6 +1506,7 @@ app.post("/api/payment-orders/:orderId/paid", async (req, res) => {
     message: "Customer clicked I Have Paid. Business still needs to verify the bank transfer.",
     acknowledgedAt: new Date().toISOString()
   };
+  order.referral = issueReferralRewardForOrder(order) || order.referral || null;
 
   try {
     order.businessPaymentNotification = await sendPaidNotificationEmail(order);
@@ -1452,7 +1542,6 @@ app.post("/api/payment-orders", async (req, res) => {
     const customerAddress = String(customer.address || "").trim();
     const referralCode = sanitizeReferralCode(req.body && req.body.referralCode);
     const baseSummary = summarizeOrder(items);
-    let referralResult = null;
 
     if (!customerPhone) {
       throw new Error("Please enter your contact number.");
@@ -1476,50 +1565,6 @@ app.post("/api/payment-orders", async (req, res) => {
     ]);
     const summary = summarizeOrder(items, claimedReferralRewards);
 
-    if (referralCode) {
-      const referrals = readReferrals();
-      const referral = referrals.find((entry) => entry.code === referralCode);
-
-      if (referral && new Date(referral.expiresAt).getTime() >= Date.now()) {
-        normalizeReferralEntry(referral);
-        const conversions = Array.isArray(referral.conversions) ? referral.conversions : [];
-        const nextCount = conversions.length + 1;
-        const reward = getReferralReward(nextCount);
-        const conversion = {
-          orderId,
-          orderTotal: summary.totalDisplay,
-          customerPhone: customerPhone.slice(0, 40),
-          createdAt: new Date().toISOString()
-        };
-
-        conversions.push(conversion);
-        referral.conversions = conversions;
-        referral.lastConvertedAt = conversion.createdAt;
-
-        if (reward) {
-          const issuedReward = {
-            id: makeRecordId("reward"),
-            type: reward.type,
-            label: reward.label,
-            discountAmount: reward.discountAmount,
-            message: reward.message,
-            referralCount: nextCount,
-            referralCycle: Math.floor((nextCount - 1) / 3) + 1,
-            orderId,
-            status: "issued_for_next_purchase",
-            createdAt: conversion.createdAt,
-            claimedAt: "",
-            claimedOrderId: ""
-          };
-          referral.rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
-          referral.rewards.push(issuedReward);
-          referralResult = issuedReward;
-        }
-
-        writeReferrals(referrals);
-      }
-    }
-
     const order = {
       id: orderId,
       createdAt: new Date().toISOString(),
@@ -1536,9 +1581,11 @@ app.post("/api/payment-orders", async (req, res) => {
         address: customerAddress.slice(0, 260),
         deliveryNotes: String(customer.deliveryNotes || "").trim().slice(0, 220)
       },
-      referral: referralResult ? {
+      referral: referralCode ? {
         code: referralCode,
-        reward: referralResult
+        status: "awaiting_customer_paid_confirmation",
+        reward: null,
+        conversionRecordedAt: ""
       } : null,
       claimedReferralRewards,
       paymentRequest: buildPendingQrResponse({ summary, id: orderId }),

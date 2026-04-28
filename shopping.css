@@ -258,6 +258,18 @@
   cursor: pointer;
 }
 
+@media (max-width: 768px) {
+  .order-subsection,
+  .delivery-group,
+  .party-order-card,
+  .persistent-reviews,
+  .related-products,
+  .reviews-section {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 720px;
+  }
+}
+
 .multi-option-select summary::-webkit-details-marker {
   display: none;
 }
