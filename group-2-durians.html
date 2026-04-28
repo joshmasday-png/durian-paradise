@@ -4,15 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Durian Paradise | Group 2 Durians</title>
-  <link rel="stylesheet" href="shopping.css" />
+  <link rel="stylesheet" href="shopping.css?v=20260428-2" />
   <link rel="icon" type="image/png" href="images/favicon.png" />
   <link rel="preload" as="image" href="images/group2-main-fast-std-trim.jpg" fetchpriority="high" />
   <style>
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background: radial-gradient(circle at top left, rgba(216, 230, 191, 0.55), transparent 28%), radial-gradient(circle at top right, rgba(247, 201, 153, 0.35), transparent 22%), radial-gradient(circle at bottom right, rgba(242, 219, 182, 0.45), transparent 26%), linear-gradient(180deg, #f6f0e6 0%, #ede3d4 100%); color: #111; line-height: 1.45; }
-    body.page-loading { opacity: 0; }
-    body.page-ready { opacity: 1; transition: opacity 0.18s ease; }
+    body.page-loading, body.page-ready { opacity: 1; }
     a { color: inherit; text-decoration: none; }
     img { max-width: 100%; display: block; }
     :root { --main-image-ratio: 4 / 3; --main-image-max-width: 520px; --main-image-max-height: 420px; --thumb-size-desktop: 96px; --thumb-size-mobile: 80px; --gallery-width-desktop: 300px; --gallery-height-desktop: 225px; --gallery-height-mobile: 220px; }
@@ -136,7 +135,7 @@
     </section>
   </div>
   <footer>© DurianParadises 2026 · 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 · UEN 53490378M</footer>
-  <script src="script.js"></script>
+  <script src="script.js?v=20260428-2"></script>
   <script>
     const mainImage = document.getElementById('group2MainImage');
     const thumbs = document.querySelectorAll('.group2-thumb');

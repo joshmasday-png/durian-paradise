@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="images/favicon.png" />
   <link rel="preload" as="image" href="images/hero-bg-fast.jpg" fetchpriority="high" />
   <link rel="prefetch" href="group-1-durians.html" />
-  <link rel="stylesheet" href="shopping.css" />
+  <link rel="stylesheet" href="shopping.css?v=20260428-2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -29,13 +29,9 @@
       line-height: 1.5;
     }
 
-    body.page-loading {
-      opacity: 0;
-    }
-
+    body.page-loading,
     body.page-ready {
       opacity: 1;
-      transition: opacity 0.18s ease;
     }
 
     img {
@@ -565,17 +561,6 @@
       color: #2d241c;
     }
 
-    .referral-output__actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .referral-output__note {
-      font-size: 14px;
-      color: #5a4a3b;
-    }
-
     .referral-message {
       min-height: 20px;
       margin-top: 10px;
@@ -906,14 +891,13 @@
         padding: 22px;
       }
 
-      .referral-actions,
-      .referral-output__actions {
+      .referral-actions {
         display: grid;
         grid-template-columns: 1fr;
       }
 
       .referral-actions .btn-email,
-      .referral-output__actions .btn-email {
+      .referral-output .btn-email {
         width: 100%;
         justify-content: center;
       }
@@ -1036,11 +1020,7 @@
             <div class="referral-output" data-referral-output>
               <strong>Your referral link</strong>
               <code data-referral-link></code>
-              <div class="referral-output__actions">
-                <button class="btn-email" type="button" data-copy-referral-link>Copy Referral Link</button>
-                <button class="btn-email" type="button" data-share-referral-link hidden>Share Referral Link</button>
-              </div>
-              <div class="referral-output__note">Use copy or share to send this referral link from any device.</div>
+              <button class="btn-email" type="button" data-copy-referral-link>Copy Referral Link</button>
             </div>
           </div>
         </div>
@@ -1354,7 +1334,7 @@
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=20260428-2"></script>
 
 </body>
 </html>

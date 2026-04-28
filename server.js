@@ -207,7 +207,7 @@ app.use(express.static(__dirname, {
     }
 
     if ([".css", ".js"].includes(extension)) {
-      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Cache-Control", "no-cache");
       return;
     }
 
@@ -1500,7 +1500,15 @@ app.post("/api/payment-orders/:orderId/paid", async (req, res) => {
     return res.status(404).json({ error: "Order not found." });
   }
 
+  if (order.customerPaymentAcknowledgement) {
+    return res.json({
+      order,
+      paymentRequest: order.paymentRequest
+    });
+  }
+
   order.status = "customer_marked_paid";
+  order.paymentStatus = "customer_marked_paid";
   order.customerPaymentAcknowledgement = {
     status: "customer_marked_paid",
     message: "Customer clicked I Have Paid. Business still needs to verify the bank transfer.",

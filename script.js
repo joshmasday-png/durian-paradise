@@ -2404,15 +2404,10 @@ function bindReferralForm() {
   const output = document.querySelector("[data-referral-output]");
   const linkEl = document.querySelector("[data-referral-link]");
   const copyButton = document.querySelector("[data-copy-referral-link]");
-  const shareButton = document.querySelector("[data-share-referral-link]");
   const checkoutPhoneInput = document.querySelector("[data-checkout-phone]");
 
   if (!message || !submit || !output || !linkEl) {
     return;
-  }
-
-  if (shareButton && navigator.share) {
-    shareButton.hidden = false;
   }
 
   const getReferralLinkText = () => linkEl.textContent.trim();
@@ -2468,7 +2463,7 @@ function bindReferralForm() {
       linkEl.textContent = result.referral.link;
       output.classList.add("is-visible");
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      message.textContent = "Referral link ready.";
+      message.textContent = "Referral link ready below.";
       message.className = "referral-message is-success";
       refreshOwnedReferralRewardsIfNeeded(true);
     } catch (error) {
@@ -2493,28 +2488,6 @@ function bindReferralForm() {
       } catch (_error) {
         message.textContent = "Unable to copy automatically. You can still select the link and share it manually.";
         message.className = "referral-message is-error";
-      }
-    });
-  }
-
-  if (shareButton) {
-    shareButton.addEventListener("click", async () => {
-      const link = getReferralLinkText();
-
-      if (!link || !navigator.share) {
-        return;
-      }
-
-      try {
-        await navigator.share({
-          title: "Durian Paradise Referral Link",
-          text: "Use my Durian Paradise referral link:",
-          url: link
-        });
-        message.textContent = "Referral link ready to share.";
-        message.className = "referral-message is-success";
-      } catch (_error) {
-        // User cancelled sharing; keep the current state unchanged.
       }
     });
   }
