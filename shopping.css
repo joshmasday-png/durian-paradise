@@ -215,6 +215,7 @@
   padding: 22px;
   box-shadow: 0 14px 32px rgba(104, 73, 36, 0.08);
   margin-top: 26px;
+  position: relative;
 }
 
 .party-order-card h3 {
@@ -244,12 +245,13 @@
 
 .multi-option-select {
   position: relative;
+  z-index: 1;
 }
 
 .multi-option-select summary {
   list-style: none;
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px 42px 12px 14px;
   border-radius: 10px;
   border: 1px solid rgba(170, 156, 138, 0.32);
   background: rgba(250, 246, 240, 0.96);
@@ -259,9 +261,6 @@
 }
 
 @media (max-width: 768px) {
-  .order-subsection,
-  .delivery-group,
-  .party-order-card,
   .persistent-reviews,
   .related-products,
   .reviews-section {
@@ -284,6 +283,10 @@
   content: "▴";
 }
 
+.party-order-card:focus-within {
+  z-index: 6;
+}
+
 .multi-option-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -297,6 +300,8 @@
   background: rgba(252, 249, 245, 0.98);
   border: 1px solid rgba(170, 156, 138, 0.22);
   box-shadow: 0 18px 36px rgba(104, 73, 36, 0.12);
+  max-height: min(400px, 60vh);
+  overflow-y: auto;
 }
 
 .multi-option-item {
@@ -545,6 +550,27 @@
 
   .standard-delivery-grid .shop-button {
     width: 100%;
+  }
+
+  .multi-option-menu {
+    padding: 10px;
+  }
+
+  .multi-option-item {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .multi-option-copy {
+    min-width: 0;
+  }
+
+  .multi-option-copy strong {
+    font-size: 16px;
+  }
+
+  .multi-option-qty {
+    flex-shrink: 0;
   }
 
   .cart-item {

@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="images/favicon.png" />
   <link rel="preload" as="image" href="images/hero-bg-fast.jpg" fetchpriority="high" />
   <link rel="prefetch" href="group-1-durians.html" />
+  <link rel="preload" as="image" href="images/logo-header.png" fetchpriority="high" />
   <link rel="stylesheet" href="shopping.css?v=20260428-2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -431,6 +432,10 @@
       font-size: 16px;
     }
 
+    .payment-card .paynow-qr-image {
+      margin-top: 12px;
+    }
+
     .uen-chip {
       display: inline-flex;
       align-items: center;
@@ -444,6 +449,16 @@
       font-weight: 700;
       color: #2d241c;
       letter-spacing: 0.2px;
+    }
+
+    .paynow-qr-image {
+      width: min(220px, 100%);
+      aspect-ratio: 1;
+      object-fit: contain;
+      padding: 12px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid rgba(120, 100, 76, 0.14);
     }
 
     .feature {
@@ -921,7 +936,7 @@
   <header class="topbar">
       <div class="container topbar-inner">
         <a class="site-logo" href="index.html" aria-label="DurianParadises.com home">
-          <img src="images/logo-header.png" alt="Durian Paradise logo" />
+          <img src="images/logo-header.png" alt="Durian Paradise logo" loading="eager" fetchpriority="high" decoding="async" />
         </a>
         <nav class="nav">
         <a href="#top">Home</a>
@@ -1001,15 +1016,15 @@
             <div class="referral-rewards">
               <div class="referral-reward">
                 <strong>1st Referral</strong>
-                <span>$5 discount for next purchase</span>
+                <span>You will receive a $5 discount for the 1st referral.</span>
               </div>
               <div class="referral-reward">
                 <strong>2nd Referral</strong>
-                <span>$10 discount on next purchase</span>
+                <span>You will receive a $10 discount for the 2nd referral.</span>
               </div>
               <div class="referral-reward">
                 <strong>3rd Referral</strong>
-                <span>1 box of Group 1 durians of 500g free</span>
+                <span>You will receive a free 500g box of Group 1 durians for the 3rd referral.</span>
               </div>
             </div>
 
@@ -1223,7 +1238,7 @@
             <span class="order-badge delivery">Payment Methods</span>
           </div>
           <h3>PayNow / SGQR</h3>
-          <p>PayNow UEN payment must be completed inside the buyer's Singapore banking app. Use the UEN and payment reference shown after creating your order.</p>
+          <p>At checkout, choose either the business UEN or the SGQR code, then pay the exact order amount shown in your payment note.</p>
           <div class="payment-grid">
             <div class="payment-card">
               <h4>PayNow To UEN</h4>
@@ -1232,8 +1247,8 @@
             </div>
             <div class="payment-card">
               <h4>SGQR / PayNow QR</h4>
-              <p>For automatic bank confirmation, Durian Paradise needs a connected bank, PayNow, or SGQR payment provider API.</p>
-              <p>Until then, please complete payment in your banking app and confirm payment details with Durian Paradise.</p>
+              <p>Scan the QR code below to pay using your banking app or PayNow.</p>
+              <img class="paynow-qr-image" src="images/paynow-qr-placeholder.svg" alt="PayNow SGQR Code" width="220" height="220" loading="lazy" decoding="async" />
             </div>
           </div>
         </section>
@@ -1334,7 +1349,7 @@
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
 
-  <script src="script.js?v=20260428-2"></script>
+  <script src="script.js?v=20260428-2" defer></script>
 
 </body>
 </html>

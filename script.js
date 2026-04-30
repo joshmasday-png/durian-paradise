@@ -10,6 +10,8 @@ const PENDING_PAYMENT_STORAGE_KEY = "durianParadisePendingPayment";
 const REFERRAL_STORAGE_KEY = "durianParadiseReferral";
 const OWNED_REFERRALS_STORAGE_KEY = "durianParadiseOwnedReferrals";
 const VISITOR_STORAGE_KEY = "durianParadiseVisitorId";
+const DEFAULT_PAYMENT_METHOD_KEY = "paynow_uen";
+const PAYNOW_QR_IMAGE_PATH = "images/paynow-qr-placeholder.svg";
 let phoneMatchedReferralRewards = [];
 let referralRewardLookupTimer = 0;
 let lastReferralRewardLookupKey = "";
@@ -58,6 +60,85 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function getReferralCycleStep(referralCount) {
+  const value = Number(referralCount || 0);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  return ((Math.round(value) - 1) % 3) + 1;
+}
+
+function getOrdinalLabel(value) {
+  switch (Number(value || 0)) {
+    case 1:
+      return "1st";
+    case 2:
+      return "2nd";
+    case 3:
+      return "3rd";
+    default:
+      return `${value}th`;
+  }
+}
+
+function getReferralRewardMessageText(reward) {
+  const cycleStep = getReferralCycleStep(reward && reward.referralCount);
+
+  if (reward && reward.type === "free_group1_box") {
+    return `You received a free 500g box of Group 1 durians for the ${getOrdinalLabel(cycleStep || 3)} referral.`;
+  }
+
+  if (reward && Number(reward.discountAmount || 0) >= 1000) {
+    return `You received a $10 discount for the ${getOrdinalLabel(cycleStep || 2)} referral.`;
+  }
+
+  return `You received a $5 discount for the ${getOrdinalLabel(cycleStep || 1)} referral.`;
+}
+
+function isLegacyReferralRewardMessage(message) {
+  return /referring a friend/i.test(String(message || ""));
+}
+
+function normalizePaymentMethodKey(value) {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+
+  return normalizedValue === "paynow_qr" || normalizedValue.includes("qr")
+    ? "paynow_qr"
+    : DEFAULT_PAYMENT_METHOD_KEY;
+}
+
+function getPaymentMethodConfig(methodKey) {
+  const key = normalizePaymentMethodKey(methodKey);
+
+  if (key === "paynow_qr") {
+    return {
+      key,
+      title: "SGQR / PayNow QR",
+      checkoutButtonLabel: "Create SGQR Payment Note",
+      checkoutNote: "Enter your delivery details, choose a payment method, then create your payment note.",
+      copyButtonLabel: "Copy amount & ticket no",
+      qrImageLabel: "Scan this SGQR code",
+      supportsQr: true
+    };
+  }
+
+  return {
+    key,
+    title: "PayNow to UEN No",
+    checkoutButtonLabel: "Create PayNow UEN Order",
+    checkoutNote: "Enter your delivery details, choose a payment method, then create your payment note.",
+    copyButtonLabel: "Copy UEN, amount & ticket no",
+    qrImageLabel: "",
+    supportsQr: false
+  };
+}
+
+function renderPaynowQrImage() {
+  return `<img class="paynow-qr-image" src="${PAYNOW_QR_IMAGE_PATH}" alt="PayNow SGQR code" width="220" height="220" loading="eager" decoding="async" />`;
 }
 
 function readReviewImage(file) {
@@ -181,19 +262,11 @@ function storeOwnedReferral(referral) {
 }
 
 function getReferralRewardMessage(reward) {
-  if (reward && reward.message) {
+  if (reward && reward.message && !isLegacyReferralRewardMessage(reward.message)) {
     return String(reward.message);
   }
 
-  if (reward && reward.type === "free_group1_box") {
-    return "You received a free box for referring a friend.";
-  }
-
-  if (reward && Number(reward.discountAmount || 0) >= 1000) {
-    return "You received a $10 reward for referring a friend.";
-  }
-
-  return "You received a $5 reward for referring a friend.";
+  return getReferralRewardMessageText(reward);
 }
 
 function getActiveOwnedReferralRewards() {
@@ -959,6 +1032,56 @@ function injectCartStyles() {
       margin-bottom: 14px;
     }
 
+    .checkout-payment-methods {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(252, 249, 245, 0.72);
+      border: 1px solid rgba(120, 100, 76, 0.12);
+    }
+
+    .checkout-payment-methods h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #1f1a15;
+    }
+
+    .checkout-payment-option {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 250, 244, 0.82);
+      border: 1px solid rgba(120, 100, 76, 0.12);
+      cursor: pointer;
+    }
+
+    .checkout-payment-option input {
+      margin-top: 3px;
+      accent-color: #6f5330;
+    }
+
+    .checkout-payment-option strong,
+    .checkout-payment-option small {
+      display: block;
+    }
+
+    .checkout-payment-option strong {
+      color: #1f1a15;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+
+    .checkout-payment-option small {
+      color: #5a4a3b;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
     .checkout-details {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1088,6 +1211,35 @@ function injectCartStyles() {
     .payment-detail strong {
       color: #1f1a15;
       font-size: 15px;
+    }
+
+    .payment-request-qr {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 250, 244, 0.78);
+      border: 1px solid rgba(120, 100, 76, 0.1);
+      text-align: center;
+    }
+
+    .payment-request-qr span {
+      color: #5a4a3b;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .paynow-qr-image {
+      width: min(220px, 100%);
+      aspect-ratio: 1;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid rgba(120, 100, 76, 0.14);
+      padding: 12px;
+      object-fit: contain;
     }
 
     .payment-order-summary {
@@ -1489,6 +1641,10 @@ function bindNavMenus() {
 }
 
 function enhanceVarietyImages() {
+  if (!document.querySelector(".variety-gallery img")) {
+    return;
+  }
+
   const isMobile = window.matchMedia("(max-width: 640px)").matches;
   const wrapImages = () => {
     document.querySelectorAll(".variety-gallery img").forEach((img) => {
@@ -1594,12 +1750,48 @@ function ensureCartUI() {
             <textarea id="checkout-address" maxlength="260" autocomplete="street-address" data-checkout-address required></textarea>
           </div>
         </div>
-        <p class="checkout-note">Enter your delivery details, then create your PayNow to UEN No payment reference.</p>
-        <button class="checkout-button" type="button" data-cart-checkout disabled>PayNow to UEN No</button>
+        <div class="checkout-payment-methods">
+          <h3>Payment Method</h3>
+          <label class="checkout-payment-option">
+            <input type="radio" name="checkout-payment-method" value="paynow_uen" data-checkout-payment-method checked />
+            <span>
+              <strong>PayNow to UEN No</strong>
+              <small>Enter the business UEN inside your Singapore banking app and use your order reference.</small>
+            </span>
+          </label>
+          <label class="checkout-payment-option">
+            <input type="radio" name="checkout-payment-method" value="paynow_qr" data-checkout-payment-method />
+            <span>
+              <strong>SGQR / PayNow QR</strong>
+              <small>Scan the QR code payment note after checkout and pay the exact order amount shown.</small>
+            </span>
+          </label>
+        </div>
+        <p class="checkout-note" data-checkout-payment-note>Enter your delivery details, choose a payment method, then create your payment note.</p>
+        <button class="checkout-button" type="button" data-cart-checkout disabled>Create PayNow UEN Order</button>
         <div data-payment-request></div>
       </div>
     `;
     document.body.appendChild(drawer);
+  }
+}
+
+function getSelectedCheckoutPaymentMethodKey() {
+  const selectedInput = document.querySelector("[data-checkout-payment-method]:checked");
+  return normalizePaymentMethodKey(selectedInput ? selectedInput.value : DEFAULT_PAYMENT_METHOD_KEY);
+}
+
+function syncCheckoutPaymentMethodUI() {
+  const config = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
+  const note = document.querySelector("[data-checkout-payment-note]");
+  const checkoutButton = document.querySelector("[data-cart-checkout]");
+
+  if (note) {
+    note.textContent = config.checkoutNote;
+  }
+
+  if (checkoutButton) {
+    checkoutButton.textContent = config.checkoutButtonLabel;
   }
 }
 
@@ -1764,6 +1956,9 @@ function renderPaymentRequestCard(pendingPayment) {
     return "";
   }
 
+  const paymentMethod = getPaymentMethodConfig(
+    pendingPayment.paymentMethodKey || pendingPayment.paymentMethod || DEFAULT_PAYMENT_METHOD_KEY
+  );
   const order = pendingPayment.order || {};
   const customer = order.customer || {};
   const items = Array.isArray(order.items) ? order.items : [];
@@ -1781,17 +1976,30 @@ function renderPaymentRequestCard(pendingPayment) {
 
   return `
     <div class="payment-request-card">
-      <h3>PayNow to UEN No</h3>
+      <h3>${escapeHtml(paymentMethod.title)}</h3>
       <div class="payment-request-total">
-        <span>Amount To Pay Now</span>
+        <span>${paymentMethod.supportsQr ? "Amount To Pay After Scanning" : "Amount To Pay Now"}</span>
         <strong>${escapeHtml(pendingPayment.amountDisplay || order.summary?.totalDisplay || "")}</strong>
       </div>
       ${breakdown ? renderCartBreakdown(breakdown, true) : ""}
-      <div class="payment-detail-grid">
-        <div class="payment-detail">
-          <span>PayNow UEN No</span>
-          <strong>${escapeHtml(pendingPayment.paynowToUen || "")}</strong>
+      ${paymentMethod.supportsQr ? `
+        <div class="payment-request-qr">
+          <span>${escapeHtml(paymentMethod.qrImageLabel)}</span>
+          ${renderPaynowQrImage()}
         </div>
+      ` : ""}
+      <div class="payment-detail-grid">
+        ${paymentMethod.supportsQr ? `
+          <div class="payment-detail">
+            <span>Payment Method</span>
+            <strong>${escapeHtml(paymentMethod.title)}</strong>
+          </div>
+        ` : `
+          <div class="payment-detail">
+            <span>PayNow UEN No</span>
+            <strong>${escapeHtml(pendingPayment.paynowToUen || "")}</strong>
+          </div>
+        `}
         <div class="payment-detail">
           <span>Ticket / Order No</span>
           <strong>${escapeHtml(pendingPayment.reference || order.id || "")}</strong>
@@ -1814,7 +2022,7 @@ function renderPaymentRequestCard(pendingPayment) {
       ${hasMarkedPaid ? `<p><strong>Payment acknowledgement received.</strong> Durian Paradise will verify the bank transfer using your ticket number.</p>` : ""}
       <div class="payment-request-actions">
         <button class="payment-request-paid" type="button" data-mark-payment-paid ${hasMarkedPaid ? "disabled" : ""}>${hasMarkedPaid ? "Paid Acknowledgement Sent" : "I Have Paid"}</button>
-        <button class="payment-request-copy" type="button" data-copy-payment-reference>Copy UEN, amount & ticket no</button>
+        <button class="payment-request-copy" type="button" data-copy-payment-reference>${escapeHtml(paymentMethod.copyButtonLabel)}</button>
         <button class="payment-request-clear" type="button" data-clear-payment-request>Clear payment note</button>
       </div>
     </div>
@@ -1877,6 +2085,8 @@ function renderCart() {
   if (paymentRequest) {
     paymentRequest.innerHTML = renderPaymentRequestCard(pendingPayment);
   }
+
+  syncCheckoutPaymentMethodUI();
 }
 
 function bindCartUI() {
@@ -1887,6 +2097,7 @@ function bindCartUI() {
   const checkout = document.querySelector("[data-cart-checkout]");
   const paymentRequest = document.querySelector("[data-payment-request]");
   const phoneInput = document.querySelector("[data-checkout-phone]");
+  const paymentMethodInputs = document.querySelectorAll("[data-checkout-payment-method]");
 
   if (trigger) {
     trigger.addEventListener("click", openCartDrawer);
@@ -1978,15 +2189,33 @@ function bindCartUI() {
         if (!pendingPayment || !navigator.clipboard) {
           return;
         }
+        const paymentMethod = getPaymentMethodConfig(
+          pendingPayment.paymentMethodKey || pendingPayment.paymentMethod || DEFAULT_PAYMENT_METHOD_KEY
+        );
         const order = pendingPayment.order || {};
         const customer = order.customer || {};
+        const paymentLines = paymentMethod.supportsQr
+          ? [
+              `Payment method: ${paymentMethod.title}`,
+              `Amount: ${pendingPayment.amountDisplay || ""}`,
+              `Ticket / Order No: ${pendingPayment.reference || ""}`
+            ]
+          : [
+              `PayNow UEN: ${pendingPayment.paynowToUen || ""}`,
+              `Amount: ${pendingPayment.amountDisplay || ""}`,
+              `Ticket / Order No: ${pendingPayment.reference || ""}`
+            ];
 
         navigator.clipboard.writeText(
-          `PayNow UEN: ${pendingPayment.paynowToUen || ""}\nAmount: ${pendingPayment.amountDisplay || ""}\nTicket / Order No: ${pendingPayment.reference || ""}\nEmail: ${customer.email || ""}\nContact: ${customer.phone || ""}\nAddress: ${customer.address || ""}`
+          `${paymentLines.join("\n")}\nEmail: ${customer.email || ""}\nContact: ${customer.phone || ""}\nAddress: ${customer.address || ""}`
         );
       }
     });
   }
+
+  paymentMethodInputs.forEach((input) => {
+    input.addEventListener("change", syncCheckoutPaymentMethodUI);
+  });
 
   if (phoneInput) {
     const syncReferralLookup = () => {
@@ -2004,6 +2233,7 @@ function bindCartUI() {
   if (checkout) {
     checkout.addEventListener("click", async () => {
       const cart = loadCart();
+      const selectedPaymentMethod = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
       const activeReferralRewards = getDisplayableReferralRewards();
       const referralRewardClaims = activeReferralRewards.map((reward) => ({
         referralCode: reward.referralCode,
@@ -2054,7 +2284,7 @@ function bindCartUI() {
       });
 
       checkout.disabled = true;
-      checkout.textContent = "Creating PayNow Order...";
+      checkout.textContent = `Creating ${selectedPaymentMethod.title} Order...`;
 
       try {
         const response = await fetch(PAYMENT_ORDERS_API_PATH, {
@@ -2075,6 +2305,7 @@ function bindCartUI() {
               address,
               deliveryNotes: notesInput ? notesInput.value.trim() : ""
             },
+            paymentMethodKey: selectedPaymentMethod.key,
             referralCode: getStoredReferralCode(),
             referralRewardClaims,
             visitorId: getVisitorId(),
@@ -2104,11 +2335,11 @@ function bindCartUI() {
           updatedPaymentRequest.scrollIntoView({ behavior: "smooth", block: "start" });
         }
         checkout.disabled = false;
-        checkout.textContent = "PayNow to UEN No";
+        syncCheckoutPaymentMethodUI();
       } catch (error) {
         window.alert(error && error.message ? error.message : "Unable to create payment order.");
         checkout.disabled = false;
-        checkout.textContent = "PayNow to UEN No";
+        syncCheckoutPaymentMethodUI();
       }
     });
   }
@@ -2495,17 +2726,8 @@ function bindReferralForm() {
 
 document.addEventListener("DOMContentLoaded", () => {
   captureReferralCode();
-  trackAnalyticsEvent("page_view");
-  if (getPageCategory().startsWith("group_")) {
-    trackAnalyticsEvent("product_view", {
-      metadata: {
-        productId: getPageCategory()
-      }
-    });
-  }
   ensureCartUI();
   bindNavMenus();
-  enhanceVarietyImages();
   bindCartUI();
   bindProductCards();
   bindPartyForms();
@@ -2514,6 +2736,19 @@ document.addEventListener("DOMContentLoaded", () => {
   bindReferralForm();
   revealPageWhenCriticalImagesReady();
   runNonCriticalTask(() => {
+    const pageCategory = getPageCategory();
+
+    trackAnalyticsEvent("page_view");
+    if (pageCategory.startsWith("group_")) {
+      trackAnalyticsEvent("product_view", {
+        metadata: {
+          productId: pageCategory
+        }
+      });
+    }
+  }, 250);
+  runNonCriticalTask(() => {
+    enhanceVarietyImages();
     loadReviewsWhenNeeded();
   }, 700);
 });

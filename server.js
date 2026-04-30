@@ -17,6 +17,7 @@ const analyticsPath = process.env.ANALYTICS_FILE_PATH || path.join(__dirname, "a
 const businessUen = process.env.BUSINESS_UEN || "53490378M";
 const paymentProvider = process.env.PAYMENT_PROVIDER || "pending_dynamic_sgqr";
 const paymentProviderName = process.env.PAYMENT_PROVIDER_NAME || "PayNow / SGQR";
+const defaultPaymentMethodKey = "paynow_uen";
 const resendApiKey = process.env.RESEND_API_KEY || "";
 const orderEmailFrom = process.env.ORDER_EMAIL_FROM || "Durian Paradise <orders@durianparadises.com>";
 const orderEmailReplyTo = process.env.ORDER_EMAIL_REPLY_TO || "durianparadise6940@gmail.com";
@@ -377,7 +378,7 @@ function getReferralReward(referralCount) {
       type: "cash_discount",
       label: "$5 discount",
       discountAmount: 500,
-      message: "You received a $5 reward for referring a friend.",
+      message: "You received a $5 discount for the 1st referral.",
       cycleNumber
     };
   }
@@ -387,7 +388,7 @@ function getReferralReward(referralCount) {
       type: "cash_discount",
       label: "$10 discount",
       discountAmount: 1000,
-      message: "You received a $10 reward for referring a friend.",
+      message: "You received a $10 discount for the 2nd referral.",
       cycleNumber
     };
   }
@@ -395,9 +396,9 @@ function getReferralReward(referralCount) {
   if (cyclePosition === 3) {
     return {
       type: "free_group1_box",
-      label: "Free box of Group 1 durians",
+      label: "Free 500g box of Group 1 durians",
       discountAmount: 0,
-      message: "You received a free box for referring a friend.",
+      message: "You received a free 500g box of Group 1 durians for the 3rd referral.",
       cycleNumber
     };
   }
@@ -463,15 +464,38 @@ function sanitizeText(rawValue, maxLength) {
 }
 
 function buildReferralRewardMessage(reward) {
+  const referralCount = Number(reward && reward.referralCount ? reward.referralCount : 0);
+  const cycleStep = referralCount > 0 ? ((referralCount - 1) % 3) + 1 : 0;
+  const fallbackStep = reward && reward.type === "free_group1_box"
+    ? 3
+    : Number(reward && reward.discountAmount) === 1000
+      ? 2
+      : 1;
+  const ordinalLabel = cycleStep === 1
+    ? "1st"
+    : cycleStep === 2
+      ? "2nd"
+      : cycleStep === 3
+        ? "3rd"
+        : fallbackStep === 2
+          ? "2nd"
+          : fallbackStep === 3
+            ? "3rd"
+            : "1st";
+
   if (reward && reward.type === "cash_discount" && Number(reward.discountAmount) === 1000) {
-    return "You received a $10 reward for referring a friend.";
+    return `You received a $10 discount for the ${ordinalLabel} referral.`;
   }
 
   if (reward && reward.type === "free_group1_box") {
-    return "You received a free box for referring a friend.";
+    return `You received a free 500g box of Group 1 durians for the ${ordinalLabel} referral.`;
   }
 
-  return "You received a $5 reward for referring a friend.";
+  return `You received a $5 discount for the ${ordinalLabel} referral.`;
+}
+
+function isLegacyReferralRewardMessage(message) {
+  return /referring a friend/i.test(String(message || ""));
 }
 
 function normalizeReferralReward(rawReward) {
@@ -494,7 +518,7 @@ function normalizeReferralReward(rawReward) {
 
   if (!label) {
     if (type === "free_group1_box") {
-      label = "Free box of Group 1 durians";
+      label = "Free 500g box of Group 1 durians";
     } else {
       label = legacyText.includes("$10") ? "$10 discount" : "$5 discount";
     }
@@ -504,12 +528,19 @@ function normalizeReferralReward(rawReward) {
     discountAmount = legacyText.includes("$10") ? 1000 : 500;
   }
 
+  const normalizedMessage = sanitizeText(reward.message, 180);
   const normalizedReward = {
     id: sanitizeText(reward.id, 80) || makeRecordId("reward"),
     type,
     label,
     discountAmount,
-    message: sanitizeText(reward.message, 180) || buildReferralRewardMessage({ type, discountAmount }),
+    message: normalizedMessage && !isLegacyReferralRewardMessage(normalizedMessage)
+      ? normalizedMessage
+      : buildReferralRewardMessage({
+          type,
+          discountAmount,
+          referralCount: Number(reward.referralCount || 0)
+        }),
     referralCount: Number(reward.referralCount || 0) || 0,
     referralCycle: Number(reward.referralCycle || 0) || 0,
     orderId: sanitizeText(reward.orderId, 40),
@@ -718,6 +749,32 @@ function isValidEmail(email) {
 
 function formatAmount(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
+function normalizePaymentMethodKey(rawValue) {
+  const normalizedValue = String(rawValue || "").trim().toLowerCase();
+
+  return normalizedValue === "paynow_qr" || normalizedValue.includes("qr")
+    ? "paynow_qr"
+    : defaultPaymentMethodKey;
+}
+
+function getPaymentMethodConfig(rawPaymentMethodKey) {
+  const key = normalizePaymentMethodKey(rawPaymentMethodKey);
+
+  if (key === "paynow_qr") {
+    return {
+      key,
+      label: "SGQR / PayNow QR",
+      message: "Open your Singapore banking app, scan the SGQR code shown on the website payment note, pay this exact amount, and keep the order reference below for confirmation."
+    };
+  }
+
+  return {
+    key,
+    label: "PayNow to UEN No",
+    message: "Open your Singapore banking app, choose PayNow UEN, enter this exact amount, and use the order reference below."
+  };
 }
 
 function recordAnalyticsEvent(input) {
@@ -1065,6 +1122,7 @@ function issueReferralRewardForOrder(order) {
 
 function buildOrderEmail(order) {
   const breakdown = order.summary.priceBreakdown || {};
+  const paymentMethod = order.paymentMethod || "PayNow to UEN No";
   const itemLinesText = order.items
     .map((item) => `- ${item.name} (${item.variantLabel}) x ${item.quantity}: ${formatAmount(item.subtotalAmount)}`)
     .join("\n");
@@ -1084,7 +1142,8 @@ function buildOrderEmail(order) {
       "Order confirmed",
       "",
       `Order reference: ${order.id}`,
-      `PayNow UEN: ${order.businessUen}`,
+      `Payment method: ${paymentMethod}`,
+      paymentMethod === "PayNow to UEN No" ? `PayNow UEN: ${order.businessUen}` : null,
       `Items subtotal: ${formatAmount(breakdown.subtotalBeforeAdjustments || order.summary.totalAmount)}`,
       breakdown.deliveryFee ? `Delivery fee: ${formatAmount(breakdown.deliveryFee)}` : "Delivery fee: Free",
       breakdown.deliveryDiscount ? `10% delivery discount: -${formatAmount(breakdown.deliveryDiscount)}` : null,
@@ -1099,7 +1158,9 @@ function buildOrderEmail(order) {
       `Delivery address: ${order.customer.address}`,
       `Contact number: ${order.customer.phone}`,
       "",
-      "Please complete payment using the PayNow UEN and order reference above."
+      paymentMethod === "PayNow to UEN No"
+        ? "Please complete payment using the PayNow UEN and order reference above."
+        : "Please complete payment using the SGQR code shown on the website payment note and keep the order reference above."
     ].filter(Boolean).join("\n"),
     html: `
       <div style="font-family:Arial,sans-serif;color:#211a13;background:#f7f1e7;padding:24px;">
@@ -1107,7 +1168,8 @@ function buildOrderEmail(order) {
           <h1 style="margin:0 0 12px;font-size:28px;">Order confirmed</h1>
           <p style="margin:0 0 18px;">Thank you for ordering from Durian Paradise. Please complete payment using the PayNow details below.</p>
           <p><strong>Order reference:</strong> ${escapeEmailHtml(order.id)}</p>
-          <p><strong>PayNow UEN:</strong> ${escapeEmailHtml(order.businessUen)}</p>
+          <p><strong>Payment method:</strong> ${escapeEmailHtml(paymentMethod)}</p>
+          ${paymentMethod === "PayNow to UEN No" ? `<p><strong>PayNow UEN:</strong> ${escapeEmailHtml(order.businessUen)}</p>` : ""}
           <p><strong>Items subtotal:</strong> ${escapeEmailHtml(formatAmount(breakdown.subtotalBeforeAdjustments || order.summary.totalAmount))}</p>
           <p><strong>Delivery fee:</strong> ${escapeEmailHtml(breakdown.deliveryFee ? formatAmount(breakdown.deliveryFee) : "Free")}</p>
           ${breakdown.deliveryDiscount ? `<p><strong>10% delivery discount:</strong> -${escapeEmailHtml(formatAmount(breakdown.deliveryDiscount))}</p>` : ""}
@@ -1135,6 +1197,7 @@ function buildOrderEmail(order) {
 
 function buildPaidNotificationEmail(order) {
   const orderEmail = buildOrderEmail(order);
+  const paymentMethod = order.paymentMethod || "PayNow to UEN No";
 
   return {
     subject: `Customer marked paid - ${order.id}`,
@@ -1142,7 +1205,8 @@ function buildPaidNotificationEmail(order) {
       "Customer marked this order as paid.",
       "",
       `Order reference: ${order.id}`,
-      `PayNow UEN: ${order.businessUen}`,
+      `Payment method: ${paymentMethod}`,
+      paymentMethod === "PayNow to UEN No" ? `PayNow UEN: ${order.businessUen}` : null,
       `Total: ${order.summary.totalDisplay}`,
       `Customer: ${order.customer.name || "Not provided"}`,
       `Email: ${order.customer.email}`,
@@ -1160,7 +1224,8 @@ function buildPaidNotificationEmail(order) {
           <p style="margin:0 0 18px;">Please verify this payment in the business bank account using the amount and order reference.</p>
           <p><strong>Order reference:</strong> ${escapeEmailHtml(order.id)}</p>
           <p><strong>Total:</strong> ${escapeEmailHtml(order.summary.totalDisplay)}</p>
-          <p><strong>PayNow UEN:</strong> ${escapeEmailHtml(order.businessUen)}</p>
+          <p><strong>Payment method:</strong> ${escapeEmailHtml(paymentMethod)}</p>
+          ${paymentMethod === "PayNow to UEN No" ? `<p><strong>PayNow UEN:</strong> ${escapeEmailHtml(order.businessUen)}</p>` : ""}
           <p><strong>Customer:</strong> ${escapeEmailHtml(order.customer.name || "Not provided")}</p>
           <p><strong>Email:</strong> ${escapeEmailHtml(order.customer.email)}</p>
           <p><strong>Contact:</strong> ${escapeEmailHtml(order.customer.phone)}</p>
@@ -1241,14 +1306,18 @@ async function sendPaidNotificationEmail(order) {
   });
 }
 
-function buildPendingQrResponse(order) {
+function buildPendingPaymentResponse(order, rawPaymentMethodKey) {
+  const paymentMethod = getPaymentMethodConfig(rawPaymentMethodKey);
+
   return {
     provider: paymentProvider,
     providerName: paymentProviderName,
     exactAmountReady: true,
     requiresProviderIntegration: true,
-    message: "Open your Singapore banking app, choose PayNow UEN, enter this exact amount, and use the order reference below. Automatic bank confirmation still requires a connected bank or SGQR provider API.",
-    paynowToUen: businessUen,
+    paymentMethodKey: paymentMethod.key,
+    paymentMethodLabel: paymentMethod.label,
+    message: `${paymentMethod.message} Automatic bank confirmation still requires a connected bank or SGQR provider API.`,
+    paynowToUen: paymentMethod.key === "paynow_uen" ? businessUen : "",
     amountDisplay: order.summary.totalDisplay,
     reference: order.id
   };
@@ -1549,6 +1618,8 @@ app.post("/api/payment-orders", async (req, res) => {
     const customerEmail = String(customer.email || "").trim();
     const customerAddress = String(customer.address || "").trim();
     const referralCode = sanitizeReferralCode(req.body && req.body.referralCode);
+    const paymentMethodKey = normalizePaymentMethodKey(req.body && req.body.paymentMethodKey);
+    const paymentMethod = getPaymentMethodConfig(paymentMethodKey);
     const baseSummary = summarizeOrder(items);
 
     if (!customerPhone) {
@@ -1578,7 +1649,7 @@ app.post("/api/payment-orders", async (req, res) => {
       createdAt: new Date().toISOString(),
       status: "pending_payment",
       paymentStatus: "awaiting_provider_setup",
-      paymentMethod: paymentProviderName,
+      paymentMethod: paymentMethod.label,
       businessUen,
       items,
       summary,
@@ -1596,7 +1667,7 @@ app.post("/api/payment-orders", async (req, res) => {
         conversionRecordedAt: ""
       } : null,
       claimedReferralRewards,
-      paymentRequest: buildPendingQrResponse({ summary, id: orderId }),
+      paymentRequest: buildPendingPaymentResponse({ summary, id: orderId }, paymentMethod.key),
       emailConfirmation: {
         status: "pending"
       }
