@@ -432,7 +432,7 @@
       font-size: 16px;
     }
 
-    .payment-card .paynow-qr-image {
+    .payment-card .paynow-qr-frame {
       margin-top: 12px;
     }
 
@@ -451,14 +451,26 @@
       letter-spacing: 0.2px;
     }
 
+    .paynow-qr-frame {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8f4ed 100%);
+      border: 1px solid rgba(120, 100, 76, 0.14);
+      box-shadow: 0 14px 28px rgba(72, 52, 28, 0.08);
+    }
+
     .paynow-qr-image {
       width: min(220px, 100%);
       aspect-ratio: 1;
+      display: block;
       object-fit: contain;
-      padding: 12px;
-      border-radius: 18px;
+      padding: 0;
+      border-radius: 16px;
       background: #fff;
-      border: 1px solid rgba(120, 100, 76, 0.14);
+      border: 1px solid rgba(120, 100, 76, 0.1);
     }
 
     .feature {
@@ -1248,7 +1260,9 @@
             <div class="payment-card">
               <h4>SGQR / PayNow QR</h4>
               <p>Scan the QR code below to pay using your banking app or PayNow.</p>
-              <img class="paynow-qr-image" src="images/paynow-qr-placeholder.svg" alt="PayNow SGQR Code" width="220" height="220" loading="lazy" decoding="async" />
+              <div class="paynow-qr-frame">
+                <img class="paynow-qr-image" src="images/paynow-qr.jpeg" alt="PayNow SGQR Code" width="220" height="220" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='images/paynow-qr-placeholder.svg'" />
+              </div>
             </div>
           </div>
         </section>

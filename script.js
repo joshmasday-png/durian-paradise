@@ -11,7 +11,8 @@ const REFERRAL_STORAGE_KEY = "durianParadiseReferral";
 const OWNED_REFERRALS_STORAGE_KEY = "durianParadiseOwnedReferrals";
 const VISITOR_STORAGE_KEY = "durianParadiseVisitorId";
 const DEFAULT_PAYMENT_METHOD_KEY = "paynow_uen";
-const PAYNOW_QR_IMAGE_PATH = "images/paynow-qr-placeholder.svg";
+const PAYNOW_QR_IMAGE_PATH = "images/paynow-qr.jpeg";
+const PAYNOW_QR_PLACEHOLDER_PATH = "images/paynow-qr-placeholder.svg";
 let phoneMatchedReferralRewards = [];
 let referralRewardLookupTimer = 0;
 let lastReferralRewardLookupKey = "";
@@ -138,7 +139,11 @@ function getPaymentMethodConfig(methodKey) {
 }
 
 function renderPaynowQrImage() {
-  return `<img class="paynow-qr-image" src="${PAYNOW_QR_IMAGE_PATH}" alt="PayNow SGQR code" width="220" height="220" loading="eager" decoding="async" />`;
+  return `
+    <div class="paynow-qr-frame">
+      <img class="paynow-qr-image" src="${PAYNOW_QR_IMAGE_PATH}" alt="PayNow SGQR code" width="220" height="220" loading="eager" decoding="async" onerror="this.onerror=null;this.src='${PAYNOW_QR_PLACEHOLDER_PATH}'" />
+    </div>
+  `;
 }
 
 function readReviewImage(file) {
@@ -1232,13 +1237,25 @@ function injectCartStyles() {
       text-transform: uppercase;
     }
 
+    .paynow-qr-frame {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8f4ed 100%);
+      border: 1px solid rgba(120, 100, 76, 0.14);
+      box-shadow: 0 14px 28px rgba(72, 52, 28, 0.08);
+    }
+
     .paynow-qr-image {
       width: min(220px, 100%);
       aspect-ratio: 1;
-      border-radius: 18px;
+      display: block;
+      border-radius: 16px;
       background: #fff;
-      border: 1px solid rgba(120, 100, 76, 0.14);
-      padding: 12px;
+      border: 1px solid rgba(120, 100, 76, 0.1);
+      padding: 0;
       object-fit: contain;
     }
 
