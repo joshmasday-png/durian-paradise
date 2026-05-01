@@ -1279,6 +1279,17 @@ function injectCartStyles() {
       border-bottom: none;
     }
 
+    .payment-order-line.is-total {
+      margin-top: 4px;
+      padding-top: 14px;
+      border-top: 2px solid rgba(120, 100, 76, 0.16);
+      border-bottom: none;
+    }
+
+    .payment-order-line.is-total strong:last-child {
+      font-size: 18px;
+    }
+
     .payment-order-line small {
       display: block;
       color: #6a5845;
@@ -1982,7 +1993,7 @@ function renderPaymentRequestCard(pendingPayment) {
   const items = Array.isArray(order.items) ? order.items : [];
   const hasMarkedPaid = order.status === "customer_marked_paid" || Boolean(order.customerPaymentAcknowledgement);
   const breakdown = order.summary && order.summary.priceBreakdown ? order.summary.priceBreakdown : null;
-  const orderLines = items.length ? items.map((item) => `
+  const orderLineItems = items.map((item) => `
     <div class="payment-order-line">
       <div>
         <strong>${escapeHtml(item.name || "Durian item")}</strong>
@@ -1990,7 +2001,29 @@ function renderPaymentRequestCard(pendingPayment) {
       </div>
       <strong>${escapeHtml(formatCurrency(Number(item.subtotalAmount || 0) / 100))}</strong>
     </div>
-  `).join("") : "";
+  `);
+  const deliverySummaryLine = breakdown
+    ? `
+      <div class="payment-order-line">
+        <div>
+          <strong>Delivery Fee</strong>
+          <small>${Number(breakdown.deliveryFee || 0) > 0 ? "Applied for this order" : "Free for this order"}</small>
+        </div>
+        <strong>${Number(breakdown.deliveryFee || 0) > 0 ? escapeHtml(formatCurrency(Number(breakdown.deliveryFee || 0) / 100)) : "Free"}</strong>
+      </div>
+    `
+    : "";
+  const totalPriceLine = `
+    <div class="payment-order-line is-total">
+      <div>
+        <strong>Total Price To Pay</strong>
+      </div>
+      <strong>${escapeHtml(pendingPayment.amountDisplay || order.summary?.totalDisplay || "")}</strong>
+    </div>
+  `;
+  const orderLines = [...orderLineItems, deliverySummaryLine, totalPriceLine]
+    .filter(Boolean)
+    .join("");
 
   return `
     <div class="payment-request-card">
@@ -2035,7 +2068,7 @@ function renderPaymentRequestCard(pendingPayment) {
           <strong>${escapeHtml(customer.address || "")}</strong>
         </div>
       </div>
-      ${orderLines ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
+      ${items.length ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
       <p>${escapeHtml(pendingPayment.message || "")}</p>
       ${hasMarkedPaid ? `<p><strong>Payment acknowledgement received.</strong> Durian Paradise will verify the bank transfer using your ticket number.</p>` : ""}
       <div class="payment-request-actions">

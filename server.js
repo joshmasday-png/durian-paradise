@@ -18,6 +18,7 @@ const businessUen = process.env.BUSINESS_UEN || "53490378M";
 const paymentProvider = process.env.PAYMENT_PROVIDER || "pending_dynamic_sgqr";
 const paymentProviderName = process.env.PAYMENT_PROVIDER_NAME || "PayNow / SGQR";
 const defaultPaymentMethodKey = "paynow_uen";
+const enableTestHelpers = process.env.ENABLE_TEST_HELPERS === "1";
 const resendApiKey = process.env.RESEND_API_KEY || "";
 const orderEmailFrom = process.env.ORDER_EMAIL_FROM || "Durian Paradise <orders@durianparadises.com>";
 const orderEmailReplyTo = process.env.ORDER_EMAIL_REPLY_TO || "durianparadise6940@gmail.com";
@@ -272,7 +273,7 @@ function readReferrals() {
   try {
     const raw = fs.readFileSync(referralsPath, "utf8");
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return repairReferralFamilies(Array.isArray(parsed) ? parsed : []);
   } catch (_error) {
     return [];
   }
@@ -280,7 +281,8 @@ function readReferrals() {
 
 function writeReferrals(referrals) {
   ensureJsonArrayFile(referralsPath);
-  fs.writeFileSync(referralsPath, JSON.stringify(referrals, null, 2) + "\n", "utf8");
+  const normalizedReferrals = repairReferralFamilies(Array.isArray(referrals) ? referrals : []);
+  fs.writeFileSync(referralsPath, JSON.stringify(normalizedReferrals, null, 2) + "\n", "utf8");
 }
 
 function readAnalytics() {
@@ -576,6 +578,104 @@ function normalizeReferralEntry(referral) {
   referral.rewards = Array.isArray(referral.rewards) ? referral.rewards.map(normalizeReferralReward) : [];
 
   return referral;
+}
+
+function getIsoTimestamp(value) {
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function compareByCreatedAt(left, right) {
+  const leftTime = getIsoTimestamp(left && left.createdAt);
+  const rightTime = getIsoTimestamp(right && right.createdAt);
+
+  if (leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+
+  return String(left && left.orderId ? left.orderId : "").localeCompare(String(right && right.orderId ? right.orderId : ""));
+}
+
+function getReferralFamilyKey(referral) {
+  const normalizedReferral = normalizeReferralEntry(referral);
+
+  if (normalizedReferral && normalizedReferral.referrer && normalizedReferral.referrer.phoneMatch) {
+    return `phone:${normalizedReferral.referrer.phoneMatch}`;
+  }
+
+  return `code:${sanitizeReferralCode(normalizedReferral && normalizedReferral.code)}`;
+}
+
+function getReferralFamilyEntries(referrals, targetReferral) {
+  const familyKey = getReferralFamilyKey(targetReferral);
+
+  return (Array.isArray(referrals) ? referrals : []).filter((referral) => getReferralFamilyKey(referral) === familyKey);
+}
+
+function listReferralFamilyConversions(referrals, targetReferral) {
+  return getReferralFamilyEntries(referrals, targetReferral)
+    .flatMap((referral) => (Array.isArray(referral.conversions) ? referral.conversions : []))
+    .sort(compareByCreatedAt);
+}
+
+function repairReferralFamilies(referrals) {
+  const list = Array.isArray(referrals) ? referrals : [];
+  const families = new Map();
+
+  list.forEach((referral) => {
+    normalizeReferralEntry(referral);
+    const familyKey = getReferralFamilyKey(referral);
+
+    if (!families.has(familyKey)) {
+      families.set(familyKey, []);
+    }
+
+    families.get(familyKey).push(referral);
+  });
+
+  families.forEach((familyEntries) => {
+    const familyConversions = familyEntries
+      .flatMap((referral) => (Array.isArray(referral.conversions) ? referral.conversions : []))
+      .sort(compareByCreatedAt);
+    const conversionIndexByOrderId = new Map();
+
+    familyConversions.forEach((conversion, index) => {
+      const orderId = sanitizeText(conversion && conversion.orderId, 40);
+
+      if (orderId && !conversionIndexByOrderId.has(orderId)) {
+        conversionIndexByOrderId.set(orderId, index + 1);
+      }
+    });
+
+    familyEntries.forEach((referral) => {
+      referral.rewards = (Array.isArray(referral.rewards) ? referral.rewards : []).map((reward) => {
+        const normalizedReward = normalizeReferralReward(reward);
+        const rewardOrderId = sanitizeText(normalizedReward.orderId, 40);
+        const canonicalCount = conversionIndexByOrderId.get(rewardOrderId) || Number(normalizedReward.referralCount || 0);
+        const canonicalReward = canonicalCount > 0 ? getReferralReward(canonicalCount) : null;
+
+        if (!canonicalReward) {
+          return normalizedReward;
+        }
+
+        return {
+          ...normalizedReward,
+          type: canonicalReward.type,
+          label: canonicalReward.label,
+          discountAmount: canonicalReward.discountAmount,
+          message: buildReferralRewardMessage({
+            type: canonicalReward.type,
+            discountAmount: canonicalReward.discountAmount,
+            referralCount: canonicalCount
+          }),
+          referralCount: canonicalCount,
+          referralCycle: Math.floor((canonicalCount - 1) / 3) + 1
+        };
+      });
+    });
+  });
+
+  return list;
 }
 
 function dedupeReferralRewards(rewards) {
@@ -1059,8 +1159,9 @@ function issueReferralRewardForOrder(order) {
   }
 
   normalizeReferralEntry(referral);
+  const familyConversions = listReferralFamilyConversions(referrals, referral);
   const conversions = Array.isArray(referral.conversions) ? referral.conversions : [];
-  const existingConversion = conversions.find((entry) => String(entry.orderId || "") === String(order.id));
+  const existingConversion = familyConversions.find((entry) => String(entry.orderId || "") === String(order.id));
   const existingReward = Array.isArray(referral.rewards)
     ? referral.rewards.find((entry) => String(entry.orderId || "") === String(order.id))
     : null;
@@ -1075,7 +1176,7 @@ function issueReferralRewardForOrder(order) {
     };
   }
 
-  const nextCount = conversions.length + 1;
+  const nextCount = familyConversions.length + 1;
   const conversion = {
     orderId: order.id,
     orderTotal: order.summary && order.summary.totalDisplay ? order.summary.totalDisplay : "",
@@ -1400,6 +1501,30 @@ app.post("/api/referrals", (req, res) => {
   const ownerPhone = sanitizePhone(req.body && req.body.ownerPhone);
   const ownerPhoneMatch = normalizePhoneMatchKey(ownerPhone);
 
+  if (ownerPhoneMatch) {
+    const existingActiveReferral = referrals
+      .filter((entry) => {
+        normalizeReferralEntry(entry);
+        return entry.referrer
+          && entry.referrer.phoneMatch === ownerPhoneMatch
+          && new Date(entry.expiresAt).getTime() >= Date.now();
+      })
+      .sort((left, right) => getIsoTimestamp(right.createdAt) - getIsoTimestamp(left.createdAt))[0];
+
+    if (existingActiveReferral) {
+      return res.status(200).json({
+        referral: {
+          code: existingActiveReferral.code,
+          link: existingActiveReferral.link,
+          expiresAt: existingActiveReferral.expiresAt,
+          ownerToken: existingActiveReferral.ownerToken,
+          conversionCount: Array.isArray(existingActiveReferral.conversions) ? existingActiveReferral.conversions.length : 0,
+          rewards: existingActiveReferral.rewards
+        }
+      });
+    }
+  }
+
   let code = makeReferralCode();
 
   while (referrals.some((entry) => entry.code === code)) {
@@ -1455,20 +1580,22 @@ app.post("/api/referral-rewards/lookup", (req, res) => {
 
 app.get("/api/referrals/:code", (req, res) => {
   const code = sanitizeReferralCode(req.params.code);
-  const referral = readReferrals().find((entry) => entry.code === code);
+  const referrals = readReferrals();
+  const referral = referrals.find((entry) => entry.code === code);
 
   if (!referral) {
     return res.status(404).json({ error: "Referral not found." });
   }
 
   normalizeReferralEntry(referral);
+  const familyConversionCount = listReferralFamilyConversions(referrals, referral).length;
 
   return res.json({
     referral: {
       code: referral.code,
       link: referral.link,
       clicks: referral.clicks || 0,
-      conversionCount: Array.isArray(referral.conversions) ? referral.conversions.length : 0,
+      conversionCount: familyConversionCount,
       expiresAt: referral.expiresAt,
       isActive: new Date(referral.expiresAt).getTime() >= Date.now()
     }
@@ -1491,6 +1618,7 @@ app.get("/api/referrals/:code/owner-status", (req, res) => {
     return res.status(403).json({ error: "Referral owner token is invalid." });
   }
 
+  const familyConversionCount = listReferralFamilyConversions(referrals, referral).length;
   writeReferrals(referrals);
 
   return res.json({
@@ -1499,9 +1627,75 @@ app.get("/api/referrals/:code/owner-status", (req, res) => {
       link: referral.link,
       expiresAt: referral.expiresAt,
       isActive: new Date(referral.expiresAt).getTime() >= Date.now(),
-      conversionCount: referral.conversions.length,
+      conversionCount: familyConversionCount,
       rewards: referral.rewards
     }
+  });
+});
+
+app.post("/api/test/reset", (req, res) => {
+  if (!enableTestHelpers) {
+    return res.status(404).json({ error: "Test helpers are disabled." });
+  }
+
+  writeOrders([]);
+  writeReferrals([]);
+  writeAnalytics({ events: [] });
+  writeReviews([]);
+
+  return res.json({
+    ok: true,
+    message: "Test data has been reset."
+  });
+});
+
+app.post("/api/test/referrals/:code/simulate-conversion", (req, res) => {
+  if (!enableTestHelpers) {
+    return res.status(404).json({ error: "Test helpers are disabled." });
+  }
+
+  const code = sanitizeReferralCode(req.params.code);
+  const referral = readReferrals().find((entry) => entry.code === code);
+
+  if (!referral) {
+    return res.status(404).json({ error: "Referral not found." });
+  }
+
+  const familyConversions = listReferralFamilyConversions(readReferrals(), referral);
+  const testOrderId = `TEST-${familyConversions.length + 1}`;
+  const testPhone = sanitizePhone(req.body && req.body.phone) || "91234567";
+  const simulatedOrder = {
+    id: testOrderId,
+    customer: {
+      phone: testPhone
+    },
+    summary: {
+      totalDisplay: "$0.00"
+    },
+    referral: {
+      code,
+      status: "awaiting_customer_paid_confirmation",
+      reward: null,
+      conversionRecordedAt: ""
+    }
+  };
+  const updatedReferralState = issueReferralRewardForOrder(simulatedOrder);
+  const refreshedReferrals = readReferrals();
+  const refreshedReferral = refreshedReferrals.find((entry) => entry.code === code);
+
+  if (!refreshedReferral) {
+    return res.status(500).json({ error: "Referral could not be refreshed after simulation." });
+  }
+
+  return res.json({
+    ok: true,
+    referral: {
+      code: refreshedReferral.code,
+      conversionCount: refreshedReferral.conversions.length,
+      rewards: refreshedReferral.rewards
+    },
+    simulatedOrderId: testOrderId,
+    issuedReward: updatedReferralState && updatedReferralState.reward ? updatedReferralState.reward : null
   });
 });
 
