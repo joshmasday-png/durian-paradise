@@ -1297,6 +1297,11 @@ function injectCartStyles() {
       line-height: 1.35;
     }
 
+    .payment-order-line.is-muted strong:last-child {
+      color: #486c32;
+      font-size: 15px;
+    }
+
     .payment-request-chip {
       display: inline-flex;
       align-items: center;
@@ -1980,6 +1985,94 @@ function renderCartBreakdown(breakdown, isCents = false) {
   return `<div class="cart-breakdown">${lines.join("")}</div>`;
 }
 
+function renderPaymentSummaryLine(title, value, detail = "", options = {}) {
+  const { isTotal = false, isMuted = false } = options;
+
+  return `
+    <div class="payment-order-line${isTotal ? " is-total" : ""}${isMuted ? " is-muted" : ""}">
+      <div>
+        <strong>${escapeHtml(title)}</strong>
+        ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
+      </div>
+      <strong>${escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+
+function buildPaymentRequestOrderSummary(items, breakdown, totalDisplay) {
+  const lines = [];
+
+  items.forEach((item) => {
+    const itemDetailParts = [];
+    if (item.variantLabel) {
+      itemDetailParts.push(item.variantLabel);
+    }
+    itemDetailParts.push(`Qty ${item.quantity || 1}`);
+    lines.push(renderPaymentSummaryLine(
+      item.name || "Durian item",
+      formatCurrency(Number(item.subtotalAmount || 0) / 100),
+      itemDetailParts.join(" · ")
+    ));
+  });
+
+  if (breakdown) {
+    const deliveryFee = Number(breakdown.deliveryFee || 0) / 100;
+    const deliveryDiscount = Number(breakdown.deliveryDiscount || 0) / 100;
+    const freeBoxDiscount = Number(breakdown.freeBoxDiscount || 0) / 100;
+    const referralCashDiscount = Number(breakdown.referralCashDiscount || 0) / 100;
+    const deliveryBoxCount = Number(breakdown.deliveryBoxCount || 0);
+    const freeBoxCount = Number(breakdown.freeBoxCount || 0);
+    const referralFreeBoxCount = Number(breakdown.referralFreeBoxCount || 0);
+
+    if (deliveryBoxCount > 0) {
+      const deliveryFeeValue = deliveryFee > 0 ? formatCurrency(deliveryFee) : "Free";
+      const deliveryFeeDetail = deliveryFee > 0
+        ? `${deliveryBoxCount} delivery ${deliveryBoxCount === 1 ? "box" : "boxes"} in this order`
+        : deliveryBoxCount >= 4
+          ? "Free delivery applied for 4 boxes and above"
+          : "Included in this order";
+      lines.push(renderPaymentSummaryLine("Delivery Fee", deliveryFeeValue, deliveryFeeDetail));
+    }
+
+    if (deliveryDiscount > 0) {
+      lines.push(renderPaymentSummaryLine(
+        "10% Delivery Discount",
+        `-${formatCurrency(deliveryDiscount)}`,
+        "Applied automatically for 4 boxes and above"
+      ));
+    }
+
+    if (freeBoxDiscount > 0 && freeBoxCount > 0) {
+      const paidBoxes = deliveryBoxCount;
+      const totalBoxes = paidBoxes + freeBoxCount;
+      lines.push(renderPaymentSummaryLine(
+        `Free Group 1 Durian Box (${freeBoxCount})`,
+        `-${formatCurrency(freeBoxDiscount)}`,
+        `${paidBoxes} paid ${paidBoxes === 1 ? "box" : "boxes"} + ${freeBoxCount} free ${freeBoxCount === 1 ? "box" : "boxes"} = ${totalBoxes} boxes total`
+      ));
+    }
+
+    if (referralCashDiscount > 0) {
+      lines.push(renderPaymentSummaryLine(
+        "Referral Discount",
+        `-${formatCurrency(referralCashDiscount)}`
+      ));
+    }
+
+    if (referralFreeBoxCount > 0) {
+      lines.push(renderPaymentSummaryLine(
+        `Referral Free Group 1 Box (${referralFreeBoxCount})`,
+        "Included",
+        `${referralFreeBoxCount} free 500g Group 1 ${referralFreeBoxCount === 1 ? "box is" : "boxes are"} attached to this order`,
+        { isMuted: true }
+      ));
+    }
+  }
+
+  lines.push(renderPaymentSummaryLine("Total Price To Pay", totalDisplay, "", { isTotal: true }));
+  return lines.join("");
+}
+
 function renderPaymentRequestCard(pendingPayment) {
   if (!pendingPayment) {
     return "";
@@ -1993,46 +2086,16 @@ function renderPaymentRequestCard(pendingPayment) {
   const items = Array.isArray(order.items) ? order.items : [];
   const hasMarkedPaid = order.status === "customer_marked_paid" || Boolean(order.customerPaymentAcknowledgement);
   const breakdown = order.summary && order.summary.priceBreakdown ? order.summary.priceBreakdown : null;
-  const orderLineItems = items.map((item) => `
-    <div class="payment-order-line">
-      <div>
-        <strong>${escapeHtml(item.name || "Durian item")}</strong>
-        <small>${escapeHtml(item.variantLabel || "")} &middot; Qty ${escapeHtml(item.quantity || 1)}</small>
-      </div>
-      <strong>${escapeHtml(formatCurrency(Number(item.subtotalAmount || 0) / 100))}</strong>
-    </div>
-  `);
-  const deliverySummaryLine = breakdown
-    ? `
-      <div class="payment-order-line">
-        <div>
-          <strong>Delivery Fee</strong>
-          <small>${Number(breakdown.deliveryFee || 0) > 0 ? "Applied for this order" : "Free for this order"}</small>
-        </div>
-        <strong>${Number(breakdown.deliveryFee || 0) > 0 ? escapeHtml(formatCurrency(Number(breakdown.deliveryFee || 0) / 100)) : "Free"}</strong>
-      </div>
-    `
-    : "";
-  const totalPriceLine = `
-    <div class="payment-order-line is-total">
-      <div>
-        <strong>Total Price To Pay</strong>
-      </div>
-      <strong>${escapeHtml(pendingPayment.amountDisplay || order.summary?.totalDisplay || "")}</strong>
-    </div>
-  `;
-  const orderLines = [...orderLineItems, deliverySummaryLine, totalPriceLine]
-    .filter(Boolean)
-    .join("");
+  const totalDisplay = pendingPayment.amountDisplay || order.summary?.totalDisplay || "";
+  const orderLines = buildPaymentRequestOrderSummary(items, breakdown, totalDisplay);
 
   return `
     <div class="payment-request-card">
       <h3>${escapeHtml(paymentMethod.title)}</h3>
       <div class="payment-request-total">
         <span>${paymentMethod.supportsQr ? "Amount To Pay After Scanning" : "Amount To Pay Now"}</span>
-        <strong>${escapeHtml(pendingPayment.amountDisplay || order.summary?.totalDisplay || "")}</strong>
+        <strong>${escapeHtml(totalDisplay)}</strong>
       </div>
-      ${breakdown ? renderCartBreakdown(breakdown, true) : ""}
       ${paymentMethod.supportsQr ? `
         <div class="payment-request-qr">
           <span>${escapeHtml(paymentMethod.qrImageLabel)}</span>
@@ -2068,7 +2131,7 @@ function renderPaymentRequestCard(pendingPayment) {
           <strong>${escapeHtml(customer.address || "")}</strong>
         </div>
       </div>
-      ${items.length ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
+      ${(items.length || breakdown) ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
       <p>${escapeHtml(pendingPayment.message || "")}</p>
       ${hasMarkedPaid ? `<p><strong>Payment acknowledgement received.</strong> Durian Paradise will verify the bank transfer using your ticket number.</p>` : ""}
       <div class="payment-request-actions">
