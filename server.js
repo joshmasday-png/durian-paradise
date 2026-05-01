@@ -1417,7 +1417,7 @@ function buildPendingPaymentResponse(order, rawPaymentMethodKey) {
     requiresProviderIntegration: true,
     paymentMethodKey: paymentMethod.key,
     paymentMethodLabel: paymentMethod.label,
-    message: `${paymentMethod.message} Automatic bank confirmation still requires a connected bank or SGQR provider API.`,
+    message: paymentMethod.message,
     paynowToUen: paymentMethod.key === "paynow_uen" ? businessUen : "",
     amountDisplay: order.summary.totalDisplay,
     reference: order.id
