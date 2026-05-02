@@ -19,6 +19,13 @@ let referralRewardLookupTimer = 0;
 let lastReferralRewardLookupKey = "";
 let reviewsLoadPromise = null;
 let lastOwnedReferralRefreshAt = 0;
+let navMenusBound = false;
+let cartUiBound = false;
+let cartUiPrepared = false;
+let productCardsBound = false;
+let partyFormsBound = false;
+let reviewFormBound = false;
+let referralFormBound = false;
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-SG", {
@@ -579,6 +586,13 @@ function trackAnalyticsEvent(type, details = {}) {
 
 function getCartCount(cart) {
   return cart.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+function syncCartTriggerCount() {
+  const count = getCartCount(loadCart());
+  document.querySelectorAll("[data-cart-count]").forEach((el) => {
+    el.textContent = String(count);
+  });
 }
 
 function getCartTotal(cart) {
@@ -1623,11 +1637,49 @@ function runNonCriticalTask(task, timeout = 400) {
   window.setTimeout(task, 0);
 }
 
+function runWhenElementNearViewport(target, callback, options = {}) {
+  const element = typeof target === "string" ? document.querySelector(target) : target;
+
+  if (!element || typeof callback !== "function") {
+    return;
+  }
+
+  const rootMargin = options.rootMargin || "360px 0px";
+  const immediate = Boolean(options.immediate);
+  const hash = String(options.hash || "").trim();
+  const isHashMatch = hash && window.location.hash === hash;
+  const shouldRunNow = immediate
+    || isHashMatch
+    || element.getBoundingClientRect().top < (window.innerHeight * 1.25);
+
+  if (shouldRunNow || !("IntersectionObserver" in window)) {
+    callback();
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) {
+      return;
+    }
+
+    observer.disconnect();
+    callback();
+  }, { rootMargin });
+
+  observer.observe(element);
+}
+
 function bindNavMenus() {
+  if (navMenusBound) {
+    return;
+  }
+
   const navGroups = document.querySelectorAll(".nav-group");
   if (!navGroups.length) {
     return;
   }
+
+  navMenusBound = true;
 
   const closeAllNavMenus = () => {
     navGroups.forEach((group) => {
@@ -1810,6 +1862,18 @@ function ensureCartUI() {
   }
 }
 
+function prepareCartUI() {
+  if (cartUiPrepared) {
+    renderCart();
+    return;
+  }
+
+  cartUiPrepared = true;
+  ensureCartUI();
+  bindCartUI();
+  renderCart();
+}
+
 function getSelectedCheckoutPaymentMethodKey() {
   const selectedInput = document.querySelector("[data-checkout-payment-method]:checked");
   return normalizePaymentMethodKey(selectedInput ? selectedInput.value : DEFAULT_PAYMENT_METHOD_KEY);
@@ -1830,6 +1894,8 @@ function syncCheckoutPaymentMethodUI() {
 }
 
 function openCartDrawer() {
+  prepareCartUI();
+
   const drawer = document.getElementById("cart-drawer");
   const overlay = document.getElementById("cart-overlay");
   const trigger = document.querySelector("[data-cart-trigger]");
@@ -2204,6 +2270,12 @@ function renderCart() {
 }
 
 function bindCartUI() {
+  if (cartUiBound) {
+    return;
+  }
+
+  cartUiBound = true;
+
   const trigger = document.querySelector("[data-cart-trigger]");
   const overlay = document.querySelector("[data-cart-overlay]");
   const close = document.querySelector("[data-cart-close]");
@@ -2213,7 +2285,8 @@ function bindCartUI() {
   const phoneInput = document.querySelector("[data-checkout-phone]");
   const paymentMethodInputs = document.querySelectorAll("[data-checkout-payment-method]");
 
-  if (trigger) {
+  if (trigger && trigger.dataset.cartTriggerBound !== "true") {
+    trigger.dataset.cartTriggerBound = "true";
     trigger.addEventListener("click", openCartDrawer);
   }
 
@@ -2460,6 +2533,12 @@ function bindCartUI() {
 }
 
 function bindProductCards() {
+  if (productCardsBound) {
+    return;
+  }
+
+  productCardsBound = true;
+
   document.querySelectorAll("[data-product-card]").forEach((card) => {
     const button = card.querySelector("[data-add-product]");
     const details = card.querySelector("[data-multi-option]");
@@ -2554,6 +2633,12 @@ function bindProductCards() {
 }
 
 function bindPartyForms() {
+  if (partyFormsBound) {
+    return;
+  }
+
+  partyFormsBound = true;
+
   document.querySelectorAll("[data-party-form]").forEach((form) => {
     const select = form.querySelector("[data-party-select]");
     const button = form.querySelector("[data-add-party]");
@@ -2690,6 +2775,10 @@ function loadReviewsWhenNeeded() {
 }
 
 function bindReviewForm() {
+  if (reviewFormBound) {
+    return;
+  }
+
   const form = document.querySelector("[data-review-form]");
   const message = document.querySelector("[data-review-message]");
   const submit = document.querySelector("[data-review-submit]");
@@ -2697,6 +2786,8 @@ function bindReviewForm() {
   if (!form || !message || !submit) {
     return;
   }
+
+  reviewFormBound = true;
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -2744,6 +2835,10 @@ function bindReviewForm() {
 }
 
 function bindReferralForm() {
+  if (referralFormBound) {
+    return;
+  }
+
   const message = document.querySelector("[data-referral-message]");
   const submit = document.querySelector("[data-referral-submit]");
   const output = document.querySelector("[data-referral-output]");
@@ -2754,6 +2849,8 @@ function bindReferralForm() {
   if (!message || !submit || !output || !linkEl) {
     return;
   }
+
+  referralFormBound = true;
 
   const getReferralLinkText = () => linkEl.textContent.trim();
 
@@ -2840,15 +2937,39 @@ function bindReferralForm() {
 
 document.addEventListener("DOMContentLoaded", () => {
   captureReferralCode();
-  ensureCartUI();
   bindNavMenus();
-  bindCartUI();
-  bindProductCards();
-  bindPartyForms();
-  renderCart();
-  bindReviewForm();
-  bindReferralForm();
+  syncCartTriggerCount();
   revealPageWhenCriticalImagesReady();
+
+  const cartTrigger = document.querySelector("[data-cart-trigger]");
+  if (cartTrigger && cartTrigger.dataset.cartTriggerBound !== "true") {
+    cartTrigger.dataset.cartTriggerBound = "true";
+    cartTrigger.addEventListener("click", openCartDrawer);
+  }
+
+  runWhenElementNearViewport("#order-now", () => {
+    bindProductCards();
+    bindPartyForms();
+  }, {
+    rootMargin: "520px 0px",
+    hash: "#order-now"
+  });
+
+  runWhenElementNearViewport("#referral", () => {
+    bindReferralForm();
+  }, {
+    rootMargin: "380px 0px",
+    hash: "#referral"
+  });
+
+  runWhenElementNearViewport("#reviews", () => {
+    bindReviewForm();
+    loadReviewsWhenNeeded();
+  }, {
+    rootMargin: "320px 0px",
+    hash: "#reviews"
+  });
+
   runNonCriticalTask(() => {
     const pageCategory = getPageCategory();
 
@@ -2860,9 +2981,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
-  }, 250);
+  }, 900);
+
   runNonCriticalTask(() => {
     enhanceVarietyImages();
-    loadReviewsWhenNeeded();
-  }, 700);
+  }, 1400);
 });

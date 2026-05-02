@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Durian Paradise</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
-  <link rel="preload" as="image" href="images/hero-bg-fast.jpg" fetchpriority="high" />
+  <link rel="preload" as="image" href="images/hero-bg-mobile.jpg" media="(max-width: 640px)" fetchpriority="high" />
+  <link rel="preload" as="image" href="images/hero-bg-fast.jpg" media="(min-width: 641px)" fetchpriority="high" />
   <link rel="prefetch" href="group-1-durians.html" />
   <link rel="stylesheet" href="shopping.css?v=20260428-2" />
   <style>
@@ -67,6 +68,7 @@
       justify-content: center;
       gap: 22px;
       padding: 18px 0;
+      padding-right: 158px;
       min-height: 92px;
     }
 
@@ -84,6 +86,46 @@
       height: 78px;
       max-height: 78px;
       object-fit: fill;
+    }
+
+    .header-cart-trigger {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(120, 100, 76, 0.2);
+      background: rgba(252, 249, 245, 0.92);
+      color: #2d241c;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-family: "Inter", sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(88, 66, 38, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      z-index: 2;
+    }
+
+    .header-cart-trigger:hover {
+      transform: translateY(calc(-50% - 1px));
+      box-shadow: 0 14px 28px rgba(88, 66, 38, 0.12);
+    }
+
+    .header-cart-badge {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #6f5330 0%, #9d7741 100%);
+      color: #fffaf1;
+      font-size: 13px;
+      padding: 0 8px;
     }
 
     .nav {
@@ -323,6 +365,22 @@
       box-shadow: 0 18px 36px rgba(104, 73, 36, 0.08);
     }
 
+    .order-direct__content--compact {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      gap: 22px;
+    }
+
+    .order-direct__content--compact .order-direct__text {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .order-direct__content--compact .order-direct__image {
+      width: min(100%, 560px);
+    }
+
     .order-direct__text h2 {
       font-size: clamp(30px, 3.5vw, 46px);
       line-height: 1.1;
@@ -368,6 +426,15 @@
       height: 360px;
       object-fit: cover;
       border-radius: 16px;
+    }
+
+    .referral-section,
+    .order-hub,
+    .certifications,
+    .shop,
+    .reviews-section {
+      content-visibility: auto;
+      contain-intrinsic-size: 1px 900px;
     }
 
     .order-direct__features {
@@ -822,11 +889,22 @@
         height: 70px;
       }
 
+      .header-cart-trigger {
+        position: static;
+        transform: none;
+        order: 0;
+        flex: 0 0 auto;
+        margin-left: auto;
+        padding: 9px 12px;
+        font-size: 13px;
+        gap: 8px;
+      }
+
+      .header-cart-trigger:hover {
+        transform: translateY(-1px);
+      }
+
       .split-section,
-      .certifications,
-      .referral-section,
-      .order-hub,
-      .reviews-section,
       footer {
         content-visibility: auto;
         contain-intrinsic-size: 1px 900px;
@@ -875,6 +953,12 @@
     }
 
     @media (max-width: 640px) {
+      .hero {
+        background:
+          linear-gradient(rgba(224, 205, 178, 0.56), rgba(237, 223, 201, 0.62)),
+          url("images/hero-bg-mobile.jpg") center center / cover no-repeat;
+      }
+
       .product-grid {
         grid-template-columns: 1fr;
       }
@@ -944,7 +1028,7 @@
   <header class="topbar">
       <div class="container topbar-inner">
         <a class="site-logo" href="index.html" aria-label="DurianParadises.com home">
-          <img src="images/logo-header.png" alt="Durian Paradise logo" loading="eager" fetchpriority="high" decoding="async" />
+          <img src="images/logo-header-fast.jpg" alt="Durian Paradise logo" width="250" height="264" loading="eager" decoding="async" />
         </a>
         <nav class="nav">
         <a href="#top">Home</a>
@@ -960,6 +1044,10 @@
         <a href="contact-us.html">Contact Us</a>
         <a href="#reviews">Reviews</a>
       </nav>
+      <button class="header-cart-trigger" type="button" data-cart-trigger aria-controls="cart-drawer" aria-expanded="false">
+        <span>View Cart</span>
+        <span class="header-cart-badge" data-cart-count>0</span>
+      </button>
     </div>
   </header>
 
@@ -976,41 +1064,39 @@
   <section class="section split-section">
     <div class="container split-grid">
       <div class="split-image">
-        <img src="images/durian-handpicked-fast-std.jpg" alt="Hand-picked durians" loading="lazy" decoding="async" />
+        <img src="images/durian-handpicked-fast-std.jpg" alt="Hand-picked durians" width="1200" height="900" loading="lazy" decoding="async" />
       </div>
       <div class="split-text">
         <h2>Guaranteed Hand-Picked Quality Durians</h2>
         <p>
-          Premium service with each durian carefully selected by experienced hands to ensure
-          quality, exquisite flavor and freshness. Only the best without compromises as they are
-          not mass produced from plantations and hence the Price. Full refund on any particular
-          durians below average quality.
+          Every durian is carefully selected to ensure Freshness, Rich Flavor &amp; Quality Taste
         </p>
+        <p><strong>* Not mass supply from plantations<br>* Full refund on any durian below average quality</strong></p>
       </div>
     </div>
   </section>
 
   <section id="order-now" class="section order-direct">
     <div class="container">
-      <div class="order-direct__content">
-        <div class="order-direct__text">
-          <h2>Order Directly from Us</h2>
-          <p>Host a Durian Party at Your Desired Venue or Order Online to savour the Rich, Authentic Taste of High-Quality Durians, no imitations or gimmicks, just genuine different breeds of durians.</p>
+      <div class="order-direct__content order-direct__content--compact">
+          <div class="order-direct__text">
           <a href="#online-delivery" class="btn-email">Order Now</a>
         </div>
         <div class="order-direct__image">
-          <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" loading="lazy" decoding="async" />
+          <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" width="978" height="706" loading="lazy" decoding="async" />
         </div>
       </div>
 
       <div class="order-direct__features">
         <div class="feature">
-          <h3>Host an Unforgettable Durian Party</h3>
-          <p>Enjoy a durian gathering party bonding with family and friends at your desired venue <strong>with minimum of 8 pax or more with min of 21 kg of durians (about 11 to 13 durians) at $26 &amp; lower to $35 &amp; below / pax (depending on which group &amp; selection).</strong></p>
+          <h3>Durian Party .... Shiok Together / Online Order Delivery</h3>
+          <p>Gather your family &amp; friends and enjoy an unforgettable durian feast at your preferred venue.</p>
+          <p><strong>* Minimum 8 pax<br>* About 21kg of Durians (approx 11 to 13 Durians)<br>* From just $26 - $35 per pax (depends on which group &amp; selection)<br>* Choose various options for online order delivery</strong></p>
         </div>
         <div class="feature">
-          <h3>Basic Tips on How to Choose Durians</h3>
-          <p>Basic tips on how to choose durians and recognizing which breed of durians during this fun and loving party gathering will be shared as well.</p>
+          <h3>Tips to Choose Good Durians</h3>
+          <p>Join our durian party and we'll show you</p>
+          <p><strong>* How to choose good Durians<br>* How to recognise different breeds<br>* What to look out for</strong></p>
         </div>
       </div>
 
