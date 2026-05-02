@@ -887,7 +887,7 @@
 
       .topbar-inner {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: 1fr auto 1fr;
         align-items: center;
         gap: 10px 14px;
         padding-top: 14px;
@@ -899,7 +899,9 @@
       .site-logo {
         position: static;
         transform: none;
-        justify-content: flex-start;
+        grid-column: 2;
+        justify-content: center;
+        justify-self: center;
         flex: 0 0 auto;
       }
 
@@ -912,6 +914,7 @@
         position: static;
         top: auto;
         right: auto;
+        grid-column: 3;
         flex: 0 0 auto;
         margin-left: 0;
         justify-self: end;
