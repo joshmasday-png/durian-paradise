@@ -377,6 +377,12 @@
       justify-content: center;
     }
 
+    .order-direct__cta {
+      font-size: 20px;
+      padding: 18px 38px;
+      border-radius: 12px;
+    }
+
     .order-direct__content--compact .order-direct__image {
       width: min(100%, 560px);
     }
@@ -553,6 +559,19 @@
     .feature p {
       font-size: clamp(16px, 1.3vw, 19px);
       color: #222;
+    }
+
+    .feature-list {
+      margin: 10px 0 0 22px;
+      padding: 0;
+      color: #222;
+      font-size: clamp(16px, 1.3vw, 19px);
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .feature-list li + li {
+      margin-top: 4px;
     }
 
     .referral-section {
@@ -1080,7 +1099,7 @@
     <div class="container">
       <div class="order-direct__content order-direct__content--compact">
           <div class="order-direct__text">
-          <a href="#online-delivery" class="btn-email">Order Now</a>
+          <a href="#online-delivery" class="btn-email order-direct__cta">Order Now</a>
         </div>
         <div class="order-direct__image">
           <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" width="978" height="706" loading="lazy" decoding="async" />
@@ -1089,14 +1108,23 @@
 
       <div class="order-direct__features">
         <div class="feature">
-          <h3>Durian Party .... Shiok Together / Online Order Delivery</h3>
+          <h3>Durian Party ... Shiok Together / Online Order Delivery</h3>
           <p>Gather your family &amp; friends and enjoy an unforgettable durian feast at your preferred venue.</p>
-          <p><strong>* Minimum 8 pax<br>* About 21kg of Durians (approx 11 to 13 Durians)<br>* From just $26 - $35 per pax (depends on which group &amp; selection)<br>* Choose various options for online order delivery</strong></p>
+          <ul class="feature-list">
+            <li>Minimum 8 pax</li>
+            <li>About 21kg of Durians (approx 11 to 13 Durians)</li>
+            <li>From just $26 - $35 per pax (depends on which group &amp; selection)</li>
+            <li>Choose various options for online order delivery</li>
+          </ul>
         </div>
         <div class="feature">
           <h3>Tips to Choose Good Durians</h3>
           <p>Join our durian party and we'll show you</p>
-          <p><strong>* How to choose good Durians<br>* How to recognise different breeds<br>* What to look out for</strong></p>
+          <ul class="feature-list">
+            <li>How to choose good Durians</li>
+            <li>How to recognise different breeds</li>
+            <li>What to look out for</li>
+          </ul>
         </div>
       </div>
 
