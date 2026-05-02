@@ -886,20 +886,20 @@
       }
 
       .topbar-inner {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
         align-items: center;
-        justify-content: center;
-        flex-wrap: nowrap;
+        gap: 10px 14px;
         padding-top: 14px;
+        padding-right: 0;
         padding-bottom: 14px;
-        min-height: 88px;
-        gap: 10px;
+        min-height: auto;
       }
 
       .site-logo {
         position: static;
         transform: none;
-        justify-content: center;
+        justify-content: flex-start;
         flex: 0 0 auto;
       }
 
@@ -910,10 +910,11 @@
 
       .header-cart-trigger {
         position: static;
-        transform: none;
-        order: 0;
+        top: auto;
+        right: auto;
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-left: 0;
+        justify-self: end;
         padding: 9px 12px;
         font-size: 13px;
         gap: 8px;
@@ -930,6 +931,7 @@
       }
 
       .nav {
+        grid-column: 1 / -1;
         width: 100%;
         flex: 0 0 auto;
         flex-wrap: nowrap;
@@ -979,11 +981,12 @@
       }
 
       .product-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
       }
 
       .nav {
-        gap: 16px;
+        gap: 14px;
       }
 
       .hero h1 {
@@ -1003,9 +1006,23 @@
       }
 
       .product-card .card-img-wrapper {
-        max-width: var(--card-image-size-mobile);
+        max-width: 100%;
         margin-left: auto;
         margin-right: auto;
+      }
+
+      .topbar-inner {
+        gap: 8px 12px;
+      }
+
+      .site-logo img {
+        width: 72px;
+        height: 64px;
+      }
+
+      .header-cart-trigger {
+        padding: 8px 11px;
+        font-size: 12px;
       }
 
       .order-direct__content,
@@ -1034,6 +1051,12 @@
 
       .order-direct__image img {
         height: 240px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .product-grid {
+        grid-template-columns: 1fr;
       }
     }
 
