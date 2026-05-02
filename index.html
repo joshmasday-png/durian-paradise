@@ -914,11 +914,13 @@
         position: static;
         top: auto;
         right: auto;
-        grid-column: 3;
+        grid-column: 1 / -1;
+        grid-row: 3;
         align-self: center;
         flex: 0 0 auto;
         margin-left: 0;
         justify-self: end;
+        margin-top: 2px;
         padding: 9px 12px;
         font-size: 13px;
         gap: 8px;
@@ -936,6 +938,7 @@
 
       .nav {
         grid-column: 1 / -1;
+        grid-row: 2;
         width: 100%;
         flex: 0 0 auto;
         flex-wrap: nowrap;
@@ -1028,6 +1031,7 @@
       .header-cart-trigger {
         padding: 8px 11px;
         font-size: 12px;
+        margin-top: 0;
       }
 
       .order-direct__content,
