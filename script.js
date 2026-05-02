@@ -729,50 +729,6 @@ function injectCartStyles() {
   const style = document.createElement("style");
   style.id = "cart-ui-styles";
   style.textContent = `
-    .topbar-inner {
-      padding-right: 158px;
-    }
-
-    .header-cart-trigger {
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      border: 1px solid rgba(120, 100, 76, 0.2);
-      background: rgba(252, 249, 245, 0.92);
-      color: #2d241c;
-      border-radius: 999px;
-      padding: 11px 16px;
-      font-family: "Inter", sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 10px 20px rgba(88, 66, 38, 0.08);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      z-index: 2;
-    }
-
-    .header-cart-trigger:hover {
-      transform: translateY(calc(-50% - 1px));
-      box-shadow: 0 14px 28px rgba(88, 66, 38, 0.12);
-    }
-
-    .header-cart-badge {
-      min-width: 26px;
-      height: 26px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #6f5330 0%, #9d7741 100%);
-      color: #fffaf1;
-      font-size: 13px;
-      padding: 0 8px;
-    }
-
     .cart-overlay {
       position: fixed;
       inset: 0;
@@ -1564,27 +1520,6 @@ function injectCartStyles() {
       height: 100%;
       object-fit: contain;
       background: transparent !important;
-    }
-
-    @media (max-width: 980px) {
-      .topbar-inner {
-        padding-right: 0;
-      }
-
-      .header-cart-trigger {
-        position: static;
-        transform: none;
-        order: 0;
-        flex: 0 0 auto;
-        margin-left: auto;
-        padding: 9px 12px;
-        font-size: 13px;
-        gap: 8px;
-      }
-
-      .header-cart-trigger:hover {
-        transform: translateY(-1px);
-      }
     }
 
     @media (max-width: 820px) {
