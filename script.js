@@ -2728,9 +2728,6 @@ function bindReferralForm() {
     linkEl.textContent = referral.link;
     output.classList.add("is-visible");
   };
-  const setReferralButtonState = (hasActiveReferral) => {
-    submit.textContent = hasActiveReferral ? "Reuse Referral Link" : "Generate Referral Link";
-  };
 
   const copyReferralLink = async () => {
     const link = getReferralLinkText();
@@ -2761,9 +2758,6 @@ function bindReferralForm() {
 
   if (existingReferral && existingReferral.link) {
     showReferralLink(existingReferral);
-    setReferralButtonState(true);
-  } else {
-    setReferralButtonState(false);
   }
 
   submit.addEventListener("click", async () => {
@@ -2779,7 +2773,6 @@ function bindReferralForm() {
         output.scrollIntoView({ behavior: "smooth", block: "nearest" });
         message.textContent = "Your active referral link is ready below.";
         message.className = "referral-message is-success";
-        setReferralButtonState(true);
         return;
       }
 
@@ -2804,7 +2797,6 @@ function bindReferralForm() {
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
       message.textContent = "Referral link ready below.";
       message.className = "referral-message is-success";
-      setReferralButtonState(true);
       refreshOwnedReferralRewardsIfNeeded(true);
     } catch (error) {
       message.textContent = error && error.message ? error.message : "Unable to create referral link.";
