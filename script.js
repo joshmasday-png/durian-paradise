@@ -2829,6 +2829,7 @@ document.addEventListener("DOMContentLoaded", () => {
   clearLegacyStorageIfNeeded();
   captureReferralCode();
   bindNavMenus();
+  bindReferralForm();
   syncCartTriggerCount();
   revealPageWhenCriticalImagesReady();
 
@@ -2844,13 +2845,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }, {
     rootMargin: "520px 0px",
     hash: "#order-now"
-  });
-
-  runWhenElementNearViewport("#referral", () => {
-    bindReferralForm();
-  }, {
-    rootMargin: "380px 0px",
-    hash: "#referral"
   });
 
   runWhenElementNearViewport("#reviews", () => {
