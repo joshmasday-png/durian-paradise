@@ -1553,6 +1553,43 @@ function runWhenElementNearViewport(target, callback, options = {}) {
   observer.observe(element);
 }
 
+function scrollToSection(targetSelector) {
+  const target = document.querySelector(targetSelector);
+
+  if (!target) {
+    return;
+  }
+
+  const header = document.querySelector(".site-header");
+  const headerOffset = header ? header.getBoundingClientRect().height + 16 : 16;
+  const targetTop = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+
+  window.scrollTo({
+    top: Math.max(0, targetTop),
+    behavior: "smooth"
+  });
+}
+
+function bindPrimaryCtas() {
+  document.querySelectorAll("[data-scroll-target]").forEach((trigger) => {
+    if (trigger.dataset.scrollBound === "true") {
+      return;
+    }
+
+    trigger.dataset.scrollBound = "true";
+    trigger.addEventListener("click", (event) => {
+      const targetSelector = trigger.getAttribute("data-scroll-target");
+
+      if (!targetSelector) {
+        return;
+      }
+
+      event.preventDefault();
+      scrollToSection(targetSelector);
+    });
+  });
+}
+
 function bindNavMenus() {
   if (navMenusBound) {
     return;
@@ -2829,6 +2866,7 @@ document.addEventListener("DOMContentLoaded", () => {
   clearLegacyStorageIfNeeded();
   captureReferralCode();
   bindNavMenus();
+  bindPrimaryCtas();
   bindReferralForm();
   syncCartTriggerCount();
   revealPageWhenCriticalImagesReady();
