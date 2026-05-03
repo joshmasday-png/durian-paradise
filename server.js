@@ -233,77 +233,89 @@ function ensureJsonObjectFile(filePath, defaultValue) {
   ensureJsonFile(filePath, defaultValue);
 }
 
-function readReviews() {
-  ensureJsonArrayFile(reviewsPath);
+function cloneJsonValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function writeJsonFile(filePath, value) {
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2) + "\n", "utf8");
+}
+
+function loadJsonFile(filePath, defaultValue, validate, normalize = (value) => value) {
+  ensureJsonFile(filePath, defaultValue);
+  const fallbackValue = cloneJsonValue(defaultValue);
 
   try {
-    const raw = fs.readFileSync(reviewsPath, "utf8");
+    const raw = fs.readFileSync(filePath, "utf8");
+
+    if (!raw.trim()) {
+      writeJsonFile(filePath, fallbackValue);
+      return cloneJsonValue(fallbackValue);
+    }
+
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+
+    if (typeof validate === "function" && !validate(parsed)) {
+      writeJsonFile(filePath, fallbackValue);
+      return cloneJsonValue(fallbackValue);
+    }
+
+    const normalized = normalize(parsed);
+
+    if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+      writeJsonFile(filePath, normalized);
+    }
+
+    return normalized;
   } catch (_error) {
-    return [];
+    writeJsonFile(filePath, fallbackValue);
+    return cloneJsonValue(fallbackValue);
   }
+}
+
+function readReviews() {
+  return loadJsonFile(reviewsPath, [], Array.isArray);
 }
 
 function writeReviews(reviews) {
   ensureJsonArrayFile(reviewsPath);
-  fs.writeFileSync(reviewsPath, JSON.stringify(reviews, null, 2) + "\n", "utf8");
+  writeJsonFile(reviewsPath, reviews);
 }
 
 function readOrders() {
-  ensureJsonArrayFile(ordersPath);
-
-  try {
-    const raw = fs.readFileSync(ordersPath, "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_error) {
-    return [];
-  }
+  return loadJsonFile(ordersPath, [], Array.isArray);
 }
 
 function writeOrders(orders) {
   ensureJsonArrayFile(ordersPath);
-  fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2) + "\n", "utf8");
+  writeJsonFile(ordersPath, orders);
 }
 
 function readReferrals() {
-  ensureJsonArrayFile(referralsPath);
-
-  try {
-    const raw = fs.readFileSync(referralsPath, "utf8");
-    const parsed = JSON.parse(raw);
-    return repairReferralFamilies(Array.isArray(parsed) ? parsed : []);
-  } catch (_error) {
-    return [];
-  }
+  return loadJsonFile(referralsPath, [], Array.isArray, (parsed) => repairReferralFamilies(parsed));
 }
 
 function writeReferrals(referrals) {
   ensureJsonArrayFile(referralsPath);
   const normalizedReferrals = repairReferralFamilies(Array.isArray(referrals) ? referrals : []);
-  fs.writeFileSync(referralsPath, JSON.stringify(normalizedReferrals, null, 2) + "\n", "utf8");
+  writeJsonFile(referralsPath, normalizedReferrals);
 }
 
 function readAnalytics() {
-  ensureJsonObjectFile(analyticsPath, { events: [] });
+  return loadJsonFile(
+    analyticsPath,
+    { events: [] },
+    (parsed) => Boolean(parsed && typeof parsed === "object"),
+    (parsed) => {
+      if (Array.isArray(parsed)) {
+        return { events: parsed };
+      }
 
-  try {
-    const raw = fs.readFileSync(analyticsPath, "utf8");
-    const parsed = JSON.parse(raw);
-
-    if (Array.isArray(parsed)) {
-      return { events: parsed };
+      return {
+        events: parsed && Array.isArray(parsed.events) ? parsed.events : []
+      };
     }
-
-    if (parsed && Array.isArray(parsed.events)) {
-      return { events: parsed.events };
-    }
-
-    return { events: [] };
-  } catch (_error) {
-    return { events: [] };
-  }
+  );
 }
 
 function writeAnalytics(analytics) {
@@ -313,7 +325,7 @@ function writeAnalytics(analytics) {
     ? analytics.events.slice(-5000)
     : [];
 
-  fs.writeFileSync(analyticsPath, JSON.stringify({ events }, null, 2) + "\n", "utf8");
+  writeJsonFile(analyticsPath, { events });
 }
 
 function makeReferralCode() {
@@ -599,8 +611,8 @@ function compareByCreatedAt(left, right) {
 function getReferralFamilyKey(referral) {
   const normalizedReferral = normalizeReferralEntry(referral);
 
-  if (normalizedReferral && normalizedReferral.referrer && normalizedReferral.referrer.phoneMatch) {
-    return `phone:${normalizedReferral.referrer.phoneMatch}`;
+  if (normalizedReferral && normalizedReferral.ownerToken) {
+    return `owner:${sanitizeOwnerToken(normalizedReferral.ownerToken)}`;
   }
 
   return `code:${sanitizeReferralCode(normalizedReferral && normalizedReferral.code)}`;
@@ -638,6 +650,24 @@ function repairReferralFamilies(referrals) {
       .flatMap((referral) => (Array.isArray(referral.conversions) ? referral.conversions : []))
       .sort(compareByCreatedAt);
     const conversionIndexByOrderId = new Map();
+    const rewardCountByRewardKey = new Map();
+    const orderedFamilyRewards = familyEntries
+      .flatMap((referral) => (Array.isArray(referral.rewards) ? referral.rewards : []).map((reward, rewardIndex) => ({
+        referralCode: referral.code,
+        rewardIndex,
+        reward
+      })))
+      .sort((left, right) => {
+        const createdAtDelta = getIsoTimestamp(left && left.reward && left.reward.createdAt)
+          - getIsoTimestamp(right && right.reward && right.reward.createdAt);
+
+        if (createdAtDelta !== 0) {
+          return createdAtDelta;
+        }
+
+        return String(left && left.reward && left.reward.id ? left.reward.id : "")
+          .localeCompare(String(right && right.reward && right.reward.id ? right.reward.id : ""));
+      });
 
     familyConversions.forEach((conversion, index) => {
       const orderId = sanitizeText(conversion && conversion.orderId, 40);
@@ -647,11 +677,24 @@ function repairReferralFamilies(referrals) {
       }
     });
 
+    orderedFamilyRewards.forEach((entry, index) => {
+      const rewardKey = `${sanitizeReferralCode(entry && entry.referralCode)}::${Number(entry && entry.rewardIndex)}`;
+
+      if (rewardCountByRewardKey.has(rewardKey)) {
+        return;
+      }
+
+      rewardCountByRewardKey.set(rewardKey, index + 1);
+    });
+
     familyEntries.forEach((referral) => {
-      referral.rewards = (Array.isArray(referral.rewards) ? referral.rewards : []).map((reward) => {
+      referral.rewards = (Array.isArray(referral.rewards) ? referral.rewards : []).map((reward, rewardIndex) => {
         const normalizedReward = normalizeReferralReward(reward);
         const rewardOrderId = sanitizeText(normalizedReward.orderId, 40);
-        const canonicalCount = conversionIndexByOrderId.get(rewardOrderId) || Number(normalizedReward.referralCount || 0);
+        const rewardKey = `${sanitizeReferralCode(referral.code)}::${rewardIndex}`;
+        const canonicalCount = conversionIndexByOrderId.get(rewardOrderId)
+          || rewardCountByRewardKey.get(rewardKey)
+          || Number(normalizedReward.referralCount || 0);
         const canonicalReward = canonicalCount > 0 ? getReferralReward(canonicalCount) : null;
 
         if (!canonicalReward) {
@@ -691,35 +734,6 @@ function dedupeReferralRewards(rewards) {
     seen.add(key);
     return true;
   });
-}
-
-function getClaimableReferralRewardsByPhone(phone) {
-  const phoneMatch = normalizePhoneMatchKey(phone);
-
-  if (!phoneMatch) {
-    return [];
-  }
-
-  return readReferrals().reduce((result, referral) => {
-    normalizeReferralEntry(referral);
-
-    if (!referral.referrer || referral.referrer.phoneMatch !== phoneMatch) {
-      return result;
-    }
-
-    referral.rewards.forEach((reward) => {
-      if (reward.status !== "issued_for_next_purchase") {
-        return;
-      }
-
-      result.push({
-        ...reward,
-        referralCode: referral.code
-      });
-    });
-
-    return result;
-  }, []);
 }
 
 function normalizeReviewImage(rawImage) {
@@ -1034,7 +1048,7 @@ function normalizeRewardClaims(rawClaims) {
   }, []);
 }
 
-function claimReferralRewards(rewardClaims, orderId, customerPhone) {
+function claimReferralRewards(rewardClaims, orderId) {
   const claims = normalizeRewardClaims(rewardClaims);
 
   if (!claims.length) {
@@ -1044,8 +1058,6 @@ function claimReferralRewards(rewardClaims, orderId, customerPhone) {
   const referrals = readReferrals();
   const claimedRewards = [];
   let hasChanges = false;
-  const sanitizedPhone = sanitizePhone(customerPhone);
-  const phoneMatch = normalizePhoneMatchKey(customerPhone);
 
   claims.forEach((claim) => {
     const referral = referrals.find((entry) => entry.code === claim.referralCode);
@@ -1066,13 +1078,6 @@ function claimReferralRewards(rewardClaims, orderId, customerPhone) {
       return;
     }
 
-    if (phoneMatch) {
-      referral.referrer = {
-        phone: sanitizedPhone,
-        phoneMatch
-      };
-    }
-
     reward.status = "claimed";
     reward.claimedAt = new Date().toISOString();
     reward.claimedOrderId = orderId;
@@ -1081,47 +1086,6 @@ function claimReferralRewards(rewardClaims, orderId, customerPhone) {
       referralCode: referral.code
     });
     hasChanges = true;
-  });
-
-  if (hasChanges) {
-    writeReferrals(referrals);
-  }
-
-  return claimedRewards;
-}
-
-function claimReferralRewardsByPhone(phone, orderId) {
-  const phoneMatch = normalizePhoneMatchKey(phone);
-
-  if (!phoneMatch) {
-    return [];
-  }
-
-  const referrals = readReferrals();
-  const claimedRewards = [];
-  let hasChanges = false;
-
-  referrals.forEach((referral) => {
-    normalizeReferralEntry(referral);
-
-    if (!referral.referrer || referral.referrer.phoneMatch !== phoneMatch) {
-      return;
-    }
-
-    referral.rewards.forEach((reward) => {
-      if (reward.status !== "issued_for_next_purchase") {
-        return;
-      }
-
-      reward.status = "claimed";
-      reward.claimedAt = new Date().toISOString();
-      reward.claimedOrderId = orderId;
-      claimedRewards.push({
-        ...reward,
-        referralCode: referral.code
-      });
-      hasChanges = true;
-    });
   });
 
   if (hasChanges) {
@@ -1498,31 +1462,36 @@ app.post("/api/reviews", (req, res) => {
 
 app.post("/api/referrals", (req, res) => {
   const referrals = readReferrals();
-  const ownerPhone = sanitizePhone(req.body && req.body.ownerPhone);
-  const ownerPhoneMatch = normalizePhoneMatchKey(ownerPhone);
+  const ownerToken = sanitizeOwnerToken(req.body && req.body.ownerToken);
 
-  if (ownerPhoneMatch) {
-    const existingActiveReferral = referrals
-      .filter((entry) => {
-        normalizeReferralEntry(entry);
-        return entry.referrer
-          && entry.referrer.phoneMatch === ownerPhoneMatch
-          && new Date(entry.expiresAt).getTime() >= Date.now();
-      })
-      .sort((left, right) => getIsoTimestamp(right.createdAt) - getIsoTimestamp(left.createdAt))[0];
+  const existingActiveReferral = referrals
+    .filter((entry) => {
+      normalizeReferralEntry(entry);
 
-    if (existingActiveReferral) {
-      return res.status(200).json({
-        referral: {
-          code: existingActiveReferral.code,
-          link: existingActiveReferral.link,
-          expiresAt: existingActiveReferral.expiresAt,
-          ownerToken: existingActiveReferral.ownerToken,
-          conversionCount: Array.isArray(existingActiveReferral.conversions) ? existingActiveReferral.conversions.length : 0,
-          rewards: existingActiveReferral.rewards
-        }
-      });
-    }
+      if (new Date(entry.expiresAt).getTime() < Date.now()) {
+        return false;
+      }
+
+      if (ownerToken && entry.ownerToken === ownerToken) {
+        return true;
+      }
+      return false;
+    })
+    .sort((left, right) => getIsoTimestamp(right.createdAt) - getIsoTimestamp(left.createdAt))[0];
+
+  if (existingActiveReferral) {
+    const familyConversionCount = listReferralFamilyConversions(referrals, existingActiveReferral).length;
+
+    return res.status(200).json({
+      referral: {
+        code: existingActiveReferral.code,
+        link: existingActiveReferral.link,
+        expiresAt: existingActiveReferral.expiresAt,
+        ownerToken: existingActiveReferral.ownerToken,
+        conversionCount: familyConversionCount,
+        rewards: existingActiveReferral.rewards
+      }
+    });
   }
 
   let code = makeReferralCode();
@@ -1536,13 +1505,8 @@ app.post("/api/referrals", (req, res) => {
   const referral = {
     code,
     link: `${getPublicSiteUrl(req)}/referral.html?code=${code}`,
-    ownerToken: makeOwnerToken(),
-    referrer: ownerPhoneMatch
-      ? {
-          phone: ownerPhone,
-          phoneMatch: ownerPhoneMatch
-        }
-      : null,
+    ownerToken: ownerToken || makeOwnerToken(),
+    referrer: null,
     clicks: 0,
     visitors: [],
     conversions: [],
@@ -1562,20 +1526,6 @@ app.post("/api/referrals", (req, res) => {
       ownerToken: referral.ownerToken
     }
   });
-});
-
-app.post("/api/referral-rewards/lookup", (req, res) => {
-  const phone = sanitizePhone(req.body && req.body.phone);
-  const rewards = dedupeReferralRewards(getClaimableReferralRewardsByPhone(phone)).map((reward) => ({
-    id: reward.id,
-    type: reward.type,
-    label: reward.label,
-    discountAmount: reward.discountAmount,
-    message: reward.message,
-    referralCode: reward.referralCode
-  }));
-
-  return res.json({ rewards });
 });
 
 app.get("/api/referrals/:code", (req, res) => {
@@ -1833,8 +1783,7 @@ app.post("/api/payment-orders", async (req, res) => {
     }
 
     const claimedReferralRewards = dedupeReferralRewards([
-      ...claimReferralRewards(req.body && req.body.referralRewardClaims, orderId, customerPhone),
-      ...claimReferralRewardsByPhone(customerPhone, orderId)
+      ...claimReferralRewards(req.body && req.body.referralRewardClaims, orderId)
     ]);
     const summary = summarizeOrder(items, claimedReferralRewards);
 
