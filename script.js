@@ -2803,16 +2803,6 @@ function bindReferralForm() {
     submit.disabled = true;
 
     try {
-      const activeReferral = getLatestOwnedReferral(false);
-
-      if (activeReferral && activeReferral.link) {
-        showReferralLink(activeReferral);
-        output.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        message.textContent = "Your active referral link is ready below.";
-        message.className = "referral-message is-success";
-        return;
-      }
-
       const ownedReferral = getLatestOwnedReferral();
       const response = await fetch(REFERRALS_API_PATH, {
         method: "POST",
