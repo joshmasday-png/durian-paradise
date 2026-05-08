@@ -592,6 +592,29 @@ function normalizeReferralEntry(referral) {
   return referral;
 }
 
+function getReferralOwnerPhoneMatch(referral) {
+  const normalizedReferral = normalizeReferralEntry(referral);
+
+  return normalizedReferral && normalizedReferral.referrer && normalizedReferral.referrer.phoneMatch
+    ? normalizedReferral.referrer.phoneMatch
+    : "";
+}
+
+function isReferralOwnerMatch(referral, ownerToken, ownerPhone) {
+  const normalizedReferral = normalizeReferralEntry(referral);
+  const phoneMatch = normalizePhoneMatchKey(ownerPhone);
+
+  if (!normalizedReferral) {
+    return false;
+  }
+
+  if (ownerToken && normalizedReferral.ownerToken === ownerToken) {
+    return true;
+  }
+
+  return Boolean(phoneMatch && getReferralOwnerPhoneMatch(normalizedReferral) === phoneMatch);
+}
+
 function getIsoTimestamp(value) {
   const timestamp = new Date(value).getTime();
   return Number.isFinite(timestamp) ? timestamp : 0;
@@ -610,6 +633,11 @@ function compareByCreatedAt(left, right) {
 
 function getReferralFamilyKey(referral) {
   const normalizedReferral = normalizeReferralEntry(referral);
+  const phoneMatch = getReferralOwnerPhoneMatch(normalizedReferral);
+
+  if (phoneMatch) {
+    return `phone:${phoneMatch}`;
+  }
 
   if (normalizedReferral && normalizedReferral.ownerToken) {
     return `owner:${sanitizeOwnerToken(normalizedReferral.ownerToken)}`;
@@ -1032,8 +1060,10 @@ function normalizeRewardClaims(rawClaims) {
     const referralCode = sanitizeReferralCode(claim && claim.referralCode);
     const rewardId = sanitizeText(claim && claim.rewardId, 80);
     const ownerToken = sanitizeOwnerToken(claim && claim.ownerToken);
+    const ownerPhone = sanitizePhone(claim && claim.ownerPhone);
+    const ownerPhoneMatch = normalizePhoneMatchKey(ownerPhone);
 
-    if (!referralCode || !rewardId || !ownerToken) {
+    if (!referralCode || !rewardId || (!ownerToken && !ownerPhoneMatch)) {
       return result;
     }
 
@@ -1043,7 +1073,7 @@ function normalizeRewardClaims(rawClaims) {
     }
 
     seen.add(key);
-    result.push({ referralCode, rewardId, ownerToken });
+    result.push({ referralCode, rewardId, ownerToken, ownerPhone, ownerPhoneMatch });
     return result;
   }, []);
 }
@@ -1068,7 +1098,7 @@ function claimReferralRewards(rewardClaims, orderId) {
 
     normalizeReferralEntry(referral);
 
-    if (!referral.ownerToken || referral.ownerToken !== claim.ownerToken) {
+    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
       return;
     }
 
@@ -1463,6 +1493,8 @@ app.post("/api/reviews", (req, res) => {
 app.post("/api/referrals", (req, res) => {
   const referrals = readReferrals();
   const ownerToken = sanitizeOwnerToken(req.body && req.body.ownerToken);
+  const ownerPhone = sanitizePhone(req.body && req.body.ownerPhone);
+  const ownerPhoneMatch = normalizePhoneMatchKey(ownerPhone);
 
   const existingActiveReferral = referrals
     .filter((entry) => {
@@ -1472,14 +1504,29 @@ app.post("/api/referrals", (req, res) => {
         return false;
       }
 
-      if (ownerToken && entry.ownerToken === ownerToken) {
-        return true;
-      }
-      return false;
+      return isReferralOwnerMatch(entry, ownerToken, ownerPhone);
     })
     .sort((left, right) => getIsoTimestamp(right.createdAt) - getIsoTimestamp(left.createdAt))[0];
 
   if (existingActiveReferral) {
+    let updatedExistingReferral = false;
+
+    if (ownerPhoneMatch && (
+      !existingActiveReferral.referrer
+      || existingActiveReferral.referrer.phoneMatch !== ownerPhoneMatch
+      || existingActiveReferral.referrer.phone !== ownerPhone
+    )) {
+      existingActiveReferral.referrer = {
+        phone: ownerPhone,
+        phoneMatch: ownerPhoneMatch
+      };
+      updatedExistingReferral = true;
+    }
+
+    if (updatedExistingReferral) {
+      writeReferrals(referrals);
+    }
+
     const familyConversionCount = listReferralFamilyConversions(referrals, existingActiveReferral).length;
 
     return res.status(200).json({
@@ -1488,6 +1535,9 @@ app.post("/api/referrals", (req, res) => {
         link: existingActiveReferral.link,
         expiresAt: existingActiveReferral.expiresAt,
         ownerToken: existingActiveReferral.ownerToken,
+        ownerPhone: existingActiveReferral.referrer && existingActiveReferral.referrer.phone
+          ? existingActiveReferral.referrer.phone
+          : ownerPhone,
         conversionCount: familyConversionCount,
         rewards: existingActiveReferral.rewards
       }
@@ -1506,7 +1556,12 @@ app.post("/api/referrals", (req, res) => {
     code,
     link: `${getPublicSiteUrl(req)}/referral.html?code=${code}`,
     ownerToken: ownerToken || makeOwnerToken(),
-    referrer: null,
+    referrer: ownerPhoneMatch
+      ? {
+          phone: ownerPhone,
+          phoneMatch: ownerPhoneMatch
+        }
+      : null,
     clicks: 0,
     visitors: [],
     conversions: [],
@@ -1523,7 +1578,8 @@ app.post("/api/referrals", (req, res) => {
       code: referral.code,
       link: referral.link,
       expiresAt: referral.expiresAt,
-      ownerToken: referral.ownerToken
+      ownerToken: referral.ownerToken,
+      ownerPhone: referral.referrer && referral.referrer.phone ? referral.referrer.phone : ""
     }
   });
 });
@@ -1555,6 +1611,7 @@ app.get("/api/referrals/:code", (req, res) => {
 app.get("/api/referrals/:code/owner-status", (req, res) => {
   const code = sanitizeReferralCode(req.params.code);
   const ownerToken = sanitizeOwnerToken(req.query && req.query.ownerToken);
+  const ownerPhone = sanitizePhone(req.query && req.query.ownerPhone);
   const referrals = readReferrals();
   const referral = referrals.find((entry) => entry.code === code);
 
@@ -1564,7 +1621,7 @@ app.get("/api/referrals/:code/owner-status", (req, res) => {
 
   normalizeReferralEntry(referral);
 
-  if (!ownerToken || referral.ownerToken !== ownerToken) {
+  if (!isReferralOwnerMatch(referral, ownerToken, ownerPhone)) {
     return res.status(403).json({ error: "Referral owner token is invalid." });
   }
 
@@ -1577,6 +1634,7 @@ app.get("/api/referrals/:code/owner-status", (req, res) => {
       link: referral.link,
       expiresAt: referral.expiresAt,
       isActive: new Date(referral.expiresAt).getTime() >= Date.now(),
+      ownerPhone: referral.referrer && referral.referrer.phone ? referral.referrer.phone : "",
       conversionCount: familyConversionCount,
       rewards: referral.rewards
     }
