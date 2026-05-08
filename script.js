@@ -17,7 +17,6 @@ const ANALYTICS_EVENTS_API_PATH = "/api/analytics/events";
 const PENDING_PAYMENT_STORAGE_KEY = `durianParadisePendingPayment:${STORAGE_VERSION}`;
 const REFERRAL_STORAGE_KEY = `durianParadiseReferral:${STORAGE_VERSION}`;
 const OWNED_REFERRALS_STORAGE_KEY = `durianParadiseOwnedReferrals:${STORAGE_VERSION}`;
-const REFERRAL_OWNER_PHONE_STORAGE_KEY = `durianParadiseReferralOwnerPhone:${STORAGE_VERSION}`;
 const VISITOR_STORAGE_KEY = `durianParadiseVisitorId:${STORAGE_VERSION}`;
 const DEFAULT_PAYMENT_METHOD_KEY = "paynow_uen";
 const PAYNOW_QR_ASSET_VERSION = "20260430-qr2";
@@ -263,47 +262,19 @@ function loadOwnedReferrals() {
   }
 }
 
-function normalizeReferralOwnerPhone(value) {
-  return String(value || "").trim().slice(0, 40);
-}
-
-function loadStoredReferralOwnerPhone() {
-  try {
-    return normalizeReferralOwnerPhone(localStorage.getItem(REFERRAL_OWNER_PHONE_STORAGE_KEY));
-  } catch (_error) {
-    return "";
-  }
-}
-
-function saveStoredReferralOwnerPhone(phone) {
-  const normalizedPhone = normalizeReferralOwnerPhone(phone);
-
-  try {
-    if (!normalizedPhone) {
-      localStorage.removeItem(REFERRAL_OWNER_PHONE_STORAGE_KEY);
-      return;
-    }
-
-    localStorage.setItem(REFERRAL_OWNER_PHONE_STORAGE_KEY, normalizedPhone);
-  } catch (_error) {
-    // Ignore storage failures and allow the page to continue.
-  }
-}
-
 function saveOwnedReferrals(referrals) {
   localStorage.setItem(OWNED_REFERRALS_STORAGE_KEY, JSON.stringify(referrals));
 }
 
 function storeOwnedReferral(referral) {
-  if (!referral || !referral.code || (!referral.ownerToken && !referral.ownerPhone)) {
+  if (!referral || !referral.code || !referral.ownerToken) {
     return;
   }
 
   const ownedReferrals = loadOwnedReferrals();
   const nextEntry = {
     code: String(referral.code),
-    ownerToken: String(referral.ownerToken || ""),
-    ownerPhone: normalizeReferralOwnerPhone(referral.ownerPhone),
+    ownerToken: String(referral.ownerToken),
     link: String(referral.link || ""),
     expiresAt: String(referral.expiresAt || ""),
     conversionCount: Number(referral.conversionCount || 0),
@@ -321,16 +292,12 @@ function storeOwnedReferral(referral) {
   }
 
   saveOwnedReferrals(ownedReferrals.slice(0, 25));
-
-  if (nextEntry.ownerPhone) {
-    saveStoredReferralOwnerPhone(nextEntry.ownerPhone);
-  }
 }
 
 function getLatestOwnedReferral(includeExpired = true) {
   return loadOwnedReferrals()
     .filter((entry) => {
-      if (!entry.code || (!entry.ownerToken && !entry.ownerPhone)) {
+      if (!entry.code || !entry.ownerToken) {
         return false;
       }
 
@@ -365,7 +332,6 @@ function getActiveOwnedReferralRewards() {
         ...reward,
         referralCode: String(referral.code || ""),
         ownerToken: String(referral.ownerToken || ""),
-        ownerPhone: normalizeReferralOwnerPhone(referral.ownerPhone || ""),
         message: getReferralRewardMessage(reward)
       });
     });
@@ -432,28 +398,16 @@ function getDisplayableReferralRewards() {
 }
 
 async function refreshOwnedReferralRewards() {
-  const ownedReferrals = loadOwnedReferrals().filter((entry) => entry.code && (entry.ownerToken || entry.ownerPhone));
+  const ownedReferrals = loadOwnedReferrals().filter((entry) => entry.code && entry.ownerToken);
 
   if (!ownedReferrals.length) {
     renderCart();
-    renderReferralStatusCard();
     return;
   }
 
   const updatedReferrals = await Promise.all(ownedReferrals.map(async (entry) => {
     try {
-      const params = new URLSearchParams();
-      const ownerPhone = normalizeReferralOwnerPhone(entry.ownerPhone || loadStoredReferralOwnerPhone());
-
-      if (entry.ownerToken) {
-        params.set("ownerToken", entry.ownerToken);
-      }
-
-      if (ownerPhone) {
-        params.set("ownerPhone", ownerPhone);
-      }
-
-      const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(entry.code)}/owner-status?${params.toString()}`, {
+      const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(entry.code)}/owner-status?ownerToken=${encodeURIComponent(entry.ownerToken)}`, {
         headers: {
           Accept: "application/json"
         }
@@ -466,9 +420,7 @@ async function refreshOwnedReferralRewards() {
 
       return {
         ...entry,
-        ...payload.referral,
-        ownerToken: payload.referral.ownerToken || entry.ownerToken || "",
-        ownerPhone: normalizeReferralOwnerPhone(payload.referral.ownerPhone || ownerPhone || entry.ownerPhone || "")
+        ...payload.referral
       };
     } catch (_error) {
       return entry;
@@ -477,7 +429,6 @@ async function refreshOwnedReferralRewards() {
 
   saveOwnedReferrals(updatedReferrals);
   renderCart();
-  renderReferralStatusCard();
 }
 
 function refreshOwnedReferralRewardsIfNeeded(force = false) {
@@ -659,59 +610,6 @@ function applyReferralRewardsToPricing(pricing, rewards) {
     referralRewardMessages: activeRewards.map((reward) => getReferralRewardMessage(reward)),
     total: Math.max(0, Number(pricing.total || 0) - referralCashDiscount)
   };
-}
-
-function getNextReferralRewardLabel(conversionCount) {
-  const nextStep = getReferralCycleStep(Number(conversionCount || 0) + 1) || 1;
-
-  if (nextStep === 2) {
-    return "$10 discount";
-  }
-
-  if (nextStep === 3) {
-    return "free 500g Group 1 box";
-  }
-
-  return "$5 discount";
-}
-
-function renderReferralStatusCard() {
-  const statusEl = document.querySelector("[data-referral-status]");
-
-  if (!statusEl) {
-    return;
-  }
-
-  const referral = getLatestOwnedReferral(false);
-
-  if (!referral) {
-    statusEl.classList.add("is-visible");
-    statusEl.innerHTML = `
-      <strong>Referral status</strong>
-      <span>Enter your contact number and generate your referral link.</span>
-      <span>Use the same number later if you need to recover this referral on another phone.</span>
-    `;
-    return;
-  }
-
-  const conversionCount = Number(referral.conversionCount || 0);
-  const activeRewards = (Array.isArray(referral.rewards) ? referral.rewards : [])
-    .filter((reward) => String(reward.status || "") === "issued_for_next_purchase")
-    .map((reward) => getReferralRewardMessage(reward));
-  const isActive = referral.isActive !== false;
-  const primaryStatus = isActive
-    ? `Successful referred orders recorded: ${conversionCount}.`
-    : "This referral link has expired. Generate a fresh one with the same contact number.";
-  const secondaryStatus = activeRewards.length
-    ? `Rewards ready for the next purchase: ${activeRewards.join(" ")}`
-    : `Next reward to unlock: ${getNextReferralRewardLabel(conversionCount)}.`;
-
-  statusEl.classList.add("is-visible");
-  statusEl.innerHTML = `
-    <strong>${escapeHtml(isActive ? "Referral status" : "Referral expired")}</strong>
-    <span>${escapeHtml(primaryStatus)}</span>
-    <span>${escapeHtml(secondaryStatus)}</span>
-  `;
 }
 
 function flashAddedState(button) {
@@ -2443,9 +2341,8 @@ function bindCartUI() {
       const referralRewardClaims = activeReferralRewards.map((reward) => ({
         referralCode: reward.referralCode,
         rewardId: reward.id,
-        ownerToken: reward.ownerToken,
-        ownerPhone: normalizeReferralOwnerPhone(reward.ownerPhone || "")
-      })).filter((claim) => claim.referralCode && claim.rewardId && (claim.ownerToken || claim.ownerPhone));
+        ownerToken: reward.ownerToken
+      })).filter((claim) => claim.referralCode && claim.rewardId && claim.ownerToken);
       const nameInput = document.querySelector("[data-checkout-name]");
       const phoneInput = document.querySelector("[data-checkout-phone]");
       const emailInput = document.querySelector("[data-checkout-email]");
@@ -2861,7 +2758,6 @@ function bindReferralForm() {
   const output = document.querySelector("[data-referral-output]");
   const linkEl = document.querySelector("[data-referral-link]");
   const copyButton = document.querySelector("[data-copy-referral-link]");
-  const phoneInput = document.querySelector("[data-referral-owner-phone]");
 
   if (!message || !submit || !output || !linkEl) {
     return;
@@ -2877,7 +2773,6 @@ function bindReferralForm() {
 
     linkEl.textContent = referral.link;
     output.classList.add("is-visible");
-    renderReferralStatusCard();
   };
 
   const copyReferralLink = async () => {
@@ -2906,52 +2801,25 @@ function bindReferralForm() {
   };
 
   const existingReferral = getLatestOwnedReferral(false);
-  const storedOwnerPhone = loadStoredReferralOwnerPhone();
-
-  if (phoneInput && storedOwnerPhone) {
-    phoneInput.value = storedOwnerPhone;
-  }
 
   if (existingReferral && existingReferral.link) {
     showReferralLink(existingReferral);
   }
 
-  renderReferralStatusCard();
-
-  if (existingReferral && (existingReferral.ownerToken || existingReferral.ownerPhone)) {
-    refreshOwnedReferralRewardsIfNeeded(true);
-  }
-
   submit.addEventListener("click", async () => {
-    const ownedReferral = getLatestOwnedReferral();
-    const ownerPhone = normalizeReferralOwnerPhone(phoneInput ? phoneInput.value : loadStoredReferralOwnerPhone());
-
-    if (!ownerPhone && !(ownedReferral && ownedReferral.ownerToken)) {
-      message.textContent = "Please enter your contact number so we can generate or recover your referral link.";
-      message.className = "referral-message is-error";
-      if (phoneInput) {
-        phoneInput.focus();
-      }
-      return;
-    }
-
-    if (ownerPhone) {
-      saveStoredReferralOwnerPhone(ownerPhone);
-    }
-
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
 
     try {
+      const ownedReferral = getLatestOwnedReferral();
       const response = await fetch(REFERRALS_API_PATH, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          ownerToken: ownedReferral ? ownedReferral.ownerToken : "",
-          ownerPhone
+          ownerToken: ownedReferral ? ownedReferral.ownerToken : ""
         })
       });
       const result = await response.json();
@@ -2960,13 +2828,10 @@ function bindReferralForm() {
         throw new Error(result.error || "Unable to create referral link.");
       }
 
-      storeOwnedReferral({
-        ...result.referral,
-        ownerPhone: result.referral.ownerPhone || ownerPhone
-      });
+      storeOwnedReferral(result.referral);
       showReferralLink(result.referral);
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      message.textContent = "Referral link ready below. Your referral progress is shown underneath.";
+      message.textContent = "Referral link ready below.";
       message.className = "referral-message is-success";
       refreshOwnedReferralRewardsIfNeeded(true);
     } catch (error) {
