@@ -27,9 +27,21 @@
       line-height: 1.5;
     }
 
-    body.page-loading,
+    body.page-loading {
+      opacity: 0;
+      animation: page-auto-reveal 0s linear 1.8s forwards;
+    }
+
     body.page-ready {
       opacity: 1;
+      transition: opacity 0.28s ease;
+      animation: none;
+    }
+
+    @keyframes page-auto-reveal {
+      to {
+        opacity: 1;
+      }
     }
 
     img {
@@ -182,7 +194,7 @@
       border-radius: 10px;
     }
 
-    nav-menu a:hover {
+    .nav-menu a:hover {
       background: rgba(230, 215, 192, 0.72);
       text-decoration: none;
     }
@@ -432,15 +444,6 @@
       height: 360px;
       object-fit: cover;
       border-radius: 16px;
-    }
-
-    .referral-section,
-    .order-hub,
-    .certifications,
-    .shop,
-    .reviews-section {
-      content-visibility: auto;
-      contain-intrinsic-size: 1px 900px;
     }
 
     .order-direct__features {
@@ -926,12 +929,6 @@
         transform: translateY(-1px);
       }
 
-      .split-section,
-      footer {
-        content-visibility: auto;
-        contain-intrinsic-size: 1px 900px;
-      }
-
       .nav {
         width: 100%;
         flex: 0 0 auto;
@@ -1073,7 +1070,7 @@
   <header class="topbar">
       <div class="container topbar-inner">
         <a class="site-logo" href="index.html" aria-label="DurianParadises.com home">
-          <img src="images/logo-header-fast.jpg" alt="Durian Paradise logo" width="250" height="264" loading="eager" decoding="async" />
+          <img src="images/logo-header-fast.jpg" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" />
         </a>
         <nav class="nav">
         <a href="#top">Home</a>
@@ -1109,7 +1106,7 @@
   <section class="section split-section">
     <div class="container split-grid">
       <div class="split-image">
-        <img src="images/durian-handpicked-fast-std.jpg" alt="Hand-picked durians" width="1200" height="900" loading="lazy" decoding="async" />
+        <img src="images/durian-handpicked-fast-std.jpg" alt="Hand-picked durians" width="1200" height="900" loading="eager" fetchpriority="high" decoding="async" />
       </div>
       <div class="split-text">
         <h2>Guaranteed Hand-Picked Quality Durians</h2>
@@ -1128,7 +1125,7 @@
           <a id="order-now-cta" href="#online-delivery-heading" class="btn-email order-direct__cta" data-scroll-target="#online-delivery-heading">Order Now</a>
         </div>
         <div class="order-direct__image">
-          <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" width="978" height="706" loading="lazy" decoding="async" />
+          <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" width="978" height="706" loading="eager" decoding="async" />
         </div>
       </div>
 
@@ -1389,7 +1386,7 @@
     <div class="container">
       <h2>Certifications</h2>
       <div class="cert-card">
-        <img src="images/certification-std.png" alt="Certification" loading="lazy" decoding="async" />
+        <img src="images/certification-std.png" alt="Certification" width="1600" height="1200" loading="lazy" decoding="async" />
         <p class="cert-note">WSQ Food Safety and Hygiene-1</p>
       </div>
     </div>
@@ -1402,21 +1399,21 @@
         <div class="product-grid">
           <a class="product-card" href="group-1-durians.html">
             <div class="card-img-wrapper">
-              <img src="images/group-1-fast-std.jpg" alt="Group 1 Durians" loading="lazy" decoding="async" />
+              <img src="images/group-1-fast-std.jpg" alt="Group 1 Durians" width="1200" height="1200" loading="lazy" decoding="async" />
             </div>
             <h3>Group 1 Durians</h3>
             <p>Select a group size to see pricing</p>
           </a>
           <a class="product-card" href="group-2-durians.html#group2-header">
             <div class="card-img-wrapper">
-              <img src="images/group-2-fast-std.jpg" alt="Group 2 Durians" loading="lazy" decoding="async" />
+              <img src="images/group-2-fast-std.jpg" alt="Group 2 Durians" width="1200" height="1200" loading="lazy" decoding="async" />
             </div>
             <h3>Group 2 Durians - Mao Shan Wang</h3>
             <p>Select a group size to see pricing</p>
           </a>
           <a class="product-card" href="group-3-durians.html#group3-header">
             <div class="card-img-wrapper">
-              <img src="images/group-3-fast-std.jpg" alt="Group 3 Durians" loading="lazy" decoding="async" />
+              <img src="images/group-3-fast-std.jpg" alt="Group 3 Durians" width="1200" height="1200" loading="lazy" decoding="async" />
             </div>
             <h3>Group 3 Durians - Black Gold, Black Thorns Orchee</h3>
             <p>Select a group size to see pricing</p>

@@ -17,7 +17,9 @@
       color: #111;
       line-height: 1.5;
     }
-    body.page-loading, body.page-ready { opacity: 1; }
+    body.page-loading { opacity: 0; animation: page-auto-reveal 0s linear 1.8s forwards; }
+    body.page-ready { opacity: 1; transition: opacity 0.28s ease; animation: none; }
+    @keyframes page-auto-reveal { to { opacity: 1; } }
     a { color: inherit; text-decoration: none; }
     .container { width: min(1100px, 92%); margin: 0 auto; }
     .topbar { background: rgba(244, 234, 218, 0.92); border-bottom: 1px solid rgba(120, 100, 76, 0.18); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000; }
@@ -53,7 +55,7 @@
   </style>
 </head>
 <body class="page-loading">
-  <header class="topbar"><div class="container topbar-inner"><a class="site-logo" href="index.html" aria-label="DurianParadises.com home"><img src="images/logo-header.png" alt="Durian Paradise logo" /></a><nav class="nav"><a href="index.html">Home</a><a href="index.html#order-now">Order Now</a><div class="nav-group"><button class="nav-toggle" type="button">Types of Durian</button><div class="nav-menu"><a href="group-1-durians.html#group1">Group 1</a><a href="group-2-durians.html#group2-header">Group 2</a><a href="group-3-durians.html#group3-header">Group 3</a></div></div><a href="contact-us.html">Contact Us</a><a href="index.html#reviews">Reviews</a></nav></div></header>
+  <header class="topbar"><div class="container topbar-inner"><a class="site-logo" href="index.html" aria-label="DurianParadises.com home"><img src="images/logo-header.png" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" /></a><nav class="nav"><a href="index.html">Home</a><a href="index.html#order-now">Order Now</a><div class="nav-group"><button class="nav-toggle" type="button">Types of Durian</button><div class="nav-menu"><a href="group-1-durians.html#group1">Group 1</a><a href="group-2-durians.html#group2-header">Group 2</a><a href="group-3-durians.html#group3-header">Group 3</a></div></div><a href="contact-us.html">Contact Us</a><a href="index.html#reviews">Reviews</a></nav></div></header>
   <main class="page-wrap">
     <div class="container contact-grid">
       <section class="contact-card">

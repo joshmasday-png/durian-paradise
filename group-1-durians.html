@@ -28,9 +28,21 @@
       line-height: 1.45;
     }
 
-    body.page-loading,
+    body.page-loading {
+      opacity: 0;
+      animation: page-auto-reveal 0s linear 1.8s forwards;
+    }
+
     body.page-ready {
       opacity: 1;
+      transition: opacity 0.28s ease;
+      animation: none;
+    }
+
+    @keyframes page-auto-reveal {
+      to {
+        opacity: 1;
+      }
     }
 
     a {
@@ -663,7 +675,7 @@
   <header class="topbar">
     <div class="container topbar-inner">
       <a class="site-logo" href="index.html" aria-label="DurianParadises.com home">
-        <img src="images/logo-header.png" alt="Durian Paradise logo" />
+        <img src="images/logo-header.png" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" />
       </a>
       <nav class="nav">
         <a href="index.html">Home</a>

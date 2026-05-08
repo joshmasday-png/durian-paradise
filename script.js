@@ -1481,10 +1481,20 @@ function injectCartStyles() {
     }
 
     @media (max-width: 820px) {
+      .nav {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        overflow: visible !important;
+        gap: 10px 16px !important;
+      }
+
       .nav-group {
         position: static !important;
         padding-bottom: 0 !important;
         margin-bottom: 0 !important;
+        flex: 1 0 100%;
+        display: grid;
+        justify-items: center;
       }
 
       .nav-group.is-open .nav-menu {
@@ -1494,6 +1504,7 @@ function injectCartStyles() {
         right: auto !important;
         transform: none !important;
         width: min(320px, calc(100vw - 32px));
+        max-width: 100%;
         margin: 10px auto 0;
       }
     }
@@ -1516,7 +1527,50 @@ function revealPageWhenCriticalImagesReady() {
     return;
   }
 
-  window.requestAnimationFrame(revealPage);
+  const reveal = () => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(revealPage);
+    });
+  };
+
+  const criticalImages = Array.from(document.querySelectorAll([
+    ".site-logo img",
+    ".split-image img",
+    ".product-layout .main-image",
+    "img[loading=\"eager\"]",
+    "img[fetchpriority=\"high\"]"
+  ].join(",")));
+
+  if (!criticalImages.length) {
+    reveal();
+    return;
+  }
+
+  const waitForImage = (img) => {
+    if (img.complete && img.naturalWidth > 0) {
+      return Promise.resolve();
+    }
+
+    if (typeof img.decode === "function") {
+      return img.decode().catch(() => {});
+    }
+
+    return new Promise((resolve) => {
+      const finish = () => {
+        img.removeEventListener("load", finish);
+        img.removeEventListener("error", finish);
+        resolve();
+      };
+
+      img.addEventListener("load", finish, { once: true });
+      img.addEventListener("error", finish, { once: true });
+    });
+  };
+
+  Promise.race([
+    Promise.allSettled(criticalImages.map(waitForImage)),
+    new Promise((resolve) => window.setTimeout(resolve, 1600))
+  ]).finally(reveal);
 }
 
 function runNonCriticalTask(task, timeout = 400) {
@@ -1628,6 +1682,7 @@ function bindNavMenus() {
     }
 
     toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-haspopup", "true");
 
     toggle.addEventListener("click", (event) => {
       event.preventDefault();
