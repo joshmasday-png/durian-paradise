@@ -93,11 +93,6 @@
       box-shadow: 0 16px 30px rgba(104, 73, 36, 0.2);
     }
 
-    .button[aria-disabled="true"] {
-      pointer-events: none;
-      opacity: 0.5;
-      box-shadow: none;
-    }
   </style>
 </head>
 <body>
@@ -106,8 +101,8 @@
     <div class="badge">Referral Invitation</div>
     <h1 data-referral-title>You have been referred to this website</h1>
     <p data-referral-copy>Press the button below to visit Durian Paradise. If you place an order within the referral period, the referral reward will be recorded automatically.</p>
-    <div class="referral-note" data-referral-note>Checking referral link...</div>
-    <a class="button" href="/" data-referral-continue aria-disabled="true">Visit Durian Paradise</a>
+    <div class="referral-note" data-referral-note>Checking referral link... You can continue to the website immediately if this takes too long.</div>
+    <a class="button" href="/" data-referral-continue>Visit Durian Paradise</a>
   </main>
 
   <script>
@@ -125,7 +120,6 @@
       copy.textContent = "You can still visit Durian Paradise, but no referral voucher will be issued from this link.";
       note.textContent = message;
       button.href = "/";
-      button.removeAttribute("aria-disabled");
     }
 
     if (!code || isInvalid) {
@@ -153,7 +147,6 @@
           });
           note.textContent = `Referral valid until ${expiry}. If you skip this link and enter the website normally, the referral voucher will not be issued.`;
           button.href = `/r/${encodeURIComponent(code)}`;
-          button.removeAttribute("aria-disabled");
         })
         .catch(() => {
           disableReferral("Unable to check this referral link right now.");

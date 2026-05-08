@@ -1,6 +1,6 @@
 "use strict";
 
-const STORAGE_VERSION = "20260503-reset-referrals";
+const STORAGE_VERSION = "20260508-referral-reset";
 const LEGACY_STORAGE_KEYS = [
   "durianParadiseCart",
   "durianParadisePendingPayment",
