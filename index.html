@@ -232,6 +232,8 @@
     .hero-media__stack {
       display: grid;
       gap: 16px;
+      width: min(100%, 760px);
+      margin: 0 auto;
     }
 
     .hero-media__card {
@@ -243,6 +245,27 @@
     }
 
     .hero-media__card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .hero-photo {
+      padding: 6px 0 0;
+      background: rgba(245, 241, 235, 0.82);
+    }
+
+    .hero-photo__frame {
+      width: min(100%, 360px);
+      margin: 0 auto;
+      background: rgba(252, 249, 245, 0.92);
+      border: 1px solid rgba(170, 156, 138, 0.14);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 16px 30px rgba(104, 73, 36, 0.08);
+    }
+
+    .hero-photo__frame img {
       width: 100%;
       height: auto;
       display: block;
@@ -1016,6 +1039,10 @@
       .hero-media__stack {
         gap: 12px;
       }
+
+      .hero-photo__frame {
+        width: min(100%, 300px);
+      }
     }
 
     @media (max-width: 480px) {
@@ -1064,6 +1091,14 @@
       </div>
       <div class="hero-media__card">
         <img src="images/hero-guarantee-strip.jpeg" alt="Guaranteed premium service, carefully selected for quality, freshness and exquisite flavour, not mass produced from plantations" width="1048" height="162" loading="eager" fetchpriority="high" decoding="async" />
+      </div>
+    </div>
+  </section>
+
+  <section class="hero-photo">
+    <div class="container">
+      <div class="hero-photo__frame">
+        <img src="images/durian-handpicked-fast-std.jpg" alt="Three premium durians" width="1200" height="900" loading="eager" decoding="async" />
       </div>
     </div>
   </section>
