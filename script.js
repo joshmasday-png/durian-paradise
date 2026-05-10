@@ -31,17 +31,47 @@ let productCardsBound = false;
 let partyFormsBound = false;
 let reviewFormBound = false;
 let referralFormBound = false;
+const memoryStorage = new Map();
+
+function readStorageItem(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (_error) {
+    return memoryStorage.has(key) ? String(memoryStorage.get(key)) : null;
+  }
+}
+
+function writeStorageItem(key, value) {
+  const normalizedValue = String(value);
+
+  try {
+    localStorage.setItem(key, normalizedValue);
+  } catch (_error) {
+    memoryStorage.set(key, normalizedValue);
+  }
+}
+
+function removeStorageItem(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (_error) {
+    memoryStorage.delete(key);
+    return;
+  }
+
+  memoryStorage.delete(key);
+}
 
 function clearLegacyStorageIfNeeded() {
   try {
-    if (localStorage.getItem(STORAGE_MIGRATION_KEY) === "done") {
+    if (readStorageItem(STORAGE_MIGRATION_KEY) === "done") {
       return;
     }
 
     LEGACY_STORAGE_KEYS.forEach((key) => {
-      localStorage.removeItem(key);
+      removeStorageItem(key);
     });
-    localStorage.setItem(STORAGE_MIGRATION_KEY, "done");
+    writeStorageItem(STORAGE_MIGRATION_KEY, "done");
   } catch (_error) {
     // Ignore storage cleanup failures and let the app continue.
   }
@@ -200,7 +230,7 @@ function readReviewImage(file) {
 
 function loadCart() {
   try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    const raw = readStorageItem(CART_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch (_error) {
@@ -209,12 +239,12 @@ function loadCart() {
 }
 
 function saveCart(cart) {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  writeStorageItem(CART_STORAGE_KEY, JSON.stringify(cart));
 }
 
 function loadPendingPayment() {
   try {
-    const raw = localStorage.getItem(PENDING_PAYMENT_STORAGE_KEY);
+    const raw = readStorageItem(PENDING_PAYMENT_STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch (_error) {
     return null;
@@ -222,11 +252,11 @@ function loadPendingPayment() {
 }
 
 function savePendingPayment(payment) {
-  localStorage.setItem(PENDING_PAYMENT_STORAGE_KEY, JSON.stringify(payment));
+  writeStorageItem(PENDING_PAYMENT_STORAGE_KEY, JSON.stringify(payment));
 }
 
 function clearPendingPayment() {
-  localStorage.removeItem(PENDING_PAYMENT_STORAGE_KEY);
+  removeStorageItem(PENDING_PAYMENT_STORAGE_KEY);
 }
 
 function createBrowserId() {
@@ -239,13 +269,13 @@ function createBrowserId() {
 
 function getVisitorId() {
   try {
-    const existing = String(localStorage.getItem(VISITOR_STORAGE_KEY) || "").trim();
+    const existing = String(readStorageItem(VISITOR_STORAGE_KEY) || "").trim();
     if (existing) {
       return existing;
     }
 
     const nextId = createBrowserId();
-    localStorage.setItem(VISITOR_STORAGE_KEY, nextId);
+    writeStorageItem(VISITOR_STORAGE_KEY, nextId);
     return nextId;
   } catch (_error) {
     return createBrowserId();
@@ -254,7 +284,7 @@ function getVisitorId() {
 
 function loadOwnedReferrals() {
   try {
-    const raw = localStorage.getItem(OWNED_REFERRALS_STORAGE_KEY);
+    const raw = readStorageItem(OWNED_REFERRALS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch (_error) {
@@ -263,7 +293,7 @@ function loadOwnedReferrals() {
 }
 
 function saveOwnedReferrals(referrals) {
-  localStorage.setItem(OWNED_REFERRALS_STORAGE_KEY, JSON.stringify(referrals));
+  writeStorageItem(OWNED_REFERRALS_STORAGE_KEY, JSON.stringify(referrals));
 }
 
 function storeOwnedReferral(referral) {
@@ -444,17 +474,17 @@ function refreshOwnedReferralRewardsIfNeeded(force = false) {
 
 function getStoredReferralCode() {
   try {
-    const raw = localStorage.getItem(REFERRAL_STORAGE_KEY);
+    const raw = readStorageItem(REFERRAL_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
 
     if (!parsed || !parsed.code || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
-      localStorage.removeItem(REFERRAL_STORAGE_KEY);
+      removeStorageItem(REFERRAL_STORAGE_KEY);
       return "";
     }
 
     return String(parsed.code);
   } catch (_error) {
-    localStorage.removeItem(REFERRAL_STORAGE_KEY);
+    removeStorageItem(REFERRAL_STORAGE_KEY);
     return "";
   }
 }
@@ -467,14 +497,14 @@ function captureReferralCode() {
     return;
   }
 
-  localStorage.setItem(REFERRAL_STORAGE_KEY, JSON.stringify({
+  writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
     code,
     expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
   }));
 }
 
 function clearStoredReferralCode() {
-  localStorage.removeItem(REFERRAL_STORAGE_KEY);
+  removeStorageItem(REFERRAL_STORAGE_KEY);
 }
 
 function getPageCategory() {
