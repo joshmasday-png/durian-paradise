@@ -33,80 +33,6 @@ let reviewFormBound = false;
 let referralFormBound = false;
 const memoryStorage = new Map();
 
-function injectInteractionStyles() {
-  if (document.getElementById("interaction-ui-styles")) {
-    return;
-  }
-
-  const style = document.createElement("style");
-  style.id = "interaction-ui-styles";
-  style.textContent = `
-    .nav-group {
-      z-index: 1101;
-    }
-
-    .nav-menu {
-      z-index: 1102;
-    }
-
-    .nav-group.is-open .nav-menu {
-      display: grid !important;
-      gap: 8px;
-    }
-
-    .party-order-card.is-option-open {
-      z-index: 6;
-    }
-
-    .nav-toggle,
-    .multi-option-select > summary,
-    .multi-option-qty button,
-    .shop-button,
-    .party-select {
-      touch-action: manipulation;
-    }
-
-    .multi-option-item {
-      cursor: pointer;
-    }
-
-    .shop-button[aria-disabled="true"] {
-      opacity: 0.72;
-    }
-
-    @media (max-width: 820px) {
-      .nav {
-        flex-wrap: wrap !important;
-        justify-content: center !important;
-        overflow: visible !important;
-        gap: 10px 16px !important;
-      }
-
-      .nav-group {
-        position: static !important;
-        padding-bottom: 0 !important;
-        margin-bottom: 0 !important;
-        flex: 1 0 100%;
-        display: grid;
-        justify-items: center;
-      }
-
-      .nav-group.is-open .nav-menu {
-        position: static !important;
-        top: auto !important;
-        left: auto !important;
-        right: auto !important;
-        transform: none !important;
-        width: min(320px, calc(100vw - 32px));
-        max-width: 100%;
-        margin: 10px auto 0;
-      }
-    }
-  `;
-
-  document.head.appendChild(style);
-}
-
 function readStorageItem(key) {
   try {
     return localStorage.getItem(key);
@@ -761,8 +687,7 @@ function syncProductCardState(card) {
   summary.textContent = selectedRows.length
     ? selectedRows.map((row) => `${row.dataset.variantValue} x${row.dataset.quantity}`).join(", ")
     : "Choose option(s)";
-  button.disabled = false;
-  button.setAttribute("aria-disabled", selectedRows.length ? "false" : "true");
+  button.disabled = selectedRows.length === 0;
 }
 
 function syncAllProductCardStates() {
@@ -784,8 +709,7 @@ function syncPartyFormState(form) {
   }
 
   const option = select.options[select.selectedIndex];
-  button.disabled = false;
-  button.setAttribute("aria-disabled", option && option.value ? "false" : "true");
+  button.disabled = !option || !option.value;
 }
 
 function syncAllPartyFormStates() {
@@ -1606,6 +1530,31 @@ function injectCartStyles() {
       margin: 0;
     }
 
+    .nav-group {
+      z-index: 1101;
+    }
+
+    .nav-menu {
+      z-index: 1102;
+    }
+
+    .nav-group.is-open .nav-menu {
+      display: grid !important;
+      gap: 8px;
+    }
+
+    .nav-toggle,
+    .multi-option-select > summary,
+    .multi-option-qty button,
+    .shop-button,
+    .party-select {
+      touch-action: manipulation;
+    }
+
+    .multi-option-item {
+      cursor: pointer;
+    }
+
     .smart-image-frame {
       position: relative;
       overflow: hidden;
@@ -1632,6 +1581,35 @@ function injectCartStyles() {
       height: 100%;
       object-fit: contain;
       background: transparent !important;
+    }
+
+    @media (max-width: 820px) {
+      .nav {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        overflow: visible !important;
+        gap: 10px 16px !important;
+      }
+
+      .nav-group {
+        position: static !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+        flex: 1 0 100%;
+        display: grid;
+        justify-items: center;
+      }
+
+      .nav-group.is-open .nav-menu {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        transform: none !important;
+        width: min(320px, calc(100vw - 32px));
+        max-width: 100%;
+        margin: 10px auto 0;
+      }
     }
   `;
 
@@ -1794,8 +1772,12 @@ function bindNavMenus() {
     navGroups.forEach((group) => {
       group.classList.remove("is-open");
       const toggle = group.querySelector(".nav-toggle");
+      const menu = group.querySelector(".nav-menu");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
+      }
+      if (menu) {
+        menu.hidden = true;
       }
     });
   };
@@ -1813,7 +1795,7 @@ function bindNavMenus() {
       if (!menu.id) {
         menu.id = `nav-menu-${index + 1}`;
       }
-      menu.removeAttribute("hidden");
+      menu.hidden = true;
       toggle.setAttribute("aria-controls", menu.id);
     }
 
@@ -1827,6 +1809,9 @@ function bindNavMenus() {
       if (!isOpen) {
         group.classList.add("is-open");
         toggle.setAttribute("aria-expanded", "true");
+        if (menu) {
+          menu.hidden = false;
+        }
       }
     });
   });
@@ -2651,26 +2636,12 @@ function bindProductCards() {
       return;
     }
 
-    const syncOpenState = () => {
-      card.classList.toggle("is-option-open", details.open);
-      if (summary) {
-        summary.setAttribute("aria-expanded", details.open ? "true" : "false");
-      }
-    };
-
     if (summary && summary.dataset.optionSummaryBound !== "true") {
       summary.dataset.optionSummaryBound = "true";
-      summary.setAttribute("aria-expanded", details.open ? "true" : "false");
       summary.addEventListener("click", (event) => {
         event.preventDefault();
         details.open = !details.open;
-        syncOpenState();
       });
-    }
-
-    if (details.dataset.optionToggleBound !== "true") {
-      details.dataset.optionToggleBound = "true";
-      details.addEventListener("toggle", syncOpenState);
     }
 
     rows.forEach((row) => {
@@ -2693,7 +2664,6 @@ function bindProductCards() {
           event.preventDefault();
           event.stopPropagation();
           details.open = true;
-          syncOpenState();
           updateQty(Number(row.dataset.quantity || 0) - 1);
         });
       }
@@ -2703,7 +2673,6 @@ function bindProductCards() {
           event.preventDefault();
           event.stopPropagation();
           details.open = true;
-          syncOpenState();
           updateQty(Number(row.dataset.quantity || 0) + 1);
         });
       }
@@ -2716,7 +2685,6 @@ function bindProductCards() {
         event.preventDefault();
         event.stopPropagation();
         details.open = true;
-        syncOpenState();
         updateQty(Number(row.dataset.quantity || 0) + 1);
       });
 
@@ -2726,11 +2694,9 @@ function bindProductCards() {
     document.addEventListener("click", (event) => {
       if (!details.contains(event.target)) {
         details.removeAttribute("open");
-        syncOpenState();
       }
     });
 
-    syncOpenState();
     syncProductCardState(card);
     button.textContent = "Add to Cart";
 
@@ -2738,11 +2704,6 @@ function bindProductCards() {
       const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
 
       if (!selectedRows.length) {
-        details.open = true;
-        syncOpenState();
-        if (summary && typeof summary.focus === "function") {
-          summary.focus();
-        }
         return;
       }
 
@@ -2795,9 +2756,6 @@ function bindPartyForms() {
     button.addEventListener("click", () => {
       const option = select.options[select.selectedIndex];
       if (!option || !option.value) {
-        if (typeof select.focus === "function") {
-          select.focus();
-        }
         return;
       }
 
@@ -3095,7 +3053,6 @@ function restoreInteractiveHomepageState() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  injectInteractionStyles();
   clearLegacyStorageIfNeeded();
   captureReferralCode();
   bindNavMenus();
