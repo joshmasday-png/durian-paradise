@@ -640,63 +640,6 @@ function flashAddedState(button) {
   }, 900);
 }
 
-function syncProductCardState(card) {
-  if (!card) {
-    return;
-  }
-
-  const button = card.querySelector("[data-add-product]");
-  const summary = card.querySelector("[data-multi-option-summary]");
-  const rows = Array.from(card.querySelectorAll("[data-variant-row]"));
-
-  if (!button || !summary || !rows.length) {
-    return;
-  }
-
-  const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
-  summary.textContent = selectedRows.length
-    ? selectedRows.map((row) => `${row.dataset.variantValue} x${row.dataset.quantity}`).join(", ")
-    : "Choose option(s)";
-  button.disabled = selectedRows.length === 0;
-}
-
-function syncAllProductCardStates() {
-  document.querySelectorAll("[data-product-card]").forEach((card) => {
-    syncProductCardState(card);
-  });
-}
-
-function syncPartyFormState(form) {
-  if (!form) {
-    return;
-  }
-
-  const select = form.querySelector("[data-party-select]");
-  const button = form.querySelector("[data-add-party]");
-
-  if (!select || !button) {
-    return;
-  }
-
-  const option = select.options[select.selectedIndex];
-  button.disabled = !option || !option.value;
-}
-
-function syncAllPartyFormStates() {
-  document.querySelectorAll("[data-party-form]").forEach((form) => {
-    syncPartyFormState(form);
-  });
-}
-
-function restoreOrderActionButtons() {
-  document.querySelectorAll("[data-add-product], [data-add-party]").forEach((button) => {
-    button.textContent = button.dataset.originalText || "Add to Cart";
-  });
-
-  syncAllProductCardStates();
-  syncAllPartyFormStates();
-}
-
 function getItemKey(item) {
   return `${item.productId}::${item.variantValue}`;
 }
@@ -2568,11 +2511,20 @@ function bindProductCards() {
   document.querySelectorAll("[data-product-card]").forEach((card) => {
     const button = card.querySelector("[data-add-product]");
     const details = card.querySelector("[data-multi-option]");
+    const summary = card.querySelector("[data-multi-option-summary]");
     const rows = Array.from(card.querySelectorAll("[data-variant-row]"));
 
-    if (!button || !details || !rows.length) {
+    if (!button || !details || !summary || !rows.length) {
       return;
     }
+
+    const syncCardState = () => {
+      const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
+      summary.textContent = selectedRows.length
+        ? selectedRows.map((row) => `${row.dataset.variantValue} x${row.dataset.quantity}`).join(", ")
+        : "Choose option(s)";
+      button.disabled = selectedRows.length === 0;
+    };
 
     rows.forEach((row) => {
       row.dataset.quantity = row.dataset.quantity || "0";
@@ -2586,7 +2538,7 @@ function bindProductCards() {
         if (qtyEl) {
           qtyEl.textContent = String(quantity);
         }
-        syncProductCardState(card);
+        syncCardState();
       };
 
       if (decrease) {
@@ -2612,7 +2564,7 @@ function bindProductCards() {
       }
     });
 
-    syncProductCardState(card);
+    syncCardState();
     button.textContent = "Add to Cart";
 
     button.addEventListener("click", () => {
@@ -2664,8 +2616,13 @@ function bindPartyForms() {
       return;
     }
 
-    syncPartyFormState(form);
-    select.addEventListener("change", () => syncPartyFormState(form));
+    const syncPartyButton = () => {
+      const option = select.options[select.selectedIndex];
+      button.disabled = !option || !option.value;
+    };
+
+    syncPartyButton();
+    select.addEventListener("change", syncPartyButton);
     button.textContent = "Add to Cart";
 
     button.addEventListener("click", () => {
@@ -2959,14 +2916,6 @@ function bindReferralForm() {
   }
 }
 
-function restoreInteractiveHomepageState() {
-  closeCartDrawer();
-  bindPrimaryCtas();
-  bindProductCards();
-  bindPartyForms();
-  restoreOrderActionButtons();
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   clearLegacyStorageIfNeeded();
   captureReferralCode();
@@ -2975,7 +2924,6 @@ document.addEventListener("DOMContentLoaded", () => {
   bindReferralForm();
   syncCartTriggerCount();
   revealPageWhenCriticalImagesReady();
-  restoreInteractiveHomepageState();
 
   const cartTrigger = document.querySelector("[data-cart-trigger]");
   if (cartTrigger && cartTrigger.dataset.cartTriggerBound !== "true") {
@@ -2986,7 +2934,6 @@ document.addEventListener("DOMContentLoaded", () => {
   runWhenElementNearViewport("#order-now", () => {
     bindProductCards();
     bindPartyForms();
-    restoreOrderActionButtons();
   }, {
     rootMargin: "520px 0px",
     hash: "#order-now"
@@ -3016,20 +2963,4 @@ document.addEventListener("DOMContentLoaded", () => {
   runNonCriticalTask(() => {
     enhanceVarietyImages();
   }, 1400);
-});
-
-window.addEventListener("pageshow", () => {
-  revealPage();
-  restoreInteractiveHomepageState();
-  refreshOwnedReferralRewardsIfNeeded(true);
-});
-
-window.addEventListener("pagehide", () => {
-  closeCartDrawer();
-});
-
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") {
-    closeCartDrawer();
-  }
 });
