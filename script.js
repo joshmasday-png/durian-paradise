@@ -46,6 +46,10 @@ function injectNavMenuStyles() {
       gap: 8px;
     }
 
+    .nav-toggle {
+      touch-action: manipulation;
+    }
+
     @media (max-width: 820px) {
       .nav.has-open-menu {
         overflow: visible !important;
@@ -143,6 +147,16 @@ function bindTap(element, handler, options = {}) {
 
     invoke(event);
   });
+}
+
+function setActionButtonState(button, isReady) {
+  if (!button) {
+    return;
+  }
+
+  button.disabled = false;
+  button.setAttribute("aria-disabled", isReady ? "false" : "true");
+  button.classList.toggle("is-pending-selection", !isReady);
 }
 
 function clearLegacyStorageIfNeeded() {
@@ -734,22 +748,25 @@ function flashAddedState(button) {
   button.dataset.originalText = originalText;
   button.textContent = "Added";
   button.disabled = true;
+  button.classList.add("is-feedback-lock");
 
   window.setTimeout(() => {
     button.textContent = originalText;
+    button.disabled = false;
+    button.classList.remove("is-feedback-lock");
     const card = button.closest("[data-product-card], [data-party-form]");
     const selectedRows = card
       ? Array.from(card.querySelectorAll("[data-variant-row]")).filter((row) => Number(row.dataset.quantity || 0) > 0)
       : [];
 
     if (selectedRows.length) {
-      button.disabled = false;
+      setActionButtonState(button, true);
       return;
     }
 
     const select = card && (card.querySelector("[data-variant-select]") || card.querySelector("[data-party-select]"));
     const option = select && select.options ? select.options[select.selectedIndex] : null;
-    button.disabled = !option || !option.value;
+    setActionButtonState(button, Boolean(option && option.value));
   }, 900);
 }
 
@@ -1556,15 +1573,6 @@ function injectCartStyles() {
       margin: 0;
     }
 
-    .nav-group.is-open .nav-menu {
-      display: grid !important;
-      gap: 8px;
-    }
-
-    .nav-toggle {
-      touch-action: manipulation;
-    }
-
     .smart-image-frame {
       position: relative;
       overflow: hidden;
@@ -1591,35 +1599,6 @@ function injectCartStyles() {
       height: 100%;
       object-fit: contain;
       background: transparent !important;
-    }
-
-    @media (max-width: 820px) {
-      .nav {
-        flex-wrap: wrap !important;
-        justify-content: center !important;
-        overflow: visible !important;
-        gap: 10px 16px !important;
-      }
-
-      .nav-group {
-        position: static !important;
-        padding-bottom: 0 !important;
-        margin-bottom: 0 !important;
-        flex: 1 0 100%;
-        display: grid;
-        justify-items: center;
-      }
-
-      .nav-group.is-open .nav-menu {
-        position: static !important;
-        top: auto !important;
-        left: auto !important;
-        right: auto !important;
-        transform: none !important;
-        width: min(320px, calc(100vw - 32px));
-        max-width: 100%;
-        margin: 10px auto 0;
-      }
     }
   `;
 
@@ -1682,7 +1661,7 @@ function revealPageWhenCriticalImagesReady() {
 
   Promise.race([
     Promise.allSettled(criticalImages.map(waitForImage)),
-    new Promise((resolve) => window.setTimeout(resolve, 1600))
+    new Promise((resolve) => window.setTimeout(resolve, 600))
   ]).finally(reveal);
 }
 
@@ -2641,7 +2620,7 @@ function bindProductCards() {
       summary.textContent = selectedRows.length
         ? selectedRows.map((row) => `${row.dataset.variantValue} x${row.dataset.quantity}`).join(", ")
         : "Choose option(s)";
-      button.disabled = selectedRows.length === 0;
+      setActionButtonState(button, selectedRows.length > 0);
     };
 
     if (summary && summary.dataset.summaryTapBound !== "true") {
@@ -2678,14 +2657,14 @@ function bindProductCards() {
         }, { stopPropagation: true });
       }
 
-      row.addEventListener("click", (event) => {
+      bindTap(row, (event) => {
         if (event.target.closest("button")) {
           return;
         }
 
         details.open = true;
         updateQty(Number(row.dataset.quantity || 0) + 1);
-      });
+      }, { stopPropagation: true });
 
       updateQty(Number(row.dataset.quantity || 0));
     });
@@ -2703,6 +2682,10 @@ function bindProductCards() {
       const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
 
       if (!selectedRows.length) {
+        details.open = true;
+        if (typeof summary.focus === "function") {
+          summary.focus();
+        }
         return;
       }
 
@@ -2750,7 +2733,7 @@ function bindPartyForms() {
 
     const syncPartyButton = () => {
       const option = select.options[select.selectedIndex];
-      button.disabled = !option || !option.value;
+      setActionButtonState(button, Boolean(option && option.value));
     };
 
     syncPartyButton();
@@ -2760,6 +2743,9 @@ function bindPartyForms() {
     bindTap(button, () => {
       const option = select.options[select.selectedIndex];
       if (!option || !option.value) {
+        if (typeof select.focus === "function") {
+          select.focus();
+        }
         return;
       }
 

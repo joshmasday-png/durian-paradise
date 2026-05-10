@@ -8,7 +8,7 @@
   <link rel="preload" as="image" href="images/hero-guarantee.jpeg" fetchpriority="high" />
   <link rel="preload" as="image" href="images/hero-guarantee-strip.jpeg" fetchpriority="high" />
   <link rel="prefetch" href="group-1-durians.html" />
-  <link rel="stylesheet" href="shopping.css?v=20260428-2" />
+  <link rel="stylesheet" href="shopping.css?v=20260510-1" />
   <style>
     * {
       box-sizing: border-box;
@@ -27,14 +27,9 @@
       line-height: 1.5;
     }
 
-    body.page-loading {
-      opacity: 0;
-      animation: page-auto-reveal 0s linear 1.8s forwards;
-    }
-
+    body.page-loading,
     body.page-ready {
       opacity: 1;
-      transition: opacity 0.28s ease;
       animation: none;
     }
 
@@ -120,6 +115,7 @@
       box-shadow: 0 10px 20px rgba(88, 66, 38, 0.08);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       z-index: 2;
+      touch-action: manipulation;
     }
 
     .header-cart-trigger:hover {
@@ -231,17 +227,17 @@
 
     .hero-media__stack {
       display: grid;
-      gap: 16px;
-      width: min(100%, 760px);
+      gap: 14px;
+      width: min(100%, 700px);
       margin: 0 auto;
     }
 
     .hero-media__card {
       background: rgba(252, 249, 245, 0.92);
-      border: 1px solid rgba(170, 156, 138, 0.14);
+      border: 1px solid rgba(170, 156, 138, 0.08);
       border-radius: 22px;
       overflow: hidden;
-      box-shadow: 0 18px 36px rgba(104, 73, 36, 0.08);
+      box-shadow: 0 14px 28px rgba(104, 73, 36, 0.06);
     }
 
     .hero-media__card img {
@@ -251,7 +247,7 @@
     }
 
     .hero-media__card--durians img {
-      aspect-ratio: 16 / 10;
+      aspect-ratio: 4 / 3;
       object-fit: cover;
       object-position: center;
     }
@@ -1197,7 +1193,7 @@
                     </div>
                   </details>
                 </div>
-                <button class="shop-button" type="button" data-add-product disabled>Add to Cart</button>
+                <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
             </div>
 
@@ -1235,7 +1231,7 @@
                     </div>
                   </details>
                 </div>
-                <button class="shop-button" type="button" data-add-product disabled>Add to Cart</button>
+                <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
             </div>
 
@@ -1273,7 +1269,7 @@
                     </div>
                   </details>
                 </div>
-                <button class="shop-button" type="button" data-add-product disabled>Add to Cart</button>
+                <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
             </div>
           </div>
@@ -1300,7 +1296,7 @@
                     <option value="g1-27" data-label="18 pax - 27kg (est 16 to 19 durians) at $8/kg" data-price="216">18 pax - 27kg (est 16 to 19 durians) at $8/kg</option>
                   </select>
                 </div>
-                <button class="shop-button" type="button" data-add-party disabled>Add to Cart</button>
+                <button class="shop-button" type="button" data-add-party>Add to Cart</button>
               </div>
             </div>
 
@@ -1317,7 +1313,7 @@
                     <option value="g2-27" data-label="18 pax - 27kg (est 16 to 19 durians) at $14/kg" data-price="378">18 pax - 27kg (est 16 to 19 durians) at $14/kg</option>
                   </select>
                 </div>
-                <button class="shop-button" type="button" data-add-party disabled>Add to Cart</button>
+                <button class="shop-button" type="button" data-add-party>Add to Cart</button>
               </div>
             </div>
 
@@ -1334,7 +1330,7 @@
                     <option value="g3-27" data-label="18 pax - 27kg (est 16 to 19 durians) at $16/kg" data-price="432">18 pax - 27kg (est 16 to 19 durians) at $16/kg</option>
                   </select>
                 </div>
-                <button class="shop-button" type="button" data-add-party disabled>Add to Cart</button>
+                <button class="shop-button" type="button" data-add-party>Add to Cart</button>
               </div>
             </div>
           </div>
@@ -1437,7 +1433,7 @@
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
 
-  <script src="script.js?v=20260510-6" defer></script>
+  <script src="script.js?v=20260510-7" defer></script>
 
 </body>
 </html>
