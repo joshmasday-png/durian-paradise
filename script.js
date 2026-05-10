@@ -48,28 +48,28 @@ function injectNavMenuStyles() {
     @media (max-width: 820px) {
       .nav.has-open-menu {
         overflow: visible !important;
-        flex-wrap: wrap !important;
-        justify-content: center !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
       }
 
       .nav.has-open-menu .nav-group {
-        position: static !important;
-        padding-bottom: 0 !important;
-        margin-bottom: 0 !important;
-        flex: 1 0 100%;
-        display: grid;
-        justify-items: center;
+        position: relative !important;
+        padding-bottom: 12px !important;
+        margin-bottom: -12px !important;
+        flex: 0 0 auto;
+        display: block;
       }
 
       .nav.has-open-menu .nav-group.is-open .nav-menu {
-        position: static !important;
-        top: auto !important;
-        left: auto !important;
+        position: absolute !important;
+        top: calc(100% + 8px) !important;
+        left: 50% !important;
         right: auto !important;
-        transform: none !important;
+        transform: translateX(-50%) !important;
         width: min(320px, calc(100vw - 32px));
         max-width: 100%;
-        margin: 10px auto 0;
+        margin: 0;
+        z-index: 1105;
       }
     }
   `;

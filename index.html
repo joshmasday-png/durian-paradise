@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Durian Paradise</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
-  <link rel="preload" as="image" href="images/hero-bg-mobile.jpg" media="(max-width: 640px)" fetchpriority="high" />
-  <link rel="preload" as="image" href="images/hero-bg-fast.jpg" media="(min-width: 641px)" fetchpriority="high" />
+  <link rel="preload" as="image" href="images/hero-guarantee.jpeg" fetchpriority="high" />
+  <link rel="preload" as="image" href="images/hero-guarantee-strip.jpeg" fetchpriority="high" />
   <link rel="prefetch" href="group-1-durians.html" />
   <link rel="stylesheet" href="shopping.css?v=20260428-2" />
   <style>
@@ -224,70 +224,28 @@
       padding: 34px 0;
     }
 
-    .hero {
-      min-height: 100vh;
-      background:
-        linear-gradient(rgba(224, 205, 178, 0.56), rgba(237, 223, 201, 0.62)),
-        url("images/hero-bg-fast.jpg") center center / cover no-repeat;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
-    .hero-content {
-      width: min(820px, 92%);
-    }
-
-    .hero h1 {
-      font-size: clamp(32px, 4.8vw, 56px);
-      font-weight: 400;
-      line-height: 1.18;
-      margin-bottom: 22px;
-      color: #111111;
-      text-shadow: 0 2px 10px rgba(255, 248, 238, 0.1);
-    }
-
-    .split-section {
+    .hero-media {
+      padding: 26px 0 12px;
       background: rgba(245, 241, 235, 0.82);
     }
 
-    .split-grid {
+    .hero-media__stack {
       display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: 18px;
-      align-items: center;
+      gap: 16px;
     }
 
-    .split-image {
-      width: 260px;
-      height: 260px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .hero-media__card {
+      background: rgba(252, 249, 245, 0.92);
+      border: 1px solid rgba(170, 156, 138, 0.14);
+      border-radius: 22px;
       overflow: hidden;
-      margin: 0 auto;
+      box-shadow: 0 18px 36px rgba(104, 73, 36, 0.08);
     }
 
-    .split-image img {
-      width: 260px;
-      height: 260px;
-      object-fit: cover;
-      transform: rotate(90deg) scale(0.82);
-      transform-origin: center;
-    }
-
-    .split-text h2 {
-      font-size: clamp(28px, 3.2vw, 42px);
-      line-height: 1.15;
-      margin-bottom: 8px;
-      font-weight: 700;
-    }
-
-    .split-text p {
-      font-size: clamp(16px, 1.35vw, 20px);
-      color: #222;
-      margin-bottom: 0;
+    .hero-media__card img {
+      width: 100%;
+      height: auto;
+      display: block;
     }
 
     .certifications {
@@ -862,7 +820,6 @@
     }
 
     @media (max-width: 980px) {
-      .split-grid,
       .order-direct__content,
       .order-direct__features,
       .payment-grid,
@@ -874,14 +831,6 @@
       .product-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 24px;
-      }
-
-      .split-section .split-image {
-        order: -1;
-      }
-
-      .hero {
-        min-height: 85vh;
       }
 
       .section {
@@ -991,12 +940,6 @@
     }
 
     @media (max-width: 640px) {
-      .hero {
-        background:
-          linear-gradient(rgba(224, 205, 178, 0.56), rgba(237, 223, 201, 0.62)),
-          url("images/hero-bg-mobile.jpg") center center / cover no-repeat;
-      }
-
       .product-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 18px;
@@ -1006,11 +949,6 @@
         gap: 14px;
       }
 
-      .hero h1 {
-        font-size: clamp(28px, 8vw, 40px);
-      }
-
-      .split-text h2,
       .section h2,
       .order-copy h2 {
         font-size: clamp(26px, 7vw, 34px);
@@ -1070,6 +1008,14 @@
       .order-direct__image img {
         height: 240px;
       }
+
+      .hero-media {
+        padding-top: 20px;
+      }
+
+      .hero-media__stack {
+        gap: 12px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -1111,27 +1057,13 @@
     </div>
   </header>
 
-  <section class="hero">
-    <div class="hero-content">
-      <h1>
-        Are you guaranteed the breed of durians and the exquisite flavours you are paying for?
-        Or are you just paying for the brand?
-      </h1>
-      <a href="#order-now-cta" class="btn" data-scroll-target="#order-now-cta">Register to Book Your Durian Party</a>
-    </div>
-  </section>
-
-  <section class="section split-section">
-    <div class="container split-grid">
-      <div class="split-image">
-        <img src="images/durian-handpicked-fast-std.jpg" alt="Hand-picked durians" width="1200" height="900" loading="eager" fetchpriority="high" decoding="async" />
+  <section class="hero-media">
+    <div class="container hero-media__stack">
+      <div class="hero-media__card">
+        <img src="images/hero-guarantee.jpeg" alt="Are you paying for quality or just the brand? Durian Guarantee" width="1080" height="1350" loading="eager" fetchpriority="high" decoding="async" />
       </div>
-      <div class="split-text">
-        <h2>Guaranteed Hand-Picked Quality Durians</h2>
-        <p>
-          Every durian is carefully selected to ensure Freshness, Rich Flavor &amp; Quality Taste
-        </p>
-        <p><strong>* Not mass supply from plantations<br>* Full refund on any durian below average quality</strong></p>
+      <div class="hero-media__card">
+        <img src="images/hero-guarantee-strip.jpeg" alt="Guaranteed premium service, carefully selected for quality, freshness and exquisite flavour, not mass produced from plantations" width="1048" height="162" loading="eager" fetchpriority="high" decoding="async" />
       </div>
     </div>
   </section>
@@ -1493,7 +1425,7 @@
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
 
-  <script src="script.js?v=20260508-1" defer></script>
+  <script src="script.js?v=20260510-5" defer></script>
 
 </body>
 </html>
