@@ -32,6 +32,51 @@ let partyFormsBound = false;
 let reviewFormBound = false;
 let referralFormBound = false;
 
+function injectNavMenuStyles() {
+  if (document.getElementById("nav-menu-fix-styles")) {
+    return;
+  }
+
+  const style = document.createElement("style");
+  style.id = "nav-menu-fix-styles";
+  style.textContent = `
+    .nav-group.is-open .nav-menu {
+      display: grid !important;
+      gap: 8px;
+    }
+
+    @media (max-width: 820px) {
+      .nav.has-open-menu {
+        overflow: visible !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+      }
+
+      .nav.has-open-menu .nav-group {
+        position: static !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+        flex: 1 0 100%;
+        display: grid;
+        justify-items: center;
+      }
+
+      .nav.has-open-menu .nav-group.is-open .nav-menu {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        transform: none !important;
+        width: min(320px, calc(100vw - 32px));
+        max-width: 100%;
+        margin: 10px auto 0;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
 function clearLegacyStorageIfNeeded() {
   try {
     if (localStorage.getItem(STORAGE_MIGRATION_KEY) === "done") {
@@ -1669,8 +1714,12 @@ function bindNavMenus() {
     navGroups.forEach((group) => {
       group.classList.remove("is-open");
       const toggle = group.querySelector(".nav-toggle");
+      const nav = group.closest(".nav");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
+      }
+      if (nav) {
+        nav.classList.remove("has-open-menu");
       }
     });
   };
@@ -1689,11 +1738,15 @@ function bindNavMenus() {
       event.stopPropagation();
 
       const isOpen = group.classList.contains("is-open");
+      const nav = group.closest(".nav");
       closeAllNavMenus();
 
       if (!isOpen) {
         group.classList.add("is-open");
         toggle.setAttribute("aria-expanded", "true");
+        if (nav) {
+          nav.classList.add("has-open-menu");
+        }
       }
     });
   });
@@ -2917,6 +2970,7 @@ function bindReferralForm() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  injectNavMenuStyles();
   clearLegacyStorageIfNeeded();
   captureReferralCode();
   bindNavMenus();
