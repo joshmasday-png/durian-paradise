@@ -250,25 +250,10 @@
       display: block;
     }
 
-    .hero-photo {
-      padding: 6px 0 0;
-      background: rgba(245, 241, 235, 0.82);
-    }
-
-    .hero-photo__frame {
-      width: min(100%, 360px);
-      margin: 0 auto;
-      background: rgba(252, 249, 245, 0.92);
-      border: 1px solid rgba(170, 156, 138, 0.14);
-      border-radius: 22px;
-      overflow: hidden;
-      box-shadow: 0 16px 30px rgba(104, 73, 36, 0.08);
-    }
-
-    .hero-photo__frame img {
-      width: 100%;
-      height: auto;
-      display: block;
+    .hero-media__card--durians img {
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      object-position: center;
     }
 
     .certifications {
@@ -1040,9 +1025,6 @@
         gap: 12px;
       }
 
-      .hero-photo__frame {
-        width: min(100%, 300px);
-      }
     }
 
     @media (max-width: 480px) {
@@ -1092,12 +1074,7 @@
       <div class="hero-media__card">
         <img src="images/hero-guarantee-strip.jpeg" alt="Guaranteed premium service, carefully selected for quality, freshness and exquisite flavour, not mass produced from plantations" width="1048" height="162" loading="eager" fetchpriority="high" decoding="async" />
       </div>
-    </div>
-  </section>
-
-  <section class="hero-photo">
-    <div class="container">
-      <div class="hero-photo__frame">
+      <div class="hero-media__card hero-media__card--durians">
         <img src="images/durian-handpicked-fast-std.jpg" alt="Three premium durians" width="1200" height="900" loading="eager" decoding="async" />
       </div>
     </div>
@@ -1460,7 +1437,7 @@
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
 
-  <script src="script.js?v=20260510-5" defer></script>
+  <script src="script.js?v=20260510-6" defer></script>
 
 </body>
 </html>

@@ -31,6 +31,7 @@ let productCardsBound = false;
 let partyFormsBound = false;
 let reviewFormBound = false;
 let referralFormBound = false;
+const memoryStorage = new Map();
 
 function injectNavMenuStyles() {
   if (document.getElementById("nav-menu-fix-styles")) {
@@ -77,16 +78,83 @@ function injectNavMenuStyles() {
   document.head.appendChild(style);
 }
 
+function readStorageItem(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (_error) {
+    return memoryStorage.has(key) ? String(memoryStorage.get(key)) : null;
+  }
+}
+
+function writeStorageItem(key, value) {
+  const normalizedValue = String(value);
+
+  try {
+    localStorage.setItem(key, normalizedValue);
+  } catch (_error) {
+    memoryStorage.set(key, normalizedValue);
+  }
+}
+
+function removeStorageItem(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (_error) {
+    memoryStorage.delete(key);
+    return;
+  }
+
+  memoryStorage.delete(key);
+}
+
+function bindTap(element, handler, options = {}) {
+  if (!element || typeof handler !== "function") {
+    return;
+  }
+
+  let lastTouchAt = 0;
+  const shouldPreventDefault = options.preventDefault !== false;
+  const shouldStopPropagation = Boolean(options.stopPropagation);
+
+  const invoke = (event) => {
+    if (shouldPreventDefault && event && typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
+
+    if (shouldStopPropagation && event && typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+
+    handler(event);
+  };
+
+  element.addEventListener("touchend", (event) => {
+    lastTouchAt = Date.now();
+    invoke(event);
+  }, { passive: false });
+
+  element.addEventListener("click", (event) => {
+    if (Date.now() - lastTouchAt < 700) {
+      if (typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    invoke(event);
+  });
+}
+
 function clearLegacyStorageIfNeeded() {
   try {
-    if (localStorage.getItem(STORAGE_MIGRATION_KEY) === "done") {
+    if (readStorageItem(STORAGE_MIGRATION_KEY) === "done") {
       return;
     }
 
     LEGACY_STORAGE_KEYS.forEach((key) => {
-      localStorage.removeItem(key);
+      removeStorageItem(key);
     });
-    localStorage.setItem(STORAGE_MIGRATION_KEY, "done");
+    writeStorageItem(STORAGE_MIGRATION_KEY, "done");
   } catch (_error) {
     // Ignore storage cleanup failures and let the app continue.
   }
@@ -245,7 +313,7 @@ function readReviewImage(file) {
 
 function loadCart() {
   try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    const raw = readStorageItem(CART_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch (_error) {
@@ -254,12 +322,12 @@ function loadCart() {
 }
 
 function saveCart(cart) {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  writeStorageItem(CART_STORAGE_KEY, JSON.stringify(cart));
 }
 
 function loadPendingPayment() {
   try {
-    const raw = localStorage.getItem(PENDING_PAYMENT_STORAGE_KEY);
+    const raw = readStorageItem(PENDING_PAYMENT_STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch (_error) {
     return null;
@@ -267,11 +335,11 @@ function loadPendingPayment() {
 }
 
 function savePendingPayment(payment) {
-  localStorage.setItem(PENDING_PAYMENT_STORAGE_KEY, JSON.stringify(payment));
+  writeStorageItem(PENDING_PAYMENT_STORAGE_KEY, JSON.stringify(payment));
 }
 
 function clearPendingPayment() {
-  localStorage.removeItem(PENDING_PAYMENT_STORAGE_KEY);
+  removeStorageItem(PENDING_PAYMENT_STORAGE_KEY);
 }
 
 function createBrowserId() {
@@ -284,13 +352,13 @@ function createBrowserId() {
 
 function getVisitorId() {
   try {
-    const existing = String(localStorage.getItem(VISITOR_STORAGE_KEY) || "").trim();
+    const existing = String(readStorageItem(VISITOR_STORAGE_KEY) || "").trim();
     if (existing) {
       return existing;
     }
 
     const nextId = createBrowserId();
-    localStorage.setItem(VISITOR_STORAGE_KEY, nextId);
+    writeStorageItem(VISITOR_STORAGE_KEY, nextId);
     return nextId;
   } catch (_error) {
     return createBrowserId();
@@ -299,7 +367,7 @@ function getVisitorId() {
 
 function loadOwnedReferrals() {
   try {
-    const raw = localStorage.getItem(OWNED_REFERRALS_STORAGE_KEY);
+    const raw = readStorageItem(OWNED_REFERRALS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch (_error) {
@@ -308,7 +376,7 @@ function loadOwnedReferrals() {
 }
 
 function saveOwnedReferrals(referrals) {
-  localStorage.setItem(OWNED_REFERRALS_STORAGE_KEY, JSON.stringify(referrals));
+  writeStorageItem(OWNED_REFERRALS_STORAGE_KEY, JSON.stringify(referrals));
 }
 
 function storeOwnedReferral(referral) {
@@ -489,17 +557,17 @@ function refreshOwnedReferralRewardsIfNeeded(force = false) {
 
 function getStoredReferralCode() {
   try {
-    const raw = localStorage.getItem(REFERRAL_STORAGE_KEY);
+    const raw = readStorageItem(REFERRAL_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
 
     if (!parsed || !parsed.code || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
-      localStorage.removeItem(REFERRAL_STORAGE_KEY);
+      removeStorageItem(REFERRAL_STORAGE_KEY);
       return "";
     }
 
     return String(parsed.code);
   } catch (_error) {
-    localStorage.removeItem(REFERRAL_STORAGE_KEY);
+    removeStorageItem(REFERRAL_STORAGE_KEY);
     return "";
   }
 }
@@ -512,14 +580,14 @@ function captureReferralCode() {
     return;
   }
 
-  localStorage.setItem(REFERRAL_STORAGE_KEY, JSON.stringify({
+  writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
     code,
     expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
   }));
 }
 
 function clearStoredReferralCode() {
-  localStorage.removeItem(REFERRAL_STORAGE_KEY);
+  removeStorageItem(REFERRAL_STORAGE_KEY);
 }
 
 function getPageCategory() {
@@ -1733,10 +1801,7 @@ function bindNavMenus() {
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-haspopup", "true");
 
-    toggle.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
+    bindTap(toggle, () => {
       const isOpen = group.classList.contains("is-open");
       const nav = group.closest(".nav");
       closeAllNavMenus();
@@ -1748,7 +1813,7 @@ function bindNavMenus() {
           nav.classList.add("has-open-menu");
         }
       }
-    });
+    }, { stopPropagation: true });
   });
 
   document.addEventListener("click", (event) => {
@@ -2324,7 +2389,7 @@ function bindCartUI() {
 
   if (trigger && trigger.dataset.cartTriggerBound !== "true") {
     trigger.dataset.cartTriggerBound = "true";
-    trigger.addEventListener("click", openCartDrawer);
+    bindTap(trigger, openCartDrawer);
   }
 
   if (overlay) {
@@ -2579,6 +2644,13 @@ function bindProductCards() {
       button.disabled = selectedRows.length === 0;
     };
 
+    if (summary && summary.dataset.summaryTapBound !== "true") {
+      summary.dataset.summaryTapBound = "true";
+      bindTap(summary, () => {
+        details.open = !details.open;
+      });
+    }
+
     rows.forEach((row) => {
       row.dataset.quantity = row.dataset.quantity || "0";
       const qtyEl = row.querySelector("[data-variant-quantity]");
@@ -2595,18 +2667,25 @@ function bindProductCards() {
       };
 
       if (decrease) {
-        decrease.addEventListener("click", (event) => {
-          event.preventDefault();
+        bindTap(decrease, () => {
           updateQty(Number(row.dataset.quantity || 0) - 1);
-        });
+        }, { stopPropagation: true });
       }
 
       if (increase) {
-        increase.addEventListener("click", (event) => {
-          event.preventDefault();
+        bindTap(increase, () => {
           updateQty(Number(row.dataset.quantity || 0) + 1);
-        });
+        }, { stopPropagation: true });
       }
+
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("button")) {
+          return;
+        }
+
+        details.open = true;
+        updateQty(Number(row.dataset.quantity || 0) + 1);
+      });
 
       updateQty(Number(row.dataset.quantity || 0));
     });
@@ -2620,7 +2699,7 @@ function bindProductCards() {
     syncCardState();
     button.textContent = "Add to Cart";
 
-    button.addEventListener("click", () => {
+    bindTap(button, () => {
       const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
 
       if (!selectedRows.length) {
@@ -2678,7 +2757,7 @@ function bindPartyForms() {
     select.addEventListener("change", syncPartyButton);
     button.textContent = "Add to Cart";
 
-    button.addEventListener("click", () => {
+    bindTap(button, () => {
       const option = select.options[select.selectedIndex];
       if (!option || !option.value) {
         return;
@@ -2978,11 +3057,13 @@ document.addEventListener("DOMContentLoaded", () => {
   bindReferralForm();
   syncCartTriggerCount();
   revealPageWhenCriticalImagesReady();
+  bindProductCards();
+  bindPartyForms();
 
   const cartTrigger = document.querySelector("[data-cart-trigger]");
   if (cartTrigger && cartTrigger.dataset.cartTriggerBound !== "true") {
     cartTrigger.dataset.cartTriggerBound = "true";
-    cartTrigger.addEventListener("click", openCartDrawer);
+    bindTap(cartTrigger, openCartDrawer);
   }
 
   runWhenElementNearViewport("#order-now", () => {
