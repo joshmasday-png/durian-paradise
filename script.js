@@ -116,8 +116,8 @@ function bindTap(element, handler, options = {}) {
     return;
   }
 
-  let lastTouchAt = 0;
-  const shouldPreventDefault = options.preventDefault !== false;
+  let lastPointerAt = 0;
+  const shouldPreventDefault = Boolean(options.preventDefault);
   const shouldStopPropagation = Boolean(options.stopPropagation);
 
   const invoke = (event) => {
@@ -132,14 +132,25 @@ function bindTap(element, handler, options = {}) {
     handler(event);
   };
 
-  element.addEventListener("touchend", (event) => {
-    lastTouchAt = Date.now();
-    invoke(event);
-  }, { passive: false });
+  if (window.PointerEvent) {
+    element.addEventListener("pointerup", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+
+      lastPointerAt = Date.now();
+      invoke(event);
+    });
+  } else {
+    element.addEventListener("touchend", (event) => {
+      lastPointerAt = Date.now();
+      invoke(event);
+    }, { passive: !shouldPreventDefault });
+  }
 
   element.addEventListener("click", (event) => {
-    if (Date.now() - lastTouchAt < 700) {
-      if (typeof event.preventDefault === "function") {
+    if (Date.now() - lastPointerAt < 700) {
+      if (shouldPreventDefault && typeof event.preventDefault === "function") {
         event.preventDefault();
       }
       return;
@@ -1732,16 +1743,15 @@ function bindPrimaryCtas() {
     }
 
     trigger.dataset.scrollBound = "true";
-    trigger.addEventListener("click", (event) => {
+    bindTap(trigger, () => {
       const targetSelector = trigger.getAttribute("data-scroll-target");
 
       if (!targetSelector) {
         return;
       }
 
-      event.preventDefault();
       scrollToSection(targetSelector);
-    });
+    }, { preventDefault: true });
   });
 }
 
@@ -1792,7 +1802,7 @@ function bindNavMenus() {
           nav.classList.add("has-open-menu");
         }
       }
-    }, { stopPropagation: true });
+    }, { preventDefault: true, stopPropagation: true });
   });
 
   document.addEventListener("click", (event) => {
@@ -2627,7 +2637,7 @@ function bindProductCards() {
       summary.dataset.summaryTapBound = "true";
       bindTap(summary, () => {
         details.open = !details.open;
-      });
+      }, { preventDefault: true });
     }
 
     rows.forEach((row) => {
