@@ -3339,3 +3339,737 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("popstate", (event) => {
   syncCartDrawerWithHistoryState(event.state);
 });
+
+const cleanOrderFlowState = {
+  initialized: false,
+  isCartOpen: false,
+  isCreatingOrder: false,
+  isGeneratingReferral: false
+};
+
+function getCleanOrderFlowElements() {
+  return {
+    root: document.querySelector("[data-order-flow-root]"),
+    cartTrigger: document.querySelector("[data-order-cart-trigger]"),
+    cartCount: document.querySelector("[data-order-cart-count]"),
+    cartOverlay: document.querySelector("[data-order-cart-overlay]"),
+    cartDrawer: document.querySelector("[data-order-cart-drawer]"),
+    cartBody: document.querySelector("[data-order-cart-body]"),
+    cartBreakdown: document.querySelector("[data-order-cart-breakdown]"),
+    cartTotal: document.querySelector("[data-order-cart-total]"),
+    cartItemsLabel: document.querySelector("[data-order-cart-items-label]"),
+    cartMessage: document.querySelector("[data-order-cart-message]"),
+    checkoutName: document.querySelector("[data-order-checkout-name]"),
+    checkoutPhone: document.querySelector("[data-order-checkout-phone]"),
+    checkoutEmail: document.querySelector("[data-order-checkout-email]"),
+    checkoutAddress: document.querySelector("[data-order-checkout-address]"),
+    checkoutNotes: document.querySelector("[data-order-checkout-notes]"),
+    checkoutNote: document.querySelector("[data-order-checkout-note]"),
+    checkoutButton: document.querySelector('[data-order-action="checkout"]'),
+    paymentRequest: document.querySelector("[data-order-payment-request]"),
+    paymentMethodInputs: Array.from(document.querySelectorAll("[data-order-checkout-payment-method]")),
+    referralForm: document.querySelector("[data-order-referral-form]"),
+    referralMessage: document.querySelector("[data-order-referral-message]"),
+    referralOutput: document.querySelector("[data-order-referral-output]"),
+    referralLink: document.querySelector("[data-order-referral-link]"),
+    referralCopy: document.querySelector("[data-order-copy-referral]"),
+    referralRewards: document.querySelector("[data-order-referral-rewards]")
+  };
+}
+
+function setCleanMessage(element, text, status = "") {
+  if (!element) {
+    return;
+  }
+
+  element.textContent = text;
+  element.className = "referral-message";
+
+  if (status === "success") {
+    element.classList.add("is-success");
+  } else if (status === "error") {
+    element.classList.add("is-error");
+  }
+}
+
+function getCleanSelectedPaymentMethodKey() {
+  const selectedInput = document.querySelector("[data-order-checkout-payment-method]:checked");
+  return normalizePaymentMethodKey(selectedInput ? selectedInput.value : DEFAULT_PAYMENT_METHOD_KEY);
+}
+
+function syncCleanCheckoutUI() {
+  const { checkoutNote, checkoutButton } = getCleanOrderFlowElements();
+  const config = getPaymentMethodConfig(getCleanSelectedPaymentMethodKey());
+
+  if (checkoutNote) {
+    checkoutNote.textContent = config.checkoutNote;
+  }
+
+  if (checkoutButton && !cleanOrderFlowState.isCreatingOrder) {
+    checkoutButton.textContent = config.checkoutButtonLabel;
+  }
+}
+
+function syncCleanCartTriggerCount() {
+  const { cartCount } = getCleanOrderFlowElements();
+
+  if (cartCount) {
+    cartCount.textContent = String(getCartCount(loadCart()));
+  }
+}
+
+function openCleanCartDrawer() {
+  const { cartDrawer, cartOverlay, cartTrigger } = getCleanOrderFlowElements();
+
+  if (!cartDrawer || !cartOverlay) {
+    return;
+  }
+
+  cleanOrderFlowState.isCartOpen = true;
+  cartDrawer.classList.add("is-open");
+  cartDrawer.setAttribute("aria-hidden", "false");
+  cartOverlay.hidden = false;
+  cartOverlay.classList.add("is-open");
+  document.body.classList.add("clean-cart-open");
+
+  if (cartTrigger) {
+    cartTrigger.setAttribute("aria-expanded", "true");
+  }
+
+  renderCleanOrderCart();
+  refreshOwnedReferralRewardsIfNeeded(true).then(() => {
+    renderCleanOrderReferralRewards();
+    renderCleanOrderCart();
+  });
+}
+
+function closeCleanCartDrawer() {
+  const { cartDrawer, cartOverlay, cartTrigger, cartMessage } = getCleanOrderFlowElements();
+
+  cleanOrderFlowState.isCartOpen = false;
+
+  if (cartDrawer) {
+    cartDrawer.classList.remove("is-open");
+    cartDrawer.setAttribute("aria-hidden", "true");
+  }
+
+  if (cartOverlay) {
+    cartOverlay.classList.remove("is-open");
+    cartOverlay.hidden = true;
+  }
+
+  if (cartTrigger) {
+    cartTrigger.setAttribute("aria-expanded", "false");
+  }
+
+  if (cartMessage) {
+    setCleanMessage(cartMessage, "");
+  }
+
+  document.body.classList.remove("clean-cart-open");
+}
+
+function resetCleanDeliveryCard(card) {
+  Array.from(card.querySelectorAll("[data-order-delivery-row]")).forEach((row) => {
+    row.dataset.quantity = "0";
+    const quantityEl = row.querySelector("[data-order-quantity]");
+    if (quantityEl) {
+      quantityEl.textContent = "0";
+    }
+  });
+}
+
+function renderCleanOrderReferralRewards() {
+  const { referralRewards } = getCleanOrderFlowElements();
+
+  if (!referralRewards) {
+    return;
+  }
+
+  const rewards = getDisplayableReferralRewards();
+
+  if (!rewards.length) {
+    referralRewards.hidden = true;
+    referralRewards.innerHTML = "";
+    return;
+  }
+
+  referralRewards.hidden = false;
+  referralRewards.innerHTML = `
+    <strong>Active Referral Rewards</strong>
+    <ul class="feature-list">
+      ${rewards.map((reward) => `<li>${escapeHtml(getReferralRewardMessage(reward))}</li>`).join("")}
+    </ul>
+  `;
+}
+
+function renderCleanOrderCart() {
+  const {
+    cartBody,
+    cartBreakdown,
+    cartTotal,
+    cartItemsLabel,
+    paymentRequest,
+    checkoutButton
+  } = getCleanOrderFlowElements();
+  const cart = loadCart();
+  const rewards = getDisplayableReferralRewards();
+  const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), rewards);
+  const pendingPayment = loadPendingPayment();
+
+  syncCleanCartTriggerCount();
+  syncCleanCheckoutUI();
+
+  if (!cartBody || !cartBreakdown || !cartTotal || !cartItemsLabel || !checkoutButton) {
+    return;
+  }
+
+  cartTotal.textContent = formatCheckoutMoney(pricing.total);
+  cartItemsLabel.textContent = `${getCartCount(cart)} item${getCartCount(cart) === 1 ? "" : "s"}`;
+  cartBreakdown.innerHTML = renderCartBreakdown(pricing);
+  checkoutButton.disabled = cleanOrderFlowState.isCreatingOrder || cart.length === 0 || !pricing.minimumDeliveryBoxesMet;
+
+  if (!cart.length) {
+    cartBody.innerHTML = `<div class="cart-empty">Your cart is empty. Add a durian package from the homepage and it will appear here immediately.</div>`;
+  } else {
+    cartBody.innerHTML = cart.map((item) => `
+      <article class="clean-cart-line" data-order-cart-item-key="${escapeHtml(getItemKey(item))}">
+        <div class="clean-cart-line__top">
+          <div>
+            <div class="clean-cart-line__type">${escapeHtml(item.orderType)}</div>
+            <div class="clean-cart-line__name">${escapeHtml(item.productName)}</div>
+            <div class="clean-cart-line__variant">${escapeHtml(item.variantLabel)}</div>
+          </div>
+          <div class="clean-cart-line__subtotal">${escapeHtml(formatCurrency(item.unitPrice * item.quantity))}</div>
+        </div>
+        <div class="clean-cart-line__bottom">
+          <div class="order-option-controls">
+            <button class="order-qty-button" type="button" data-order-action="cart-decrease">-</button>
+            <span>${item.quantity}</span>
+            <button class="order-qty-button" type="button" data-order-action="cart-increase">+</button>
+          </div>
+          <button class="clean-cart-line__remove" type="button" data-order-action="cart-remove">Remove</button>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  if (paymentRequest) {
+    paymentRequest.innerHTML = renderPaymentRequestCard(pendingPayment);
+  }
+}
+
+async function copyCleanOrderReferralLink() {
+  const { referralLink } = getCleanOrderFlowElements();
+  const link = referralLink ? referralLink.textContent.trim() : "";
+
+  if (!link) {
+    return false;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(link);
+    return true;
+  }
+
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(referralLink);
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    return document.execCommand("copy");
+  } finally {
+    selection.removeAllRanges();
+  }
+}
+
+async function handleCleanReferralSubmit(event) {
+  if (event && typeof event.preventDefault === "function") {
+    event.preventDefault();
+  }
+
+  if (cleanOrderFlowState.isGeneratingReferral) {
+    return;
+  }
+
+  const { referralMessage, referralOutput, referralLink } = getCleanOrderFlowElements();
+  cleanOrderFlowState.isGeneratingReferral = true;
+  setCleanMessage(referralMessage, "Creating referral link...");
+
+  try {
+    const ownedReferral = getLatestOwnedReferral();
+    const response = await fetch(REFERRALS_API_PATH, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        ownerToken: ownedReferral ? ownedReferral.ownerToken : ""
+      })
+    });
+    const result = await response.json();
+
+    if (!response.ok || !result.referral || !result.referral.link) {
+      throw new Error(result.error || "Unable to create referral link.");
+    }
+
+    storeOwnedReferral(result.referral);
+    if (referralLink) {
+      referralLink.textContent = result.referral.link;
+    }
+    if (referralOutput) {
+      referralOutput.hidden = false;
+      referralOutput.classList.add("is-visible");
+    }
+    setCleanMessage(referralMessage, "Referral link ready below.", "success");
+    await refreshOwnedReferralRewardsIfNeeded(true);
+    renderCleanOrderReferralRewards();
+    renderCleanOrderCart();
+  } catch (error) {
+    setCleanMessage(referralMessage, error && error.message ? error.message : "Unable to create referral link.", "error");
+  } finally {
+    cleanOrderFlowState.isGeneratingReferral = false;
+  }
+}
+
+function updateCleanDeliveryQuantity(row, nextQuantity) {
+  const quantity = Math.max(0, Number(nextQuantity || 0));
+  row.dataset.quantity = String(quantity);
+  const quantityEl = row.querySelector("[data-order-quantity]");
+  if (quantityEl) {
+    quantityEl.textContent = String(quantity);
+  }
+}
+
+function getCleanDeliverySelections(card) {
+  return Array.from(card.querySelectorAll("[data-order-delivery-row]"))
+    .map((row) => ({
+      row,
+      quantity: Number(row.dataset.quantity || 0)
+    }))
+    .filter((entry) => entry.quantity > 0);
+}
+
+function getCleanRewardClaims() {
+  return getDisplayableReferralRewards().map((reward) => ({
+    referralCode: reward.referralCode,
+    rewardId: reward.id,
+    ownerToken: reward.ownerToken
+  })).filter((claim) => claim.referralCode && claim.rewardId && claim.ownerToken);
+}
+
+async function handleCleanCheckout() {
+  if (cleanOrderFlowState.isCreatingOrder) {
+    return;
+  }
+
+  const {
+    checkoutName,
+    checkoutPhone,
+    checkoutEmail,
+    checkoutAddress,
+    checkoutNotes,
+    checkoutButton,
+    cartMessage
+  } = getCleanOrderFlowElements();
+  const cart = loadCart();
+  const phone = checkoutPhone ? checkoutPhone.value.trim() : "";
+  const email = checkoutEmail ? checkoutEmail.value.trim() : "";
+  const address = checkoutAddress ? checkoutAddress.value.trim() : "";
+  const selectedPaymentMethod = getPaymentMethodConfig(getCleanSelectedPaymentMethodKey());
+
+  if (!cart.length) {
+    setCleanMessage(cartMessage, "Your cart is empty. Add at least one item first.", "error");
+    return;
+  }
+
+  if (!phone) {
+    setCleanMessage(cartMessage, "Please enter your contact number before payment.", "error");
+    if (checkoutPhone) {
+      checkoutPhone.focus();
+    }
+    return;
+  }
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setCleanMessage(cartMessage, "Please enter a valid email address for your order confirmation.", "error");
+    if (checkoutEmail) {
+      checkoutEmail.focus();
+    }
+    return;
+  }
+
+  if (!address) {
+    setCleanMessage(cartMessage, "Please enter your delivery address before payment.", "error");
+    if (checkoutAddress) {
+      checkoutAddress.focus();
+    }
+    return;
+  }
+
+  cleanOrderFlowState.isCreatingOrder = true;
+  checkoutButton.disabled = true;
+  checkoutButton.textContent = `Creating ${selectedPaymentMethod.title} Order...`;
+  setCleanMessage(cartMessage, "");
+
+  try {
+    const response = await fetch(PAYMENT_ORDERS_API_PATH, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        items: cart.map((item) => ({
+          productId: item.productId,
+          variantValue: item.variantValue,
+          quantity: item.quantity
+        })),
+        customer: {
+          name: checkoutName ? checkoutName.value.trim() : "",
+          phone,
+          email,
+          address,
+          deliveryNotes: checkoutNotes ? checkoutNotes.value.trim() : ""
+        },
+        paymentMethodKey: selectedPaymentMethod.key,
+        referralCode: getStoredReferralCode(),
+        referralRewardClaims: getCleanRewardClaims(),
+        visitorId: getVisitorId(),
+        path: window.location.pathname,
+        pageCategory: getPageCategory()
+      })
+    });
+    const payload = await response.json();
+
+    if (!response.ok || !payload.order || !payload.paymentRequest) {
+      throw new Error(payload.error || "Unable to create payment order.");
+    }
+
+    saveCart([]);
+    savePendingPayment({
+      ...payload.paymentRequest,
+      order: payload.order
+    });
+    clearStoredReferralCode();
+    markOwnedReferralRewardsAsClaimed(getCleanRewardClaims(), payload.order.id);
+    trackAnalyticsEvent("checkout_started", {
+      metadata: {
+        itemCount: getCartCount(cart)
+      }
+    });
+    await refreshOwnedReferralRewardsIfNeeded(true);
+    renderCleanOrderReferralRewards();
+    renderCleanOrderCart();
+    const { paymentRequest } = getCleanOrderFlowElements();
+    if (paymentRequest) {
+      paymentRequest.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  } catch (error) {
+    setCleanMessage(cartMessage, error && error.message ? error.message : "Unable to create payment order.", "error");
+  } finally {
+    cleanOrderFlowState.isCreatingOrder = false;
+    renderCleanOrderCart();
+  }
+}
+
+async function handleCleanPaymentRequestAction(target) {
+  const { cartMessage } = getCleanOrderFlowElements();
+
+  if (target.matches("[data-clear-payment-request]")) {
+    clearPendingPayment();
+    renderCleanOrderCart();
+    return;
+  }
+
+  if (target.matches("[data-copy-payment-reference]")) {
+    const pendingPayment = loadPendingPayment();
+    if (!pendingPayment || !navigator.clipboard) {
+      return;
+    }
+
+    const paymentMethod = getPaymentMethodConfig(
+      pendingPayment.paymentMethodKey || pendingPayment.paymentMethod || DEFAULT_PAYMENT_METHOD_KEY
+    );
+    const order = pendingPayment.order || {};
+    const customer = order.customer || {};
+    const paymentLines = paymentMethod.supportsQr
+      ? [
+          `Payment method: ${paymentMethod.title}`,
+          `Amount: ${pendingPayment.amountDisplay || ""}`,
+          `Ticket / Order No: ${pendingPayment.reference || ""}`
+        ]
+      : [
+          `PayNow UEN: ${pendingPayment.paynowToUen || ""}`,
+          `Amount: ${pendingPayment.amountDisplay || ""}`,
+          `Ticket / Order No: ${pendingPayment.reference || ""}`
+        ];
+
+    await navigator.clipboard.writeText(
+      `${paymentLines.join("\n")}\nEmail: ${customer.email || ""}\nContact: ${customer.phone || ""}\nAddress: ${customer.address || ""}`
+    );
+    setCleanMessage(cartMessage, "Payment details copied.", "success");
+    return;
+  }
+
+  if (target.matches("[data-mark-payment-paid]")) {
+    const pendingPayment = loadPendingPayment();
+    const orderId = pendingPayment && (pendingPayment.reference || (pendingPayment.order && pendingPayment.order.id));
+
+    if (!pendingPayment || !orderId) {
+      return;
+    }
+
+    target.disabled = true;
+    target.textContent = "Sending...";
+
+    try {
+      const response = await fetch(`${PAYMENT_ORDERS_API_PATH}/${encodeURIComponent(orderId)}/paid`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.order) {
+        throw new Error(payload.error || "Unable to mark payment as paid.");
+      }
+
+      savePendingPayment({
+        ...pendingPayment,
+        order: payload.order,
+        paymentMarkedPaid: true
+      });
+      await refreshOwnedReferralRewardsIfNeeded(true);
+      renderCleanOrderReferralRewards();
+      renderCleanOrderCart();
+      setCleanMessage(cartMessage, "Payment acknowledgement sent. We will verify your transfer shortly.", "success");
+    } catch (error) {
+      setCleanMessage(cartMessage, error && error.message ? error.message : "Unable to mark payment as paid.", "error");
+      target.disabled = false;
+      target.textContent = "I Have Paid";
+    }
+  }
+}
+
+function handleCleanOrderClick(event) {
+  const target = event.target.closest("[data-order-action], [data-order-cart-trigger], [data-order-copy-referral], [data-copy-payment-reference], [data-clear-payment-request], [data-mark-payment-paid]");
+
+  if (!target) {
+    return;
+  }
+
+  if (target.matches("[data-order-cart-trigger]")) {
+    event.preventDefault();
+    openCleanCartDrawer();
+    return;
+  }
+
+  if (target.matches("[data-order-copy-referral]")) {
+    event.preventDefault();
+    copyCleanOrderReferralLink()
+      .then((copied) => {
+        const { referralMessage } = getCleanOrderFlowElements();
+        if (!copied) {
+          throw new Error("Unable to copy referral link.");
+        }
+        setCleanMessage(referralMessage, "Referral link copied.", "success");
+      })
+      .catch(() => {
+        const { referralMessage } = getCleanOrderFlowElements();
+        setCleanMessage(referralMessage, "Unable to copy automatically. You can still select the link and share it manually.", "error");
+      });
+    return;
+  }
+
+  if (target.matches("[data-copy-payment-reference], [data-clear-payment-request], [data-mark-payment-paid]")) {
+    event.preventDefault();
+    handleCleanPaymentRequestAction(target);
+    return;
+  }
+
+  const action = target.getAttribute("data-order-action");
+  if (!action) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (action === "close-cart") {
+    closeCleanCartDrawer();
+    return;
+  }
+
+  if (action === "checkout") {
+    handleCleanCheckout();
+    return;
+  }
+
+  if (action === "cart-increase" || action === "cart-decrease" || action === "cart-remove") {
+    const item = target.closest("[data-order-cart-item-key]");
+    if (!item) {
+      return;
+    }
+    const itemKey = item.getAttribute("data-order-cart-item-key");
+    if (action === "cart-increase") {
+      updateCartQuantity(itemKey, 1);
+    } else if (action === "cart-decrease") {
+      updateCartQuantity(itemKey, -1);
+    } else {
+      removeCartItem(itemKey);
+    }
+    renderCleanOrderCart();
+    return;
+  }
+
+  if (action.startsWith("delivery-")) {
+    const row = target.closest("[data-order-delivery-row]");
+    if (!row) {
+      return;
+    }
+    const quantity = Number(row.dataset.quantity || 0);
+    updateCleanDeliveryQuantity(row, action === "delivery-increase" ? quantity + 1 : quantity - 1);
+    return;
+  }
+
+  if (action === "add-delivery") {
+    const card = target.closest("[data-order-delivery-card]");
+    const message = card ? card.querySelector("[data-order-card-message]") : null;
+    if (!card) {
+      return;
+    }
+
+    const selectedRows = getCleanDeliverySelections(card);
+    if (!selectedRows.length) {
+      setCleanMessage(message, "Choose at least one box size before adding to cart.", "error");
+      return;
+    }
+
+    selectedRows.forEach(({ row, quantity }) => {
+      const item = {
+        productId: card.dataset.productId || "",
+        productName: card.dataset.productName || "Durian Package",
+        orderType: card.dataset.orderType || "Online Delivery",
+        variantValue: row.dataset.variantValue || "",
+        variantLabel: row.dataset.variantLabel || "",
+        unitPrice: Number(row.dataset.unitPrice || 0),
+        quantity
+      };
+      addToCart(item);
+      trackAnalyticsEvent("add_to_cart", {
+        metadata: {
+          productId: item.productId,
+          variantValue: item.variantValue,
+          itemCount: item.quantity
+        }
+      });
+    });
+
+    resetCleanDeliveryCard(card);
+    setCleanMessage(message, "Added to cart.", "success");
+    renderCleanOrderCart();
+    return;
+  }
+
+  if (action === "add-party") {
+    const card = target.closest("[data-order-party-card]");
+    const select = card ? card.querySelector("[data-order-party-select]") : null;
+    const message = card ? card.querySelector("[data-order-card-message]") : null;
+    if (!card || !select) {
+      return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    if (!option || !option.value) {
+      setCleanMessage(message, "Choose a party package before adding to cart.", "error");
+      select.focus();
+      return;
+    }
+
+    const item = {
+      productId: card.dataset.productIdBase || "",
+      productName: card.dataset.productName || "Durian Party",
+      orderType: card.dataset.orderType || "Durian Party",
+      variantValue: option.value,
+      variantLabel: option.dataset.label || option.textContent,
+      unitPrice: Number(option.dataset.price || 0),
+      quantity: 1
+    };
+    addToCart(item);
+    trackAnalyticsEvent("add_to_cart", {
+      metadata: {
+        productId: item.productId,
+        variantValue: item.variantValue,
+        itemCount: item.quantity
+      }
+    });
+    select.selectedIndex = 0;
+    setCleanMessage(message, "Added to cart.", "success");
+    renderCleanOrderCart();
+  }
+}
+
+function handleCleanOrderChange(event) {
+  if (event.target.matches("[data-order-checkout-payment-method]")) {
+    syncCleanCheckoutUI();
+  }
+}
+
+function bindCleanOrderFlowEvents() {
+  document.addEventListener("click", handleCleanOrderClick);
+  document.addEventListener("change", handleCleanOrderChange);
+  document.addEventListener("submit", (event) => {
+    if (event.target.matches("[data-order-referral-form]")) {
+      handleCleanReferralSubmit(event);
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && cleanOrderFlowState.isCartOpen) {
+      closeCleanCartDrawer();
+    }
+  });
+}
+
+function initCleanOrderFlow() {
+  const { root, referralLink, referralOutput } = getCleanOrderFlowElements();
+
+  if (!root) {
+    return;
+  }
+
+  injectCartStyles();
+
+  if (!cleanOrderFlowState.initialized) {
+    cleanOrderFlowState.initialized = true;
+    bindCleanOrderFlowEvents();
+  }
+
+  const existingReferral = getLatestOwnedReferral(false);
+  if (existingReferral && existingReferral.link && referralLink && referralOutput) {
+    referralLink.textContent = existingReferral.link;
+    referralOutput.hidden = false;
+    referralOutput.classList.add("is-visible");
+  }
+
+  syncCleanCartTriggerCount();
+  syncCleanCheckoutUI();
+  renderCleanOrderReferralRewards();
+  renderCleanOrderCart();
+  refreshOwnedReferralRewardsIfNeeded(true).then(() => {
+    renderCleanOrderReferralRewards();
+    renderCleanOrderCart();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initCleanOrderFlow();
+});
+
+window.addEventListener("pageshow", () => {
+  initCleanOrderFlow();
+  renderCleanOrderCart();
+  renderCleanOrderReferralRewards();
+});
