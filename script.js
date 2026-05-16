@@ -731,6 +731,35 @@ function syncCartTriggerCount() {
   });
 }
 
+function getCartDrawerElements() {
+  return {
+    drawer: document.getElementById("cart-drawer"),
+    overlay: document.getElementById("cart-overlay"),
+    triggers: Array.from(document.querySelectorAll("[data-cart-trigger]"))
+  };
+}
+
+function syncCartDrawerState(isOpen) {
+  const { drawer, overlay, triggers } = getCartDrawerElements();
+
+  if (!drawer || !overlay) {
+    return false;
+  }
+
+  drawer.classList.toggle("is-open", isOpen);
+  overlay.classList.toggle("is-open", isOpen);
+  drawer.setAttribute("aria-hidden", isOpen ? "false" : "true");
+  triggers.forEach((trigger) => {
+    trigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+
+  return true;
+}
+
+function resetCartDrawerState() {
+  syncCartDrawerState(false);
+}
+
 function getCartTotal(cart) {
   return cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
 }
@@ -2039,34 +2068,14 @@ function syncCheckoutPaymentMethodUI() {
 function openCartDrawer() {
   prepareCartUI();
 
-  const drawer = document.getElementById("cart-drawer");
-  const overlay = document.getElementById("cart-overlay");
-  const trigger = document.querySelector("[data-cart-trigger]");
-
-  if (!drawer || !overlay || !trigger) {
+  if (!syncCartDrawerState(true)) {
     return;
   }
-
-  drawer.classList.add("is-open");
-  overlay.classList.add("is-open");
-  drawer.setAttribute("aria-hidden", "false");
-  trigger.setAttribute("aria-expanded", "true");
   refreshOwnedReferralRewardsIfNeeded();
 }
 
 function closeCartDrawer() {
-  const drawer = document.getElementById("cart-drawer");
-  const overlay = document.getElementById("cart-overlay");
-  const trigger = document.querySelector("[data-cart-trigger]");
-
-  if (!drawer || !overlay || !trigger) {
-    return;
-  }
-
-  drawer.classList.remove("is-open");
-  overlay.classList.remove("is-open");
-  drawer.setAttribute("aria-hidden", "true");
-  trigger.setAttribute("aria-expanded", "false");
+  resetCartDrawerState();
 }
 
 function renderCartBreakdown(breakdown, isCents = false) {
@@ -3242,6 +3251,17 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.addEventListener("pageshow", () => {
+  resetCartDrawerState();
   rebindInteractiveSections();
   refreshOwnedReferralRewardsIfNeeded(true);
+});
+
+window.addEventListener("pagehide", () => {
+  resetCartDrawerState();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    resetCartDrawerState();
+  }
 });
