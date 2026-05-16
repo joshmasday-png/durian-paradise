@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "code": "dp-buxufx-b7sz",
+    "link": "http://127.0.0.1:3000/referral.html?code=dp-buxufx-b7sz",
+    "ownerToken": "owner-6xc235b6qj-mp7pb7t0",
+    "referrer": null,
+    "clicks": 0,
+    "visitors": [],
+    "conversions": [],
+    "rewards": [],
+    "createdAt": "2026-05-16T02:02:25.475Z",
+    "expiresAt": "2026-06-15T02:02:25.475Z"
+  }
+]
