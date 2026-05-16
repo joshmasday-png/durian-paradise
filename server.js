@@ -329,7 +329,14 @@ function writeAnalytics(analytics) {
 }
 
 function makeReferralCode() {
-  return `dp-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36).slice(-4)}`;
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+  let code = "";
+
+  for (let index = 0; index < 8; index += 1) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+
+  return code;
 }
 
 function makeRecordId(prefix) {

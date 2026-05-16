@@ -732,6 +732,30 @@ function getStoredReferralCode() {
   }
 }
 
+function normalizeClientReferralCode(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .slice(0, 40);
+}
+
+function storeReferralCode(code) {
+  const normalizedCode = normalizeClientReferralCode(code);
+
+  if (!normalizedCode) {
+    clearStoredReferralCode();
+    return "";
+  }
+
+  writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
+    code: normalizedCode,
+    expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
+  }));
+
+  return normalizedCode;
+}
+
 function captureReferralCode() {
   const params = new URLSearchParams(window.location.search);
   const code = String(params.get("ref") || "").trim();
@@ -740,10 +764,7 @@ function captureReferralCode() {
     return;
   }
 
-  writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
-    code,
-    expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
-  }));
+  storeReferralCode(code);
 }
 
 function clearStoredReferralCode() {
@@ -3369,6 +3390,7 @@ function getCleanOrderFlowElements() {
     checkoutEmail: document.querySelector("[data-order-checkout-email]"),
     checkoutAddress: document.querySelector("[data-order-checkout-address]"),
     checkoutNotes: document.querySelector("[data-order-checkout-notes]"),
+    checkoutReferralCode: document.querySelector("[data-order-checkout-referral-code]"),
     checkoutNote: document.querySelector("[data-order-checkout-note]"),
     checkoutButton: document.querySelector('[data-order-action="checkout"]'),
     paymentRequest: document.querySelector("[data-order-payment-request]"),
@@ -3413,6 +3435,31 @@ function syncCleanCheckoutUI() {
   if (checkoutButton && !cleanOrderFlowState.isCreatingOrder) {
     checkoutButton.textContent = config.checkoutButtonLabel;
   }
+}
+
+function syncCleanReferralCodeField() {
+  const { checkoutReferralCode } = getCleanOrderFlowElements();
+
+  if (!checkoutReferralCode) {
+    return;
+  }
+
+  const storedCode = getStoredReferralCode();
+  if (storedCode) {
+    checkoutReferralCode.value = storedCode;
+  }
+}
+
+function getEffectiveReferralCode() {
+  const { checkoutReferralCode } = getCleanOrderFlowElements();
+  const manualCode = normalizeClientReferralCode(checkoutReferralCode ? checkoutReferralCode.value : "");
+
+  if (manualCode) {
+    storeReferralCode(manualCode);
+    return manualCode;
+  }
+
+  return getStoredReferralCode();
 }
 
 function syncCleanCartTriggerCount() {
@@ -3740,7 +3787,7 @@ async function handleCleanCheckout() {
           deliveryNotes: checkoutNotes ? checkoutNotes.value.trim() : ""
         },
         paymentMethodKey: selectedPaymentMethod.key,
-        referralCode: getStoredReferralCode(),
+        referralCode: getEffectiveReferralCode(),
         referralRewardClaims: getCleanRewardClaims(),
         visitorId: getVisitorId(),
         path: window.location.pathname,
@@ -4021,6 +4068,18 @@ function handleCleanOrderClick(event) {
 function handleCleanOrderChange(event) {
   if (event.target.matches("[data-order-checkout-payment-method]")) {
     syncCleanCheckoutUI();
+    return;
+  }
+
+  if (event.target.matches("[data-order-checkout-referral-code]")) {
+    const normalizedCode = normalizeClientReferralCode(event.target.value);
+    event.target.value = normalizedCode;
+
+    if (normalizedCode) {
+      storeReferralCode(normalizedCode);
+    } else {
+      clearStoredReferralCode();
+    }
   }
 }
 
@@ -4062,6 +4121,7 @@ function initCleanOrderFlow() {
 
   syncCleanCartTriggerCount();
   syncCleanCheckoutUI();
+  syncCleanReferralCodeField();
   renderCleanOrderReferralRewards();
   renderCleanOrderCart();
   refreshOwnedReferralRewardsIfNeeded(true).then(() => {

@@ -100,7 +100,7 @@
     <img class="referral-logo" src="images/logo-header.png" alt="Durian Paradise" />
     <div class="badge">Referral Invitation</div>
     <h1 data-referral-title>You have been referred to this website</h1>
-    <p data-referral-copy>Press the button below to visit Durian Paradise. If you place an order within the referral period, the referral reward will be recorded automatically.</p>
+    <p data-referral-copy>Press the button below to visit Durian Paradise. When you check out, make sure the referral code field is filled in before creating the order so the referral reward can be recorded correctly.</p>
     <div class="referral-note" data-referral-note>Checking referral link... You can continue to the website immediately if this takes too long.</div>
     <a class="button" href="/" data-referral-continue>Visit Durian Paradise</a>
   </main>
@@ -145,7 +145,7 @@
             month: "short",
             day: "numeric"
           });
-          note.textContent = `Referral valid until ${expiry}. If you skip this link and enter the website normally, the referral voucher will not be issued.`;
+          note.textContent = `Referral valid until ${expiry}. Referral code: ${code}. If the code does not auto-fill at checkout, enter it manually in the "Referral Code (if any)" field before creating the order.`;
           button.href = `/r/${encodeURIComponent(code)}`;
         })
         .catch(() => {
