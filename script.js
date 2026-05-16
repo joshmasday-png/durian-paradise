@@ -33,6 +33,49 @@ let reviewFormBound = false;
 let referralFormBound = false;
 const memoryStorage = new Map();
 
+function normalizeOwnedReferralReward(reward) {
+  if (!reward || typeof reward !== "object") {
+    return null;
+  }
+
+  return {
+    ...reward,
+    id: String(reward.id || "").trim(),
+    type: String(reward.type || "").trim(),
+    status: String(reward.status || "").trim(),
+    discountAmount: Number(reward.discountAmount || 0),
+    message: reward.message ? String(reward.message) : "",
+    referralCount: Number(reward.referralCount || 0),
+    referralCycle: Number(reward.referralCycle || 0),
+    orderId: reward.orderId ? String(reward.orderId) : "",
+    claimedOrderId: reward.claimedOrderId ? String(reward.claimedOrderId) : ""
+  };
+}
+
+function normalizeOwnedReferralEntry(referral) {
+  if (!referral || typeof referral !== "object") {
+    return null;
+  }
+
+  const normalized = {
+    ...referral,
+    code: String(referral.code || "").trim(),
+    ownerToken: String(referral.ownerToken || "").trim(),
+    link: String(referral.link || "").trim(),
+    expiresAt: String(referral.expiresAt || "").trim(),
+    conversionCount: Number(referral.conversionCount || 0),
+    rewards: Array.isArray(referral.rewards)
+      ? referral.rewards.map(normalizeOwnedReferralReward).filter(Boolean)
+      : []
+  };
+
+  if (!normalized.code || !normalized.ownerToken) {
+    return null;
+  }
+
+  return normalized;
+}
+
 function injectNavMenuStyles() {
   if (document.getElementById("nav-menu-fix-styles")) {
     return;
@@ -394,30 +437,31 @@ function loadOwnedReferrals() {
   try {
     const raw = readStorageItem(OWNED_REFERRALS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.map(normalizeOwnedReferralEntry).filter(Boolean)
+      : [];
   } catch (_error) {
     return [];
   }
 }
 
 function saveOwnedReferrals(referrals) {
-  writeStorageItem(OWNED_REFERRALS_STORAGE_KEY, JSON.stringify(referrals));
+  const normalizedReferrals = Array.isArray(referrals)
+    ? referrals.map(normalizeOwnedReferralEntry).filter(Boolean)
+    : [];
+
+  writeStorageItem(OWNED_REFERRALS_STORAGE_KEY, JSON.stringify(normalizedReferrals));
 }
 
 function storeOwnedReferral(referral) {
-  if (!referral || !referral.code || !referral.ownerToken) {
+  const normalizedReferral = normalizeOwnedReferralEntry(referral);
+
+  if (!normalizedReferral) {
     return;
   }
 
   const ownedReferrals = loadOwnedReferrals();
-  const nextEntry = {
-    code: String(referral.code),
-    ownerToken: String(referral.ownerToken),
-    link: String(referral.link || ""),
-    expiresAt: String(referral.expiresAt || ""),
-    conversionCount: Number(referral.conversionCount || 0),
-    rewards: Array.isArray(referral.rewards) ? referral.rewards : []
-  };
+  const nextEntry = normalizedReferral;
   const existingIndex = ownedReferrals.findIndex((entry) => entry.code === nextEntry.code);
 
   if (existingIndex >= 0) {
@@ -462,6 +506,10 @@ function getActiveOwnedReferralRewards() {
     const rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
 
     rewards.forEach((reward) => {
+      if (!reward || typeof reward !== "object") {
+        return;
+      }
+
       if (String(reward.status || "") !== "issued_for_next_purchase") {
         return;
       }
@@ -556,10 +604,10 @@ async function refreshOwnedReferralRewards() {
         return entry;
       }
 
-      return {
+      return normalizeOwnedReferralEntry({
         ...entry,
         ...payload.referral
-      };
+      }) || entry;
     } catch (_error) {
       return entry;
     }
@@ -732,7 +780,9 @@ function calculateCartPricing(cart) {
 }
 
 function applyReferralRewardsToPricing(pricing, rewards) {
-  const activeRewards = Array.isArray(rewards) ? rewards : [];
+  const activeRewards = (Array.isArray(rewards) ? rewards : [])
+    .map(normalizeOwnedReferralReward)
+    .filter(Boolean);
   const cashRewardTotal = activeRewards
     .filter((reward) => reward.type === "cash_discount")
     .reduce((sum, reward) => sum + (Number(reward.discountAmount || 0) / 100), 0);
@@ -2609,13 +2659,12 @@ function bindCartUI() {
 }
 
 function bindProductCards() {
-  if (productCardsBound) {
-    return;
-  }
-
-  productCardsBound = true;
-
   document.querySelectorAll("[data-product-card]").forEach((card) => {
+    if (card.dataset.productCardBound === "true") {
+      return;
+    }
+
+    card.dataset.productCardBound = "true";
     const button = card.querySelector("[data-add-product]");
     const details = card.querySelector("[data-multi-option]");
     const summary = card.querySelector("[data-multi-option-summary]");
@@ -2655,85 +2704,97 @@ function bindProductCards() {
         syncCardState();
       };
 
-      if (decrease) {
+      if (decrease && decrease.dataset.tapBound !== "true") {
+        decrease.dataset.tapBound = "true";
         bindTap(decrease, () => {
           updateQty(Number(row.dataset.quantity || 0) - 1);
         }, { stopPropagation: true });
       }
 
-      if (increase) {
+      if (increase && increase.dataset.tapBound !== "true") {
+        increase.dataset.tapBound = "true";
         bindTap(increase, () => {
           updateQty(Number(row.dataset.quantity || 0) + 1);
         }, { stopPropagation: true });
       }
 
-      bindTap(row, (event) => {
-        if (event.target.closest("button")) {
-          return;
-        }
+      if (row.dataset.tapBound !== "true") {
+        row.dataset.tapBound = "true";
+        bindTap(row, (event) => {
+          if (event.target.closest("button")) {
+            return;
+          }
 
-        details.open = true;
-        updateQty(Number(row.dataset.quantity || 0) + 1);
-      }, { stopPropagation: true });
+          details.open = true;
+          updateQty(Number(row.dataset.quantity || 0) + 1);
+        }, { stopPropagation: true });
+      }
 
       updateQty(Number(row.dataset.quantity || 0));
     });
 
-    document.addEventListener("click", (event) => {
-      if (!details.contains(event.target)) {
-        details.removeAttribute("open");
-      }
-    });
+    if (!productCardsBound) {
+      productCardsBound = true;
+      document.addEventListener("click", (event) => {
+        document.querySelectorAll("[data-multi-option]").forEach((openDetails) => {
+          if (!openDetails.contains(event.target)) {
+            openDetails.removeAttribute("open");
+          }
+        });
+      });
+    }
 
     syncCardState();
     button.textContent = "Add to Cart";
 
-    bindTap(button, () => {
-      const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
+    if (button.dataset.tapBound !== "true") {
+      button.dataset.tapBound = "true";
+      bindTap(button, () => {
+        const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
 
-      if (!selectedRows.length) {
-        details.open = true;
-        if (typeof summary.focus === "function") {
-          summary.focus();
-        }
-        return;
-      }
-
-      selectedRows.forEach((row) => {
-        const item = {
-          productId: card.dataset.productId || "",
-          productName: card.dataset.productName || "Durian Package",
-          orderType: card.dataset.orderType || "Online Delivery",
-          variantValue: row.dataset.variantValue || "",
-          variantLabel: row.dataset.variantLabel || "",
-          unitPrice: Number(row.dataset.unitPrice || 0),
-          quantity: Number(row.dataset.quantity || 0),
-        };
-
-        addToCart(item);
-        trackAnalyticsEvent("add_to_cart", {
-          metadata: {
-            productId: item.productId,
-            variantValue: item.variantValue,
-            itemCount: item.quantity
+        if (!selectedRows.length) {
+          details.open = true;
+          if (typeof summary.focus === "function") {
+            summary.focus();
           }
-        });
-      });
+          return;
+        }
 
-      renderCart();
-      flashAddedState(button);
-    });
+        selectedRows.forEach((row) => {
+          const item = {
+            productId: card.dataset.productId || "",
+            productName: card.dataset.productName || "Durian Package",
+            orderType: card.dataset.orderType || "Online Delivery",
+            variantValue: row.dataset.variantValue || "",
+            variantLabel: row.dataset.variantLabel || "",
+            unitPrice: Number(row.dataset.unitPrice || 0),
+            quantity: Number(row.dataset.quantity || 0),
+          };
+
+          addToCart(item);
+          trackAnalyticsEvent("add_to_cart", {
+            metadata: {
+              productId: item.productId,
+              variantValue: item.variantValue,
+              itemCount: item.quantity
+            }
+          });
+        });
+
+        renderCart();
+        flashAddedState(button);
+      });
+    }
   });
 }
 
 function bindPartyForms() {
-  if (partyFormsBound) {
-    return;
-  }
-
-  partyFormsBound = true;
-
   document.querySelectorAll("[data-party-form]").forEach((form) => {
+    if (form.dataset.partyFormBound === "true") {
+      return;
+    }
+
+    form.dataset.partyFormBound = "true";
     const select = form.querySelector("[data-party-select]");
     const button = form.querySelector("[data-add-party]");
 
@@ -2750,36 +2811,39 @@ function bindPartyForms() {
     select.addEventListener("change", syncPartyButton);
     button.textContent = "Add to Cart";
 
-    bindTap(button, () => {
-      const option = select.options[select.selectedIndex];
-      if (!option || !option.value) {
-        if (typeof select.focus === "function") {
-          select.focus();
+    if (button.dataset.tapBound !== "true") {
+      button.dataset.tapBound = "true";
+      bindTap(button, () => {
+        const option = select.options[select.selectedIndex];
+        if (!option || !option.value) {
+          if (typeof select.focus === "function") {
+            select.focus();
+          }
+          return;
         }
-        return;
-      }
 
-      const item = {
-        productId: form.dataset.productIdBase || "",
-        productName: form.dataset.productName || "Durian Party",
-        orderType: form.dataset.orderType || "Durian Party",
-        variantValue: option.value,
-        variantLabel: option.dataset.label || option.textContent,
-        unitPrice: Number(option.dataset.price || 0),
-        quantity: 1,
-      };
+        const item = {
+          productId: form.dataset.productIdBase || "",
+          productName: form.dataset.productName || "Durian Party",
+          orderType: form.dataset.orderType || "Durian Party",
+          variantValue: option.value,
+          variantLabel: option.dataset.label || option.textContent,
+          unitPrice: Number(option.dataset.price || 0),
+          quantity: 1,
+        };
 
-      addToCart(item);
-      trackAnalyticsEvent("add_to_cart", {
-        metadata: {
-          productId: item.productId,
-          variantValue: item.variantValue,
-          itemCount: item.quantity
-        }
+        addToCart(item);
+        trackAnalyticsEvent("add_to_cart", {
+          metadata: {
+            productId: item.productId,
+            variantValue: item.variantValue,
+            itemCount: item.quantity
+          }
+        });
+        renderCart();
+        flashAddedState(button);
       });
-      renderCart();
-      flashAddedState(button);
-    });
+    }
   });
 }
 
@@ -3044,6 +3108,18 @@ function bindReferralForm() {
   }
 }
 
+function rebindInteractiveSections() {
+  bindPrimaryCtas();
+  bindProductCards();
+  bindPartyForms();
+  syncCartTriggerCount();
+
+  if (cartUiPrepared) {
+    bindCartUI();
+    renderCart();
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   injectNavMenuStyles();
   clearLegacyStorageIfNeeded();
@@ -3094,4 +3170,9 @@ document.addEventListener("DOMContentLoaded", () => {
   runNonCriticalTask(() => {
     enhanceVarietyImages();
   }, 1400);
+});
+
+window.addEventListener("pageshow", () => {
+  rebindInteractiveSections();
+  refreshOwnedReferralRewardsIfNeeded(true);
 });
