@@ -368,6 +368,10 @@ function getPublicSiteUrl(req) {
   return "https://www.durianparadises.com";
 }
 
+function buildReferralLink(req, code) {
+  return `${getPublicSiteUrl(req)}/?ref=${encodeURIComponent(String(code || "").trim())}`;
+}
+
 function makeOrderId(existingOrders) {
   const orders = Array.isArray(existingOrders) ? existingOrders : [];
   const highestOrderNumber = orders.reduce((max, order) => {
@@ -1155,6 +1159,11 @@ function issueReferralRewardForOrder(order) {
   normalizeReferralEntry(referral);
   const familyConversions = listReferralFamilyConversions(referrals, referral);
   const conversions = Array.isArray(referral.conversions) ? referral.conversions : [];
+  const customerPhone = sanitizePhone(order.customer && order.customer.phone);
+  const customerPhoneMatch = normalizePhoneMatchKey(customerPhone);
+  const referrerPhoneMatch = referral.referrer && referral.referrer.phoneMatch
+    ? normalizePhoneMatchKey(referral.referrer.phoneMatch)
+    : "";
   const existingConversion = familyConversions.find((entry) => String(entry.orderId || "") === String(order.id));
   const existingReward = Array.isArray(referral.rewards)
     ? referral.rewards.find((entry) => String(entry.orderId || "") === String(order.id))
@@ -1170,11 +1179,37 @@ function issueReferralRewardForOrder(order) {
     };
   }
 
+  if (customerPhoneMatch && referrerPhoneMatch && customerPhoneMatch === referrerPhoneMatch) {
+    return {
+      ...order.referral,
+      code: referralCode,
+      status: "self_referral_blocked",
+      reward: null,
+      conversionRecordedAt: ""
+    };
+  }
+
+  if (customerPhoneMatch) {
+    const existingCustomerConversion = familyConversions.find(
+      (entry) => normalizePhoneMatchKey(entry.customerPhone) === customerPhoneMatch
+    );
+
+    if (existingCustomerConversion) {
+      return {
+        ...order.referral,
+        code: referralCode,
+        status: "duplicate_customer_blocked",
+        reward: null,
+        conversionRecordedAt: existingCustomerConversion.createdAt || ""
+      };
+    }
+  }
+
   const nextCount = familyConversions.length + 1;
   const conversion = {
     orderId: order.id,
     orderTotal: order.summary && order.summary.totalDisplay ? order.summary.totalDisplay : "",
-    customerPhone: sanitizePhone(order.customer && order.customer.phone),
+    customerPhone,
     createdAt: new Date().toISOString()
   };
 
@@ -1532,7 +1567,7 @@ app.post("/api/referrals", (req, res) => {
     return res.status(200).json({
       referral: {
         code: existingActiveReferral.code,
-        link: existingActiveReferral.link,
+        link: buildReferralLink(req, existingActiveReferral.code),
         expiresAt: existingActiveReferral.expiresAt,
         ownerToken: existingActiveReferral.ownerToken,
         ownerPhone: existingActiveReferral.referrer && existingActiveReferral.referrer.phone
@@ -1554,7 +1589,7 @@ app.post("/api/referrals", (req, res) => {
   const expiresAt = new Date(createdAt.getTime() + (30 * 24 * 60 * 60 * 1000));
   const referral = {
     code,
-    link: `${getPublicSiteUrl(req)}/referral.html?code=${code}`,
+    link: buildReferralLink(req, code),
     ownerToken: ownerToken || makeOwnerToken(),
     referrer: ownerPhoneMatch
       ? {
@@ -1576,7 +1611,7 @@ app.post("/api/referrals", (req, res) => {
   return res.status(201).json({
     referral: {
       code: referral.code,
-      link: referral.link,
+      link: buildReferralLink(req, referral.code),
       expiresAt: referral.expiresAt,
       ownerToken: referral.ownerToken,
       ownerPhone: referral.referrer && referral.referrer.phone ? referral.referrer.phone : ""
@@ -1599,7 +1634,7 @@ app.get("/api/referrals/:code", (req, res) => {
   return res.json({
     referral: {
       code: referral.code,
-      link: referral.link,
+      link: buildReferralLink(req, referral.code),
       clicks: referral.clicks || 0,
       conversionCount: familyConversionCount,
       expiresAt: referral.expiresAt,
@@ -1631,7 +1666,7 @@ app.get("/api/referrals/:code/owner-status", (req, res) => {
   return res.json({
     referral: {
       code: referral.code,
-      link: referral.link,
+      link: buildReferralLink(req, referral.code),
       expiresAt: referral.expiresAt,
       isActive: new Date(referral.expiresAt).getTime() >= Date.now(),
       ownerPhone: referral.referrer && referral.referrer.phone ? referral.referrer.phone : "",
