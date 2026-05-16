@@ -77,6 +77,11 @@ function normalizeOwnedReferralEntry(referral) {
   return normalized;
 }
 
+function getIsoTimestamp(value) {
+  const timestamp = Date.parse(String(value || "").trim());
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
 function injectNavMenuStyles() {
   if (document.getElementById("nav-menu-fix-styles")) {
     return;
