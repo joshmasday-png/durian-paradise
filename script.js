@@ -26,7 +26,6 @@ let reviewsLoadPromise = null;
 let lastOwnedReferralRefreshAt = 0;
 let navMenusBound = false;
 let cartUiBound = false;
-let cartTriggerBound = false;
 let cartUiPrepared = false;
 let productCardsBound = false;
 let partyFormsBound = false;
@@ -2422,70 +2421,15 @@ function renderCart() {
 }
 
 function bindCartTrigger() {
-  if (cartTriggerBound) {
-    return;
-  }
-
-  cartTriggerBound = true;
-
-  let lastPointerAt = 0;
-  const getTrigger = (event) => event.target && event.target.closest
-    ? event.target.closest("[data-cart-trigger]")
-    : null;
-
-  const handleOpen = (event) => {
-    const trigger = getTrigger(event);
-
-    if (!trigger) {
+  document.querySelectorAll("[data-cart-trigger]").forEach((trigger) => {
+    if (trigger.dataset.cartTriggerBound === "true") {
       return;
     }
 
-    if (typeof event.preventDefault === "function") {
-      event.preventDefault();
-    }
-
-    openCartDrawer();
-  };
-
-  if (window.PointerEvent) {
-    document.addEventListener("pointerup", (event) => {
-      const trigger = getTrigger(event);
-
-      if (!trigger) {
-        return;
-      }
-
-      if (event.pointerType === "mouse" && event.button !== 0) {
-        return;
-      }
-
-      lastPointerAt = Date.now();
-      handleOpen(event);
-    });
-  } else {
-    document.addEventListener("touchend", (event) => {
-      if (!getTrigger(event)) {
-        return;
-      }
-
-      lastPointerAt = Date.now();
-      handleOpen(event);
-    }, { passive: false });
-  }
-
-  document.addEventListener("click", (event) => {
-    if (!getTrigger(event)) {
-      return;
-    }
-
-    if (Date.now() - lastPointerAt < 700) {
-      if (typeof event.preventDefault === "function") {
-        event.preventDefault();
-      }
-      return;
-    }
-
-    handleOpen(event);
+    trigger.dataset.cartTriggerBound = "true";
+    bindTap(trigger, () => {
+      openCartDrawer();
+    }, { preventDefault: true });
   });
 }
 
