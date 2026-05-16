@@ -2002,6 +2002,8 @@ function ensureCartUI() {
     `;
     document.body.appendChild(drawer);
   }
+
+  bindCartTrigger();
 }
 
 function prepareCartUI() {
@@ -2411,6 +2413,17 @@ function renderCart() {
   syncCheckoutPaymentMethodUI();
 }
 
+function bindCartTrigger() {
+  const trigger = document.querySelector("[data-cart-trigger]");
+
+  if (!trigger || trigger.dataset.cartTriggerBound === "true") {
+    return;
+  }
+
+  trigger.dataset.cartTriggerBound = "true";
+  bindTap(trigger, openCartDrawer);
+}
+
 function bindCartUI() {
   if (cartUiBound) {
     return;
@@ -2418,7 +2431,6 @@ function bindCartUI() {
 
   cartUiBound = true;
 
-  const trigger = document.querySelector("[data-cart-trigger]");
   const overlay = document.querySelector("[data-cart-overlay]");
   const close = document.querySelector("[data-cart-close]");
   const body = document.querySelector("[data-cart-body]");
@@ -2426,10 +2438,7 @@ function bindCartUI() {
   const paymentRequest = document.querySelector("[data-payment-request]");
   const paymentMethodInputs = document.querySelectorAll("[data-checkout-payment-method]");
 
-  if (trigger && trigger.dataset.cartTriggerBound !== "true") {
-    trigger.dataset.cartTriggerBound = "true";
-    bindTap(trigger, openCartDrawer);
-  }
+  bindCartTrigger();
 
   if (overlay) {
     overlay.addEventListener("click", closeCartDrawer);
@@ -3112,6 +3121,7 @@ function rebindInteractiveSections() {
   bindPrimaryCtas();
   bindProductCards();
   bindPartyForms();
+  bindCartTrigger();
   syncCartTriggerCount();
 
   if (cartUiPrepared) {
@@ -3131,12 +3141,7 @@ document.addEventListener("DOMContentLoaded", () => {
   revealPageWhenCriticalImagesReady();
   bindProductCards();
   bindPartyForms();
-
-  const cartTrigger = document.querySelector("[data-cart-trigger]");
-  if (cartTrigger && cartTrigger.dataset.cartTriggerBound !== "true") {
-    cartTrigger.dataset.cartTriggerBound = "true";
-    bindTap(cartTrigger, openCartDrawer);
-  }
+  bindCartTrigger();
 
   runWhenElementNearViewport("#order-now", () => {
     bindProductCards();
