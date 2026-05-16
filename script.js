@@ -155,32 +155,61 @@ function removeStorageItem(key) {
   memoryStorage.delete(key);
 }
 
-function bindClick(element, handler, options = {}) {
+function bindTap(element, handler, options = {}) {
   if (!element || typeof handler !== "function") {
     return;
   }
 
+  let lastPointerAt = 0;
   const shouldPreventDefault = Boolean(options.preventDefault);
   const shouldStopPropagation = Boolean(options.stopPropagation);
 
-  element.addEventListener("click", (event) => {
-    if (shouldPreventDefault && typeof event.preventDefault === "function") {
+  const invoke = (event) => {
+    if (shouldPreventDefault && event && typeof event.preventDefault === "function") {
       event.preventDefault();
     }
 
-    if (shouldStopPropagation && typeof event.stopPropagation === "function") {
+    if (shouldStopPropagation && event && typeof event.stopPropagation === "function") {
       event.stopPropagation();
     }
 
     handler(event);
+  };
+
+  if (window.PointerEvent) {
+    element.addEventListener("pointerup", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+
+      lastPointerAt = Date.now();
+      invoke(event);
+    });
+  } else {
+    element.addEventListener("touchend", (event) => {
+      lastPointerAt = Date.now();
+      invoke(event);
+    }, { passive: !shouldPreventDefault });
+  }
+
+  element.addEventListener("click", (event) => {
+    if (Date.now() - lastPointerAt < 700) {
+      if (shouldPreventDefault && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    invoke(event);
   });
 }
 
-function bindDelegatedClick(container, selector, handler, options = {}) {
+function bindDelegatedTap(container, selector, handler, options = {}) {
   if (!container || !selector || typeof handler !== "function") {
     return;
   }
 
+  let lastPointerAt = 0;
   const shouldPreventDefault = Boolean(options.preventDefault);
   const shouldStopPropagation = Boolean(options.stopPropagation);
 
@@ -196,7 +225,7 @@ function bindDelegatedClick(container, selector, handler, options = {}) {
     return candidate;
   };
 
-  container.addEventListener("click", (event) => {
+  const invoke = (event) => {
     const target = resolveTarget(event);
 
     if (!target) {
@@ -212,6 +241,47 @@ function bindDelegatedClick(container, selector, handler, options = {}) {
     }
 
     handler(event, target);
+  };
+
+  if (window.PointerEvent) {
+    container.addEventListener("pointerup", (event) => {
+      const target = resolveTarget(event);
+
+      if (!target) {
+        return;
+      }
+
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+
+      lastPointerAt = Date.now();
+      invoke(event);
+    });
+  } else {
+    container.addEventListener("touchend", (event) => {
+      if (!resolveTarget(event)) {
+        return;
+      }
+
+      lastPointerAt = Date.now();
+      invoke(event);
+    }, { passive: !shouldPreventDefault });
+  }
+
+  container.addEventListener("click", (event) => {
+    if (!resolveTarget(event)) {
+      return;
+    }
+
+    if (Date.now() - lastPointerAt < 700) {
+      if (shouldPreventDefault && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    invoke(event);
   });
 }
 
@@ -1859,7 +1929,7 @@ function bindPrimaryCtas() {
     }
 
     trigger.dataset.scrollBound = "true";
-    bindClick(trigger, () => {
+    bindTap(trigger, () => {
       const targetSelector = trigger.getAttribute("data-scroll-target");
 
       if (!targetSelector) {
@@ -1906,7 +1976,7 @@ function bindNavMenus() {
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-haspopup", "true");
 
-    bindClick(toggle, () => {
+    bindTap(toggle, () => {
       const isOpen = group.classList.contains("is-open");
       const nav = group.closest(".nav");
       closeAllNavMenus();
@@ -2479,7 +2549,7 @@ function bindCartTrigger() {
     }
 
     trigger.dataset.cartTriggerBound = "true";
-    bindClick(trigger, () => {
+    bindTap(trigger, () => {
       openCartDrawer();
     }, { preventDefault: true });
   });
@@ -2502,19 +2572,19 @@ function bindCartUI() {
   bindCartTrigger();
 
   if (overlay) {
-    bindClick(overlay, () => {
+    bindTap(overlay, () => {
       closeCartDrawer();
     }, { preventDefault: true });
   }
 
   if (close) {
-    bindClick(close, () => {
+    bindTap(close, () => {
       closeCartDrawer();
     }, { preventDefault: true });
   }
 
   if (body) {
-    bindDelegatedClick(body, "[data-cart-increase], [data-cart-decrease], [data-cart-remove]", (_event, target) => {
+    bindDelegatedTap(body, "[data-cart-increase], [data-cart-decrease], [data-cart-remove]", (_event, target) => {
       const item = target.closest("[data-cart-item-key]");
       if (!item) {
         return;
@@ -2542,7 +2612,7 @@ function bindCartUI() {
   }
 
   if (paymentRequest) {
-    bindDelegatedClick(paymentRequest, "[data-clear-payment-request], [data-mark-payment-paid], [data-copy-payment-reference]", async (_event, target) => {
+    bindDelegatedTap(paymentRequest, "[data-clear-payment-request], [data-mark-payment-paid], [data-copy-payment-reference]", async (_event, target) => {
       if (target.matches("[data-clear-payment-request]")) {
         clearPendingPayment();
         renderCart();
@@ -2620,7 +2690,7 @@ function bindCartUI() {
   });
 
   if (checkout) {
-    bindClick(checkout, async () => {
+    bindTap(checkout, async () => {
       const cart = loadCart();
       const selectedPaymentMethod = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
       const activeReferralRewards = getDisplayableReferralRewards();
@@ -2756,9 +2826,9 @@ function bindProductCards() {
       setActionButtonState(button, selectedRows.length > 0);
     };
 
-    if (summary && summary.dataset.summaryClickBound !== "true") {
-      summary.dataset.summaryClickBound = "true";
-      bindClick(summary, () => {
+    if (summary && summary.dataset.summaryTapBound !== "true") {
+      summary.dataset.summaryTapBound = "true";
+      bindTap(summary, () => {
         details.open = !details.open;
       }, { preventDefault: true });
     }
@@ -2778,23 +2848,23 @@ function bindProductCards() {
         syncCardState();
       };
 
-      if (decrease && decrease.dataset.clickBound !== "true") {
-        decrease.dataset.clickBound = "true";
-        bindClick(decrease, () => {
+      if (decrease && decrease.dataset.tapBound !== "true") {
+        decrease.dataset.tapBound = "true";
+        bindTap(decrease, () => {
           updateQty(Number(row.dataset.quantity || 0) - 1);
         }, { stopPropagation: true });
       }
 
-      if (increase && increase.dataset.clickBound !== "true") {
-        increase.dataset.clickBound = "true";
-        bindClick(increase, () => {
+      if (increase && increase.dataset.tapBound !== "true") {
+        increase.dataset.tapBound = "true";
+        bindTap(increase, () => {
           updateQty(Number(row.dataset.quantity || 0) + 1);
         }, { stopPropagation: true });
       }
 
-      if (row.dataset.clickBound !== "true") {
-        row.dataset.clickBound = "true";
-        bindClick(row, (event) => {
+      if (row.dataset.tapBound !== "true") {
+        row.dataset.tapBound = "true";
+        bindTap(row, (event) => {
           if (event.target.closest("button")) {
             return;
           }
@@ -2821,9 +2891,9 @@ function bindProductCards() {
     syncCardState();
     button.textContent = "Add to Cart";
 
-    if (button.dataset.clickBound !== "true") {
-      button.dataset.clickBound = "true";
-      bindClick(button, () => {
+    if (button.dataset.tapBound !== "true") {
+      button.dataset.tapBound = "true";
+      bindTap(button, () => {
         if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
           return;
         }
@@ -2889,9 +2959,9 @@ function bindPartyForms() {
     select.addEventListener("change", syncPartyButton);
     button.textContent = "Add to Cart";
 
-    if (button.dataset.clickBound !== "true") {
-      button.dataset.clickBound = "true";
-      bindClick(button, () => {
+    if (button.dataset.tapBound !== "true") {
+      button.dataset.tapBound = "true";
+      bindTap(button, () => {
         if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
           return;
         }
@@ -3135,7 +3205,7 @@ function bindReferralForm() {
     showReferralLink(existingReferral);
   }
 
-  bindClick(submit, async () => {
+  bindTap(submit, async () => {
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
@@ -3172,7 +3242,7 @@ function bindReferralForm() {
   }, { preventDefault: true });
 
   if (copyButton) {
-    bindClick(copyButton, async () => {
+    bindTap(copyButton, async () => {
       try {
         const copied = await copyReferralLink();
 
