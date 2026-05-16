@@ -204,6 +204,87 @@ function bindTap(element, handler, options = {}) {
   });
 }
 
+function bindDelegatedTap(container, selector, handler, options = {}) {
+  if (!container || !selector || typeof handler !== "function") {
+    return;
+  }
+
+  let lastPointerAt = 0;
+  const shouldPreventDefault = Boolean(options.preventDefault);
+  const shouldStopPropagation = Boolean(options.stopPropagation);
+
+  const resolveTarget = (event) => {
+    const candidate = event && event.target && event.target.closest
+      ? event.target.closest(selector)
+      : null;
+
+    if (!candidate || !container.contains(candidate)) {
+      return null;
+    }
+
+    return candidate;
+  };
+
+  const invoke = (event) => {
+    const target = resolveTarget(event);
+
+    if (!target) {
+      return;
+    }
+
+    if (shouldPreventDefault && event && typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
+
+    if (shouldStopPropagation && event && typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+
+    handler(event, target);
+  };
+
+  if (window.PointerEvent) {
+    container.addEventListener("pointerup", (event) => {
+      const target = resolveTarget(event);
+
+      if (!target) {
+        return;
+      }
+
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+
+      lastPointerAt = Date.now();
+      invoke(event);
+    });
+  } else {
+    container.addEventListener("touchend", (event) => {
+      if (!resolveTarget(event)) {
+        return;
+      }
+
+      lastPointerAt = Date.now();
+      invoke(event);
+    }, { passive: !shouldPreventDefault });
+  }
+
+  container.addEventListener("click", (event) => {
+    if (!resolveTarget(event)) {
+      return;
+    }
+
+    if (Date.now() - lastPointerAt < 700) {
+      if (shouldPreventDefault && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    invoke(event);
+  });
+}
+
 function setActionButtonState(button, isReady) {
   if (!button) {
     return;
@@ -1067,6 +1148,7 @@ function injectCartStyles() {
       border: none;
       cursor: pointer;
       font-family: inherit;
+      touch-action: manipulation;
     }
 
     .cart-quantity-controls button {
@@ -1506,6 +1588,7 @@ function injectCartStyles() {
       padding: 0;
       cursor: pointer;
       font-family: inherit;
+      touch-action: manipulation;
     }
 
     .payment-request-paid {
@@ -1535,6 +1618,7 @@ function injectCartStyles() {
       font-weight: 700;
       cursor: pointer;
       box-shadow: 0 14px 28px rgba(104, 73, 36, 0.18);
+      touch-action: manipulation;
     }
 
     @media (max-width: 520px) {
@@ -2488,49 +2572,53 @@ function bindCartUI() {
   bindCartTrigger();
 
   if (overlay) {
-    overlay.addEventListener("click", closeCartDrawer);
+    bindTap(overlay, () => {
+      closeCartDrawer();
+    }, { preventDefault: true });
   }
 
   if (close) {
-    close.addEventListener("click", closeCartDrawer);
+    bindTap(close, () => {
+      closeCartDrawer();
+    }, { preventDefault: true });
   }
 
   if (body) {
-    body.addEventListener("click", (event) => {
-      const item = event.target.closest("[data-cart-item-key]");
+    bindDelegatedTap(body, "[data-cart-increase], [data-cart-decrease], [data-cart-remove]", (_event, target) => {
+      const item = target.closest("[data-cart-item-key]");
       if (!item) {
         return;
       }
 
       const itemKey = item.getAttribute("data-cart-item-key");
 
-      if (event.target.matches("[data-cart-increase]")) {
+      if (target.matches("[data-cart-increase]")) {
         updateCartQuantity(itemKey, 1);
         renderCart();
         return;
       }
 
-      if (event.target.matches("[data-cart-decrease]")) {
+      if (target.matches("[data-cart-decrease]")) {
         updateCartQuantity(itemKey, -1);
         renderCart();
         return;
       }
 
-      if (event.target.matches("[data-cart-remove]")) {
+      if (target.matches("[data-cart-remove]")) {
         removeCartItem(itemKey);
         renderCart();
       }
-    });
+    }, { preventDefault: true });
   }
 
   if (paymentRequest) {
-    paymentRequest.addEventListener("click", async (event) => {
-      if (event.target.matches("[data-clear-payment-request]")) {
+    bindDelegatedTap(paymentRequest, "[data-clear-payment-request], [data-mark-payment-paid], [data-copy-payment-reference]", async (_event, target) => {
+      if (target.matches("[data-clear-payment-request]")) {
         clearPendingPayment();
         renderCart();
       }
 
-      if (event.target.matches("[data-mark-payment-paid]")) {
+      if (target.matches("[data-mark-payment-paid]")) {
         const pendingPayment = loadPendingPayment();
         const orderId = pendingPayment && (pendingPayment.reference || (pendingPayment.order && pendingPayment.order.id));
 
@@ -2538,8 +2626,8 @@ function bindCartUI() {
           return;
         }
 
-        event.target.disabled = true;
-        event.target.textContent = "Sending...";
+        target.disabled = true;
+        target.textContent = "Sending...";
 
         try {
           const response = await fetch(`${PAYMENT_ORDERS_API_PATH}/${encodeURIComponent(orderId)}/paid`, {
@@ -2563,12 +2651,12 @@ function bindCartUI() {
           renderCart();
         } catch (error) {
           window.alert(error && error.message ? error.message : "Unable to mark payment as paid.");
-          event.target.disabled = false;
-          event.target.textContent = "I Have Paid";
+          target.disabled = false;
+          target.textContent = "I Have Paid";
         }
       }
 
-      if (event.target.matches("[data-copy-payment-reference]")) {
+      if (target.matches("[data-copy-payment-reference]")) {
         const pendingPayment = loadPendingPayment();
         if (!pendingPayment || !navigator.clipboard) {
           return;
@@ -2594,7 +2682,7 @@ function bindCartUI() {
           `${paymentLines.join("\n")}\nEmail: ${customer.email || ""}\nContact: ${customer.phone || ""}\nAddress: ${customer.address || ""}`
         );
       }
-    });
+    }, { preventDefault: true });
   }
 
   paymentMethodInputs.forEach((input) => {
@@ -2602,7 +2690,7 @@ function bindCartUI() {
   });
 
   if (checkout) {
-    checkout.addEventListener("click", async () => {
+    bindTap(checkout, async () => {
       const cart = loadCart();
       const selectedPaymentMethod = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
       const activeReferralRewards = getDisplayableReferralRewards();
@@ -2710,7 +2798,7 @@ function bindCartUI() {
         checkout.disabled = false;
         syncCheckoutPaymentMethodUI();
       }
-    });
+    }, { preventDefault: true });
   }
 }
 
