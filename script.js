@@ -807,14 +807,12 @@ function flashAddedState(button) {
 
   const originalText = button.dataset.originalText || button.textContent || "Add to Cart";
   button.dataset.originalText = originalText;
+  button.dataset.feedbackLockUntil = String(Date.now() + 450);
   button.textContent = "Added";
-  button.disabled = true;
-  button.classList.add("is-feedback-lock");
 
   window.setTimeout(() => {
     button.textContent = originalText;
-    button.disabled = false;
-    button.classList.remove("is-feedback-lock");
+    delete button.dataset.feedbackLockUntil;
     const card = button.closest("[data-product-card], [data-party-form]");
     const selectedRows = card
       ? Array.from(card.querySelectorAll("[data-variant-row]")).filter((row) => Number(row.dataset.quantity || 0) > 0)
@@ -2759,6 +2757,10 @@ function bindProductCards() {
     if (button.dataset.tapBound !== "true") {
       button.dataset.tapBound = "true";
       bindTap(button, () => {
+        if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
+          return;
+        }
+
         const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
 
         if (!selectedRows.length) {
@@ -2823,6 +2825,10 @@ function bindPartyForms() {
     if (button.dataset.tapBound !== "true") {
       button.dataset.tapBound = "true";
       bindTap(button, () => {
+        if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
+          return;
+        }
+
         const option = select.options[select.selectedIndex];
         if (!option || !option.value) {
           if (typeof select.focus === "function") {
