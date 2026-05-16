@@ -3205,7 +3205,7 @@ function bindReferralForm() {
     showReferralLink(existingReferral);
   }
 
-  submit.addEventListener("click", async () => {
+  bindTap(submit, async () => {
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
@@ -3239,10 +3239,10 @@ function bindReferralForm() {
     } finally {
       submit.disabled = false;
     }
-  });
+  }, { preventDefault: true });
 
   if (copyButton) {
-    copyButton.addEventListener("click", async () => {
+    bindTap(copyButton, async () => {
       try {
         const copied = await copyReferralLink();
 
@@ -3256,7 +3256,7 @@ function bindReferralForm() {
         message.textContent = "Unable to copy automatically. You can still select the link and share it manually.";
         message.className = "referral-message is-error";
       }
-    });
+    }, { preventDefault: true });
   }
 }
 
