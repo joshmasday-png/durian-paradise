@@ -19,6 +19,7 @@ const REFERRAL_STORAGE_KEY = `durianParadiseReferral:${STORAGE_VERSION}`;
 const OWNED_REFERRALS_STORAGE_KEY = `durianParadiseOwnedReferrals:${STORAGE_VERSION}`;
 const VISITOR_STORAGE_KEY = `durianParadiseVisitorId:${STORAGE_VERSION}`;
 const DEFAULT_PAYMENT_METHOD_KEY = "paynow_uen";
+const CART_HISTORY_STATE_KEY = "__durianParadiseCartOpen";
 const PAYNOW_QR_ASSET_VERSION = "20260430-qr2";
 const PAYNOW_QR_IMAGE_PATH = `images/paynow-qr.jpeg?v=${PAYNOW_QR_ASSET_VERSION}`;
 const PAYNOW_QR_PLACEHOLDER_PATH = `images/paynow-qr-placeholder.svg?v=${PAYNOW_QR_ASSET_VERSION}`;
@@ -738,6 +739,20 @@ function getCartDrawerElements() {
   };
 }
 
+function hasCartHistoryState(state = window.history && window.history.state) {
+  return Boolean(state && typeof state === "object" && state[CART_HISTORY_STATE_KEY]);
+}
+
+function getCartHistoryState() {
+  const currentState = window.history && window.history.state;
+
+  if (!currentState || typeof currentState !== "object") {
+    return {};
+  }
+
+  return currentState;
+}
+
 function syncCartDrawerState(isOpen) {
   const { drawer, overlay, triggers } = getCartDrawerElements();
 
@@ -757,6 +772,16 @@ function syncCartDrawerState(isOpen) {
 
 function resetCartDrawerState() {
   syncCartDrawerState(false);
+}
+
+function syncCartDrawerWithHistoryState(state = window.history && window.history.state) {
+  if (hasCartHistoryState(state)) {
+    prepareCartUI();
+    syncCartDrawerState(true);
+    return;
+  }
+
+  resetCartDrawerState();
 }
 
 function getCartTotal(cart) {
@@ -2070,10 +2095,23 @@ function openCartDrawer() {
   if (!syncCartDrawerState(true)) {
     return;
   }
+
+  if (window.history && typeof window.history.pushState === "function" && !hasCartHistoryState()) {
+    window.history.pushState({
+      ...getCartHistoryState(),
+      [CART_HISTORY_STATE_KEY]: true
+    }, "", window.location.href);
+  }
+
   refreshOwnedReferralRewardsIfNeeded();
 }
 
-function closeCartDrawer() {
+function closeCartDrawer(options = {}) {
+  if (!options.skipHistory && hasCartHistoryState() && window.history && typeof window.history.back === "function") {
+    window.history.back();
+    return;
+  }
+
   resetCartDrawerState();
 }
 
@@ -3195,17 +3233,21 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.addEventListener("pageshow", () => {
-  resetCartDrawerState();
+  syncCartDrawerWithHistoryState();
   rebindInteractiveSections();
   refreshOwnedReferralRewardsIfNeeded(true);
 });
 
 window.addEventListener("pagehide", () => {
-  resetCartDrawerState();
+  syncCartDrawerWithHistoryState();
 });
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
-    resetCartDrawerState();
+    syncCartDrawerWithHistoryState();
   }
+});
+
+window.addEventListener("popstate", (event) => {
+  syncCartDrawerWithHistoryState(event.state);
 });
