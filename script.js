@@ -28,9 +28,10 @@ let lastOwnedReferralRefreshAt = 0;
 let navMenusBound = false;
 let cartUiBound = false;
 let cartUiPrepared = false;
+let productCardsBound = false;
+let partyFormsBound = false;
 let reviewFormBound = false;
 let referralFormBound = false;
-let productCardDismissBound = false;
 const memoryStorage = new Map();
 
 function normalizeOwnedReferralReward(reward) {
@@ -2806,6 +2807,17 @@ function bindProductCards() {
       updateQty(Number(row.dataset.quantity || 0));
     });
 
+    if (!productCardsBound) {
+      productCardsBound = true;
+      document.addEventListener("click", (event) => {
+        document.querySelectorAll("[data-multi-option]").forEach((openDetails) => {
+          if (!openDetails.contains(event.target)) {
+            openDetails.removeAttribute("open");
+          }
+        });
+      });
+    }
+
     syncCardState();
     button.textContent = "Add to Cart";
 
@@ -2851,21 +2863,6 @@ function bindProductCards() {
         flashAddedState(button);
       });
     }
-  });
-}
-
-function bindProductMenuDismiss() {
-  if (productCardDismissBound) {
-    return;
-  }
-
-  productCardDismissBound = true;
-  document.addEventListener("click", (event) => {
-    document.querySelectorAll("[data-multi-option]").forEach((openDetails) => {
-      if (!openDetails.contains(event.target)) {
-        openDetails.removeAttribute("open");
-      }
-    });
   });
 }
 
@@ -3085,14 +3082,13 @@ function bindReferralForm() {
     return;
   }
 
-  const form = document.querySelector("[data-referral-form]");
   const message = document.querySelector("[data-referral-message]");
   const submit = document.querySelector("[data-referral-submit]");
   const output = document.querySelector("[data-referral-output]");
   const linkEl = document.querySelector("[data-referral-link]");
   const copyButton = document.querySelector("[data-copy-referral-link]");
 
-  if (!form || !message || !submit || !output || !linkEl) {
+  if (!message || !submit || !output || !linkEl) {
     return;
   }
 
@@ -3139,8 +3135,7 @@ function bindReferralForm() {
     showReferralLink(existingReferral);
   }
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  bindClick(submit, async () => {
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
@@ -3174,7 +3169,7 @@ function bindReferralForm() {
     } finally {
       submit.disabled = false;
     }
-  });
+  }, { preventDefault: true });
 
   if (copyButton) {
     bindClick(copyButton, async () => {
@@ -3195,16 +3190,11 @@ function bindReferralForm() {
   }
 }
 
-function bindOrderControls() {
-  bindProductMenuDismiss();
+function rebindInteractiveSections() {
+  bindPrimaryCtas();
   bindProductCards();
   bindPartyForms();
   bindCartTrigger();
-}
-
-function rebindInteractiveSections() {
-  bindPrimaryCtas();
-  bindOrderControls();
   syncCartTriggerCount();
 
   if (cartUiPrepared) {
@@ -3222,7 +3212,17 @@ document.addEventListener("DOMContentLoaded", () => {
   bindReferralForm();
   syncCartTriggerCount();
   revealPageWhenCriticalImagesReady();
-  bindOrderControls();
+  bindProductCards();
+  bindPartyForms();
+  bindCartTrigger();
+
+  runWhenElementNearViewport("#order-now", () => {
+    bindProductCards();
+    bindPartyForms();
+  }, {
+    rootMargin: "520px 0px",
+    hash: "#order-now"
+  });
 
   runWhenElementNearViewport("#reviews", () => {
     bindReviewForm();
