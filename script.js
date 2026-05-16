@@ -3097,7 +3097,6 @@ function bindReferralForm() {
   }
 
   referralFormBound = true;
-  let isSubmittingReferral = false;
 
   const getReferralLinkText = () => linkEl.textContent.trim();
   const showReferralLink = (referral) => {
@@ -3140,16 +3139,8 @@ function bindReferralForm() {
     showReferralLink(existingReferral);
   }
 
-  const handleReferralSubmit = async (event) => {
-    if (event && typeof event.preventDefault === "function") {
-      event.preventDefault();
-    }
-
-    if (isSubmittingReferral) {
-      return;
-    }
-
-    isSubmittingReferral = true;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
@@ -3182,12 +3173,8 @@ function bindReferralForm() {
       message.className = "referral-message is-error";
     } finally {
       submit.disabled = false;
-      isSubmittingReferral = false;
     }
-  };
-
-  form.addEventListener("submit", handleReferralSubmit);
-  bindClick(submit, handleReferralSubmit, { preventDefault: true });
+  });
 
   if (copyButton) {
     bindClick(copyButton, async () => {
@@ -3218,7 +3205,6 @@ function bindOrderControls() {
 function rebindInteractiveSections() {
   bindPrimaryCtas();
   bindOrderControls();
-  bindReferralForm();
   syncCartTriggerCount();
 
   if (cartUiPrepared) {
