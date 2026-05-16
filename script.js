@@ -3369,12 +3369,10 @@ function getCleanOrderFlowElements() {
     paymentRequest: document.querySelector("[data-order-payment-request]"),
     paymentMethodInputs: Array.from(document.querySelectorAll("[data-order-checkout-payment-method]")),
     referralForm: document.querySelector("[data-order-referral-form]"),
-    referralPhone: document.querySelector("[data-order-referral-phone]"),
     referralMessage: document.querySelector("[data-order-referral-message]"),
     referralOutput: document.querySelector("[data-order-referral-output]"),
     referralLink: document.querySelector("[data-order-referral-link]"),
     referralCopy: document.querySelector("[data-order-copy-referral]"),
-    referralStatus: document.querySelector("[data-order-referral-status]"),
     referralRewards: document.querySelector("[data-order-referral-rewards]")
   };
 }
@@ -3481,54 +3479,8 @@ function resetCleanDeliveryCard(card) {
   });
 }
 
-function getCleanNextReferralRewardMessage(conversionCount) {
-  const nextReferralNumber = Number(conversionCount || 0) + 1;
-  const cycleStep = getReferralCycleStep(nextReferralNumber);
-  const reward = cycleStep === 1
-    ? "$5 voucher"
-    : cycleStep === 2
-      ? "$10 voucher"
-      : "free 500g Group 1 durian box";
-  return `${reward} on referral #${nextReferralNumber}`;
-}
-
-function getCleanLatestReferralStatus() {
-  return getLatestOwnedReferral(false) || getLatestOwnedReferral(true) || null;
-}
-
-function renderCleanOrderReferralStatus() {
-  const { referralStatus } = getCleanOrderFlowElements();
-
-  if (!referralStatus) {
-    return;
-  }
-
-  const latestReferral = getCleanLatestReferralStatus();
-  const activeRewards = getDisplayableReferralRewards();
-  const conversionCount = latestReferral ? Number(latestReferral.conversionCount || 0) : 0;
-  const availableRewardText = activeRewards.length
-    ? activeRewards.map((reward) => escapeHtml(getReferralRewardMessage(reward))).join("<br />")
-    : "None yet";
-
-  referralStatus.innerHTML = `
-    <article class="referral-status-item">
-      <span>Successful Referrals</span>
-      <strong>${conversionCount}</strong>
-    </article>
-    <article class="referral-status-item">
-      <span>Available Rewards</span>
-      <strong>${availableRewardText}</strong>
-    </article>
-    <article class="referral-status-item">
-      <span>Next Reward</span>
-      <strong>${escapeHtml(getCleanNextReferralRewardMessage(conversionCount))}</strong>
-    </article>
-  `;
-}
-
 function renderCleanOrderReferralRewards() {
   const { referralRewards } = getCleanOrderFlowElements();
-  renderCleanOrderReferralStatus();
 
   if (!referralRewards) {
     return;
@@ -3642,16 +3594,7 @@ async function handleCleanReferralSubmit(event) {
     return;
   }
 
-  const { referralMessage, referralOutput, referralLink, referralPhone } = getCleanOrderFlowElements();
-  const ownerPhone = referralPhone ? referralPhone.value.trim() : "";
-
-  if (!ownerPhone) {
-    setCleanMessage(referralMessage, "Enter your contact number before creating a referral link.", "error");
-    if (referralPhone) {
-      referralPhone.focus();
-    }
-    return;
-  }
+  const { referralMessage, referralOutput, referralLink } = getCleanOrderFlowElements();
 
   cleanOrderFlowState.isGeneratingReferral = true;
   setCleanMessage(referralMessage, "Creating referral link...");
@@ -3664,8 +3607,7 @@ async function handleCleanReferralSubmit(event) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        ownerToken: ownedReferral ? ownedReferral.ownerToken : "",
-        ownerPhone
+        ownerToken: ownedReferral ? ownedReferral.ownerToken : ""
       })
     });
     const result = await response.json();
@@ -4094,7 +4036,6 @@ function bindCleanOrderFlowEvents() {
 
 function initCleanOrderFlow() {
   const { root, referralLink, referralOutput } = getCleanOrderFlowElements();
-  const { referralPhone } = getCleanOrderFlowElements();
 
   if (!root) {
     return;
@@ -4112,9 +4053,6 @@ function initCleanOrderFlow() {
     referralLink.textContent = existingReferral.link;
     referralOutput.hidden = false;
     referralOutput.classList.add("is-visible");
-  }
-  if (existingReferral && existingReferral.ownerPhone && referralPhone) {
-    referralPhone.value = existingReferral.ownerPhone;
   }
 
   syncCleanCartTriggerCount();
