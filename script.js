@@ -70,7 +70,7 @@ function normalizeOwnedReferralEntry(referral) {
       : []
   };
 
-  if (!normalized.code || !normalized.ownerToken) {
+  if (!normalized.code) {
     return null;
   }
 
@@ -566,7 +566,7 @@ function storeOwnedReferral(referral) {
 function getLatestOwnedReferral(includeExpired = true) {
   return loadOwnedReferrals()
     .filter((entry) => {
-      if (!entry.code || !entry.ownerToken) {
+      if (!entry.code) {
         return false;
       }
 
@@ -604,7 +604,6 @@ function getActiveOwnedReferralRewards() {
       result.push({
         ...reward,
         referralCode: String(referral.code || ""),
-        ownerToken: String(referral.ownerToken || ""),
         message: getReferralRewardMessage(reward)
       });
     });
@@ -670,8 +669,36 @@ function getDisplayableReferralRewards() {
   return getActiveOwnedReferralRewards();
 }
 
+async function fetchReferralStatusByCode(code) {
+  const normalizedCode = normalizeClientReferralCode(code);
+
+  if (!normalizedCode) {
+    throw new Error("Enter a valid referral code.");
+  }
+
+  const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}`, {
+    headers: {
+      Accept: "application/json"
+    }
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || !payload.referral) {
+    throw new Error(payload.error || "Referral code not found.");
+  }
+
+  const nextReferral = normalizeOwnedReferralEntry(payload.referral);
+
+  if (!nextReferral) {
+    throw new Error("Referral code not found.");
+  }
+
+  storeOwnedReferral(nextReferral);
+  return nextReferral;
+}
+
 async function refreshOwnedReferralRewards() {
-  const ownedReferrals = loadOwnedReferrals().filter((entry) => entry.code && entry.ownerToken);
+  const ownedReferrals = loadOwnedReferrals().filter((entry) => entry.code);
 
   if (!ownedReferrals.length) {
     renderCart();
@@ -680,7 +707,7 @@ async function refreshOwnedReferralRewards() {
 
   const updatedReferrals = await Promise.all(ownedReferrals.map(async (entry) => {
     try {
-      const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(entry.code)}/owner-status?ownerToken=${encodeURIComponent(entry.ownerToken)}`, {
+      const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(entry.code)}`, {
         headers: {
           Accept: "application/json"
         }
@@ -2722,9 +2749,8 @@ function bindCartUI() {
       const activeReferralRewards = getDisplayableReferralRewards();
       const referralRewardClaims = activeReferralRewards.map((reward) => ({
         referralCode: reward.referralCode,
-        rewardId: reward.id,
-        ownerToken: reward.ownerToken
-      })).filter((claim) => claim.referralCode && claim.rewardId && claim.ownerToken);
+        rewardId: reward.id
+      })).filter((claim) => claim.referralCode && claim.rewardId);
       const nameInput = document.querySelector("[data-checkout-name]");
       const phoneInput = document.querySelector("[data-checkout-phone]");
       const emailInput = document.querySelector("[data-checkout-email]");
@@ -3396,9 +3422,12 @@ function getCleanOrderFlowElements() {
     paymentRequest: document.querySelector("[data-order-payment-request]"),
     paymentMethodInputs: Array.from(document.querySelectorAll("[data-order-checkout-payment-method]")),
     referralForm: document.querySelector("[data-order-referral-form]"),
+    referralLookupCode: document.querySelector("[data-order-referral-lookup-code]"),
     referralMessage: document.querySelector("[data-order-referral-message]"),
     referralOutput: document.querySelector("[data-order-referral-output]"),
+    referralCode: document.querySelector("[data-order-referral-code]"),
     referralLink: document.querySelector("[data-order-referral-link]"),
+    referralCheck: document.querySelector("[data-order-check-referral]"),
     referralCopy: document.querySelector("[data-order-copy-referral]"),
     referralRewards: document.querySelector("[data-order-referral-rewards]")
   };
@@ -3539,19 +3568,24 @@ function renderCleanOrderReferralRewards() {
   }
 
   const rewards = getDisplayableReferralRewards();
+  const latestReferral = getLatestOwnedReferral();
 
-  if (!rewards.length) {
+  if (!latestReferral) {
     referralRewards.hidden = true;
     referralRewards.innerHTML = "";
     return;
   }
 
+  const conversionCount = latestReferral ? Number(latestReferral.conversionCount || 0) : 0;
+
   referralRewards.hidden = false;
   referralRewards.innerHTML = `
-    <strong>Active Referral Rewards</strong>
-    <ul class="feature-list">
-      ${rewards.map((reward) => `<li>${escapeHtml(getReferralRewardMessage(reward))}</li>`).join("")}
-    </ul>
+    <strong>Successful referrals recorded: ${conversionCount}</strong>
+    ${rewards.length ? `
+      <ul class="feature-list">
+        ${rewards.map((reward) => `<li>${escapeHtml(getReferralRewardMessage(reward))}</li>`).join("")}
+      </ul>
+    ` : `<p>No available rewards are attached to this code yet.</p>`}
   `;
 }
 
@@ -3646,7 +3680,7 @@ async function handleCleanReferralSubmit(event) {
     return;
   }
 
-  const { referralMessage, referralOutput, referralLink } = getCleanOrderFlowElements();
+  const { referralMessage, referralOutput, referralCode, referralLink, referralLookupCode } = getCleanOrderFlowElements();
 
   cleanOrderFlowState.isGeneratingReferral = true;
   setCleanMessage(referralMessage, "Creating referral link...");
@@ -3669,8 +3703,14 @@ async function handleCleanReferralSubmit(event) {
     }
 
     storeOwnedReferral(result.referral);
+    if (referralCode) {
+      referralCode.textContent = result.referral.code || "";
+    }
     if (referralLink) {
       referralLink.textContent = result.referral.link;
+    }
+    if (referralLookupCode) {
+      referralLookupCode.value = result.referral.code || "";
     }
     if (referralOutput) {
       referralOutput.hidden = false;
@@ -3684,6 +3724,37 @@ async function handleCleanReferralSubmit(event) {
     setCleanMessage(referralMessage, error && error.message ? error.message : "Unable to create referral link.", "error");
   } finally {
     cleanOrderFlowState.isGeneratingReferral = false;
+  }
+}
+
+async function handleCleanReferralLookup() {
+  const { referralLookupCode, referralMessage, referralOutput, referralCode, referralLink } = getCleanOrderFlowElements();
+  const inputCode = referralLookupCode ? referralLookupCode.value : "";
+
+  setCleanMessage(referralMessage, "Checking referral rewards...");
+
+  try {
+    const referral = await fetchReferralStatusByCode(inputCode);
+
+    if (referralLookupCode) {
+      referralLookupCode.value = referral.code || "";
+    }
+    if (referralCode) {
+      referralCode.textContent = referral.code || "";
+    }
+    if (referralLink) {
+      referralLink.textContent = referral.link || "";
+    }
+    if (referralOutput) {
+      referralOutput.hidden = false;
+      referralOutput.classList.add("is-visible");
+    }
+
+    setCleanMessage(referralMessage, "Referral code loaded.", "success");
+    renderCleanOrderReferralRewards();
+    renderCleanOrderCart();
+  } catch (error) {
+    setCleanMessage(referralMessage, error && error.message ? error.message : "Unable to load referral code.", "error");
   }
 }
 
@@ -3708,9 +3779,8 @@ function getCleanDeliverySelections(card) {
 function getCleanRewardClaims() {
   return getDisplayableReferralRewards().map((reward) => ({
     referralCode: reward.referralCode,
-    rewardId: reward.id,
-    ownerToken: reward.ownerToken
-  })).filter((claim) => claim.referralCode && claim.rewardId && claim.ownerToken);
+    rewardId: reward.id
+  })).filter((claim) => claim.referralCode && claim.rewardId);
 }
 
 async function handleCleanCheckout() {
@@ -3909,7 +3979,7 @@ async function handleCleanPaymentRequestAction(target) {
 }
 
 function handleCleanOrderClick(event) {
-  const target = event.target.closest("[data-order-action], [data-order-cart-trigger], [data-order-copy-referral], [data-copy-payment-reference], [data-clear-payment-request], [data-mark-payment-paid]");
+  const target = event.target.closest("[data-order-action], [data-order-cart-trigger], [data-order-copy-referral], [data-order-check-referral], [data-copy-payment-reference], [data-clear-payment-request], [data-mark-payment-paid]");
 
   if (!target) {
     return;
@@ -3935,6 +4005,12 @@ function handleCleanOrderClick(event) {
         const { referralMessage } = getCleanOrderFlowElements();
         setCleanMessage(referralMessage, "Unable to copy automatically. You can still select the link and share it manually.", "error");
       });
+    return;
+  }
+
+  if (target.matches("[data-order-check-referral]")) {
+    event.preventDefault();
+    handleCleanReferralLookup();
     return;
   }
 
@@ -4080,6 +4156,11 @@ function handleCleanOrderChange(event) {
     } else {
       clearStoredReferralCode();
     }
+    return;
+  }
+
+  if (event.target.matches("[data-order-referral-lookup-code]")) {
+    event.target.value = normalizeClientReferralCode(event.target.value);
   }
 }
 
@@ -4099,7 +4180,7 @@ function bindCleanOrderFlowEvents() {
 }
 
 function initCleanOrderFlow() {
-  const { root, referralLink, referralOutput } = getCleanOrderFlowElements();
+  const { root, referralCode, referralLink, referralOutput, referralLookupCode } = getCleanOrderFlowElements();
 
   if (!root) {
     return;
@@ -4114,9 +4195,15 @@ function initCleanOrderFlow() {
 
   const existingReferral = getLatestOwnedReferral(false);
   if (existingReferral && existingReferral.link && referralLink && referralOutput) {
+    if (referralCode) {
+      referralCode.textContent = existingReferral.code || "";
+    }
     referralLink.textContent = existingReferral.link;
     referralOutput.hidden = false;
     referralOutput.classList.add("is-visible");
+  }
+  if (existingReferral && referralLookupCode) {
+    referralLookupCode.value = existingReferral.code || "";
   }
 
   syncCleanCartTriggerCount();

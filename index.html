@@ -1294,9 +1294,21 @@
             <button class="btn-email" type="submit" data-order-generate-referral>Generate Referral Link</button>
           </form>
 
+          <div class="referral-actions">
+            <div class="referral-field">
+              <label for="referral-lookup-code">Check Rewards By Code</label>
+              <input id="referral-lookup-code" type="text" maxlength="40" autocapitalize="off" spellcheck="false" placeholder="Enter your 4-digit referral code" data-order-referral-lookup-code />
+            </div>
+            <button class="btn-email" type="button" data-order-check-referral>Check My Rewards</button>
+          </div>
+
           <div class="referral-message" data-order-referral-message></div>
 
           <div class="referral-output" data-order-referral-output hidden>
+            <div>
+              <strong>Your Referral Code</strong>
+              <code data-order-referral-code></code>
+            </div>
             <div>
               <strong>Your Referral Link</strong>
               <code data-order-referral-link></code>
@@ -1656,7 +1668,7 @@
     </div>
   </aside>
 
-  <script src="script.js?v=20260516-16" defer></script>
+  <script src="script.js?v=20260517-1" defer></script>
 
 </body>
 </html>

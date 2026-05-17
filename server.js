@@ -1067,7 +1067,7 @@ function normalizeRewardClaims(rawClaims) {
     const ownerPhone = sanitizePhone(claim && claim.ownerPhone);
     const ownerPhoneMatch = normalizePhoneMatchKey(ownerPhone);
 
-    if (!referralCode || !rewardId || (!ownerToken && !ownerPhoneMatch)) {
+    if (!referralCode || !rewardId) {
       return result;
     }
 
@@ -1638,7 +1638,8 @@ app.get("/api/referrals/:code", (req, res) => {
       clicks: referral.clicks || 0,
       conversionCount: familyConversionCount,
       expiresAt: referral.expiresAt,
-      isActive: new Date(referral.expiresAt).getTime() >= Date.now()
+      isActive: new Date(referral.expiresAt).getTime() >= Date.now(),
+      rewards: referral.rewards
     }
   });
 });
