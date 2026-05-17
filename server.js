@@ -332,6 +332,10 @@ function makeReferralCode() {
   return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 }
 
+function isFourDigitReferralCode(code) {
+  return /^\d{4}$/.test(String(code || "").trim());
+}
+
 function makeRecordId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -1545,6 +1549,18 @@ app.post("/api/referrals", (req, res) => {
 
   if (existingActiveReferral) {
     let updatedExistingReferral = false;
+
+    if (!isFourDigitReferralCode(existingActiveReferral.code)) {
+      let nextCode = makeReferralCode();
+
+      while (referrals.some((entry) => entry !== existingActiveReferral && entry.code === nextCode)) {
+        nextCode = makeReferralCode();
+      }
+
+      existingActiveReferral.code = nextCode;
+      existingActiveReferral.link = buildReferralLink(req, nextCode);
+      updatedExistingReferral = true;
+    }
 
     if (ownerPhoneMatch && (
       !existingActiveReferral.referrer
