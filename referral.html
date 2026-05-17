@@ -114,6 +114,7 @@
     const copy = document.querySelector("[data-referral-copy]");
     const note = document.querySelector("[data-referral-note]");
     const button = document.querySelector("[data-referral-continue]");
+    const isValidFourDigitCode = /^\d{4}$/.test(code);
 
     function disableReferral(message) {
       title.textContent = "This referral link is not active";
@@ -122,8 +123,8 @@
       button.href = "/";
     }
 
-    if (!code || isInvalid) {
-      disableReferral("This referral link is missing or invalid.");
+    if (!code || !isValidFourDigitCode || isInvalid) {
+      disableReferral("This referral link is missing or invalid. Please ask your friend for a fresh 4-digit referral link.");
     } else if (isExpired) {
       disableReferral("This referral link has expired after 30 days.");
     } else {

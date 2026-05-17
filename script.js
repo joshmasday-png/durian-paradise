@@ -78,6 +78,20 @@ function normalizeOwnedReferralEntry(referral) {
   return normalized;
 }
 
+function isFourDigitClientReferralCode(value) {
+  return /^\d{4}$/.test(String(value || "").trim());
+}
+
+function buildClientReferralLink(code) {
+  const normalizedCode = String(code || "").trim();
+
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
+    return "";
+  }
+
+  return `${window.location.origin}/referral.html?code=${encodeURIComponent(normalizedCode)}`;
+}
+
 function getIsoTimestamp(value) {
   const timestamp = Date.parse(String(value || "").trim());
   return Number.isFinite(timestamp) ? timestamp : 0;
@@ -566,16 +580,17 @@ function storeOwnedReferral(referral) {
 
 function getStoredReferralLookupCode() {
   try {
-    return normalizeClientReferralCode(readStorageItem(REFERRAL_LOOKUP_STORAGE_KEY));
+    const storedCode = String(readStorageItem(REFERRAL_LOOKUP_STORAGE_KEY) || "").trim();
+    return isFourDigitClientReferralCode(storedCode) ? storedCode : "";
   } catch (_error) {
     return "";
   }
 }
 
 function setStoredReferralLookupCode(code) {
-  const normalizedCode = normalizeClientReferralCode(code);
+  const normalizedCode = String(code || "").trim();
 
-  if (!normalizedCode) {
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
     removeStorageItem(REFERRAL_LOOKUP_STORAGE_KEY);
     return "";
   }
@@ -691,7 +706,7 @@ function getDisplayableReferralRewards() {
   const referrals = loadOwnedReferrals();
   const activeReferral = (activeCode
     ? referrals.find((entry) => String(entry.code || "") === activeCode)
-    : null) || getLatestOwnedReferral(false) || getLatestOwnedReferral(true);
+    : null) || [getLatestOwnedReferral(false), getLatestOwnedReferral(true)].find((entry) => entry && isFourDigitClientReferralCode(entry.code));
 
   if (!activeReferral) {
     return [];
@@ -709,7 +724,7 @@ function getDisplayableReferralRewards() {
 async function fetchReferralStatusByCode(code) {
   const normalizedCode = normalizeClientReferralCode(code);
 
-  if (!normalizedCode) {
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
     throw new Error("Enter a valid referral code.");
   }
 
@@ -790,7 +805,14 @@ function getStoredReferralCode() {
       return "";
     }
 
-    return String(parsed.code);
+    const code = String(parsed.code || "").trim();
+
+    if (!isFourDigitClientReferralCode(code)) {
+      removeStorageItem(REFERRAL_STORAGE_KEY);
+      return "";
+    }
+
+    return code;
   } catch (_error) {
     removeStorageItem(REFERRAL_STORAGE_KEY);
     return "";
@@ -799,16 +821,14 @@ function getStoredReferralCode() {
 
 function normalizeClientReferralCode(value) {
   return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "")
-    .slice(0, 40);
+    .replace(/\D/g, "")
+    .slice(0, 4);
 }
 
 function storeReferralCode(code) {
   const normalizedCode = normalizeClientReferralCode(code);
 
-  if (!normalizedCode) {
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
     clearStoredReferralCode();
     return "";
   }
@@ -824,7 +844,8 @@ function storeReferralCode(code) {
 function captureReferralCode() {
   try {
     const params = new URLSearchParams(window.location.search || "");
-    const capturedCode = normalizeClientReferralCode(params.get("ref"));
+    const rawCode = String(params.get("ref") || "").trim();
+    const capturedCode = isFourDigitClientReferralCode(rawCode) ? rawCode : "";
 
     if (!capturedCode) {
       return;
@@ -3606,7 +3627,7 @@ function renderCleanOrderReferralRewards() {
   const ownedReferrals = loadOwnedReferrals();
   const latestReferral = (activeCode
     ? ownedReferrals.find((entry) => String(entry.code || "") === activeCode)
-    : null) || getLatestOwnedReferral(false) || getLatestOwnedReferral(true);
+    : null) || [getLatestOwnedReferral(false), getLatestOwnedReferral(true)].find((entry) => entry && isFourDigitClientReferralCode(entry.code));
   const rewards = getDisplayableReferralRewards();
 
   if (!latestReferral) {
@@ -3747,7 +3768,7 @@ async function handleCleanReferralSubmit(event) {
       referralCode.textContent = result.referral.code || "";
     }
     if (referralLink) {
-      referralLink.textContent = result.referral.link;
+      referralLink.textContent = buildClientReferralLink(result.referral.code || "") || result.referral.link || "";
     }
     if (referralLookupCode) {
       referralLookupCode.value = result.referral.code || "";
@@ -3783,7 +3804,7 @@ async function handleCleanReferralLookup() {
       referralCode.textContent = referral.code || "";
     }
     if (referralLink) {
-      referralLink.textContent = referral.link || "";
+      referralLink.textContent = buildClientReferralLink(referral.code || "") || referral.link || "";
     }
     if (referralOutput) {
       referralOutput.hidden = false;
@@ -4234,15 +4255,15 @@ function initCleanOrderFlow() {
   }
 
   const existingReferral = getLatestOwnedReferral(false);
-  if (existingReferral && existingReferral.link && referralLink && referralOutput) {
+  if (existingReferral && isFourDigitClientReferralCode(existingReferral.code) && referralLink && referralOutput) {
     if (referralCode) {
       referralCode.textContent = existingReferral.code || "";
     }
-    referralLink.textContent = existingReferral.link;
+    referralLink.textContent = buildClientReferralLink(existingReferral.code || "") || existingReferral.link || "";
     referralOutput.hidden = false;
     referralOutput.classList.add("is-visible");
   }
-  if (existingReferral && referralLookupCode) {
+  if (existingReferral && isFourDigitClientReferralCode(existingReferral.code) && referralLookupCode) {
     referralLookupCode.value = existingReferral.code || "";
   }
 
