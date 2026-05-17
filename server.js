@@ -1106,10 +1106,6 @@ function claimReferralRewards(rewardClaims, orderId) {
 
     normalizeReferralEntry(referral);
 
-    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
-      return;
-    }
-
     const reward = referral.rewards.find((entry) => entry.id === claim.rewardId);
 
     if (!reward || reward.status === "claimed") {
@@ -1630,7 +1626,9 @@ app.post("/api/referrals", (req, res) => {
       link: buildReferralLink(req, referral.code),
       expiresAt: referral.expiresAt,
       ownerToken: referral.ownerToken,
-      ownerPhone: referral.referrer && referral.referrer.phone ? referral.referrer.phone : ""
+      ownerPhone: referral.referrer && referral.referrer.phone ? referral.referrer.phone : "",
+      conversionCount: 0,
+      rewards: []
     }
   });
 });

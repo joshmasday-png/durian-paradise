@@ -1268,6 +1268,55 @@
         </div>
       </div>
 
+      <section class="referral-section">
+        <div class="referral-card">
+          <h2>Refer A Friend</h2>
+          <p>Generate your own referral link, share it with your friends, and receive a reward only after their paid order is confirmed. Referral rewards are tied to the referral code on our backend, so you can check them later from any device by entering the same code.</p>
+          <div class="referral-rewards">
+            <div class="referral-reward">
+              <strong>1st Successful Referral</strong>
+              <p>Receive a $5 voucher after your first confirmed referred purchase.</p>
+            </div>
+            <div class="referral-reward">
+              <strong>2nd Successful Referral</strong>
+              <p>Receive a $10 voucher after your second confirmed referred purchase.</p>
+            </div>
+            <div class="referral-reward">
+              <strong>3rd Successful Referral</strong>
+              <p>Receive a free 500g Group 1 durian box, then the cycle repeats back to $5.</p>
+            </div>
+          </div>
+          <form class="referral-form" data-order-referral-form>
+            <p>Share the generated link directly. When your friend checks out, make sure the referral code is filled in below the cart details before they create the order.</p>
+            <div class="referral-actions">
+              <button class="btn-email" type="submit">Generate Referral Link</button>
+              <button class="btn-email" type="button" data-order-copy-referral>Copy Referral Link</button>
+            </div>
+            <div class="referral-message" data-order-referral-message></div>
+          </form>
+          <div class="referral-output" data-order-referral-output hidden>
+            <div class="referral-field">
+              <label>Your Referral Code</label>
+              <code data-order-referral-code></code>
+            </div>
+            <div class="referral-field">
+              <label>Your Referral Link</label>
+              <code data-order-referral-link></code>
+            </div>
+          </div>
+          <div class="referral-form">
+            <div class="referral-field">
+              <label for="referral-lookup-code">Check Rewards By Referral Code</label>
+              <input id="referral-lookup-code" type="text" inputmode="numeric" maxlength="4" placeholder="Enter your 4-digit code" data-order-referral-lookup-code />
+            </div>
+            <div class="referral-actions">
+              <button class="btn-email" type="button" data-order-check-referral>Check My Rewards</button>
+            </div>
+            <div class="referral-output is-visible" data-order-referral-rewards hidden></div>
+          </div>
+        </div>
+      </section>
+
       <div class="order-hub" data-order-flow-root>
         <section id="online-delivery" class="order-subsection">
           <div id="online-delivery-heading" class="order-label-row">
@@ -1586,6 +1635,10 @@
             <label for="clean-checkout-notes">Delivery Notes</label>
             <textarea id="clean-checkout-notes" maxlength="220" data-order-checkout-notes></textarea>
           </div>
+          <div class="checkout-field">
+            <label for="clean-checkout-referral-code">Referral Code (if any)</label>
+            <input id="clean-checkout-referral-code" type="text" maxlength="40" inputmode="numeric" placeholder="Auto-filled from referral link or enter manually" data-order-checkout-referral-code />
+          </div>
         </div>
         <div class="checkout-payment-methods">
           <h3>Payment Method</h3>
@@ -1611,7 +1664,7 @@
     </div>
   </aside>
 
-  <script src="script.js?v=20260517-2" defer></script>
+  <script src="script.js?v=20260517-3" defer></script>
 
 </body>
 </html>
