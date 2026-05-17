@@ -373,7 +373,7 @@ function getPublicSiteUrl(req) {
 }
 
 function buildReferralLink(req, code) {
-  return `${getPublicSiteUrl(req)}/?ref=${encodeURIComponent(String(code || "").trim())}`;
+  return `${getPublicSiteUrl(req)}/referral.html?code=${encodeURIComponent(String(code || "").trim())}`;
 }
 
 function makeOrderId(existingOrders) {
