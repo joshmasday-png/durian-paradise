@@ -666,7 +666,7 @@ function mergeReferralRewards(rewardGroups) {
 }
 
 function getDisplayableReferralRewards() {
-  return getActiveOwnedReferralRewards();
+  return [];
 }
 
 async function fetchReferralStatusByCode(code) {
@@ -784,14 +784,7 @@ function storeReferralCode(code) {
 }
 
 function captureReferralCode() {
-  const params = new URLSearchParams(window.location.search);
-  const code = String(params.get("ref") || "").trim();
-
-  if (!code) {
-    return;
-  }
-
-  storeReferralCode(code);
+  return;
 }
 
 function clearStoredReferralCode() {
@@ -3467,28 +3460,11 @@ function syncCleanCheckoutUI() {
 }
 
 function syncCleanReferralCodeField() {
-  const { checkoutReferralCode } = getCleanOrderFlowElements();
-
-  if (!checkoutReferralCode) {
-    return;
-  }
-
-  const storedCode = getStoredReferralCode();
-  if (storedCode) {
-    checkoutReferralCode.value = storedCode;
-  }
+  return;
 }
 
 function getEffectiveReferralCode() {
-  const { checkoutReferralCode } = getCleanOrderFlowElements();
-  const manualCode = normalizeClientReferralCode(checkoutReferralCode ? checkoutReferralCode.value : "");
-
-  if (manualCode) {
-    storeReferralCode(manualCode);
-    return manualCode;
-  }
-
-  return getStoredReferralCode();
+  return "";
 }
 
 function syncCleanCartTriggerCount() {
@@ -3857,8 +3833,8 @@ async function handleCleanCheckout() {
           deliveryNotes: checkoutNotes ? checkoutNotes.value.trim() : ""
         },
         paymentMethodKey: selectedPaymentMethod.key,
-        referralCode: getEffectiveReferralCode(),
-        referralRewardClaims: getCleanRewardClaims(),
+        referralCode: "",
+        referralRewardClaims: [],
         visitorId: getVisitorId(),
         path: window.location.pathname,
         pageCategory: getPageCategory()
