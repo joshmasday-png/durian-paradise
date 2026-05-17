@@ -92,6 +92,14 @@ function buildClientReferralLink(code) {
   return `${window.location.origin}/referral.html?code=${encodeURIComponent(normalizedCode)}`;
 }
 
+function isOwnedReferralEntry(referral) {
+  return Boolean(
+    referral
+    && isFourDigitClientReferralCode(referral.code)
+    && String(referral.ownerToken || "").trim()
+  );
+}
+
 function getIsoTimestamp(value) {
   const timestamp = Date.parse(String(value || "").trim());
   return Number.isFinite(timestamp) ? timestamp : 0;
@@ -585,6 +593,20 @@ function getStoredReferralLookupCode() {
   } catch (_error) {
     return "";
   }
+}
+
+function getLatestGeneratedReferral(includeExpired = true) {
+  return loadOwnedReferrals()
+    .filter((entry) => isOwnedReferralEntry(entry))
+    .filter((entry) => {
+      if (includeExpired) {
+        return true;
+      }
+
+      const expiresAt = getIsoTimestamp(entry.expiresAt);
+      return !expiresAt || expiresAt >= Date.now();
+    })
+    .sort((left, right) => getIsoTimestamp(right.createdAt || right.expiresAt) - getIsoTimestamp(left.createdAt || left.expiresAt))[0] || null;
 }
 
 function setStoredReferralLookupCode(code) {
@@ -3627,7 +3649,7 @@ function renderCleanOrderReferralRewards() {
   const ownedReferrals = loadOwnedReferrals();
   const latestReferral = (activeCode
     ? ownedReferrals.find((entry) => String(entry.code || "") === activeCode)
-    : null) || [getLatestOwnedReferral(false), getLatestOwnedReferral(true)].find((entry) => entry && isFourDigitClientReferralCode(entry.code));
+    : null) || [getLatestGeneratedReferral(false), getLatestGeneratedReferral(true)].find(Boolean);
   const rewards = getDisplayableReferralRewards();
 
   if (!latestReferral) {
@@ -3746,7 +3768,7 @@ async function handleCleanReferralSubmit(event) {
   setCleanMessage(referralMessage, "Creating referral link...");
 
   try {
-    const ownedReferral = getLatestOwnedReferral();
+    const ownedReferral = getLatestGeneratedReferral();
     const response = await fetch(REFERRALS_API_PATH, {
       method: "POST",
       headers: {
@@ -4254,17 +4276,28 @@ function initCleanOrderFlow() {
     bindCleanOrderFlowEvents();
   }
 
-  const existingReferral = getLatestOwnedReferral(false);
-  if (existingReferral && isFourDigitClientReferralCode(existingReferral.code) && referralLink && referralOutput) {
+  const existingReferral = getLatestGeneratedReferral(false);
+  if (existingReferral && referralLink && referralOutput) {
     if (referralCode) {
       referralCode.textContent = existingReferral.code || "";
     }
     referralLink.textContent = buildClientReferralLink(existingReferral.code || "") || existingReferral.link || "";
     referralOutput.hidden = false;
     referralOutput.classList.add("is-visible");
+  } else if (referralOutput) {
+    referralOutput.hidden = true;
+    referralOutput.classList.remove("is-visible");
+    if (referralCode) {
+      referralCode.textContent = "";
+    }
+    if (referralLink) {
+      referralLink.textContent = "";
+    }
   }
-  if (existingReferral && isFourDigitClientReferralCode(existingReferral.code) && referralLookupCode) {
+  if (existingReferral && referralLookupCode) {
     referralLookupCode.value = existingReferral.code || "";
+  } else if (referralLookupCode) {
+    referralLookupCode.value = "";
   }
 
   syncCleanCartTriggerCount();
