@@ -225,6 +225,8 @@
   box-shadow: 0 14px 32px rgba(104, 73, 36, 0.08);
   margin-top: 26px;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .party-order-card h3 {
@@ -242,6 +244,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   align-items: end;
+  margin-top: auto;
+  padding-top: 14px;
 }
 
 .standard-delivery-grid .party-order-grid {
