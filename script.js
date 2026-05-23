@@ -424,20 +424,20 @@ function getPaymentMethodConfig(methodKey) {
   if (key === "stripe_qr") {
     return {
       key,
-      title: "Stripe Checkout QR",
-      checkoutButtonLabel: "Generate Stripe Checkout QR",
-      checkoutNote: "Enter your delivery details, then generate a QR code that opens the exact Stripe Checkout payment page on another device.",
+      title: "PayNow QR Code",
+      checkoutButtonLabel: "Generate PayNow QR Code",
+      checkoutNote: "Enter your delivery details, then generate a QR code that opens the exact payment page on another device.",
       copyButtonLabel: "Copy Stripe checkout link",
-      qrImageLabel: "Scan this QR code to open Stripe Checkout",
+      qrImageLabel: "Scan this QR code to open payment",
       supportsQr: true
     };
   }
 
   return {
     key,
-    title: "Stripe Checkout",
-    checkoutButtonLabel: "Proceed to Stripe Checkout",
-    checkoutNote: "Enter your delivery details, then continue to Stripe Checkout to pay the exact validated order amount automatically.",
+    title: "Card Payment",
+    checkoutButtonLabel: "Proceed to Card Payment",
+    checkoutNote: "Enter your delivery details, then continue to the card payment page to pay the exact validated order amount automatically.",
     copyButtonLabel: "Copy Stripe checkout link",
     qrImageLabel: "",
     supportsQr: false
@@ -2171,20 +2171,20 @@ function ensureCartUI() {
           <label class="checkout-payment-option">
             <input type="radio" name="checkout-payment-method" value="stripe_checkout" data-checkout-payment-method checked />
             <span>
-              <strong>Stripe Checkout</strong>
-              <small>Continue to Stripe’s secure payment page with the exact validated order amount.</small>
+              <strong>Card Payment</strong>
+              <small>Continue to the secure payment page with the exact validated order amount.</small>
             </span>
           </label>
           <label class="checkout-payment-option">
             <input type="radio" name="checkout-payment-method" value="stripe_qr" data-checkout-payment-method />
             <span>
-              <strong>Stripe Checkout QR</strong>
-              <small>Generate a QR code that opens the same Stripe Checkout payment page on another device.</small>
+              <strong>PayNow QR Code</strong>
+              <small>Generate a QR code that opens the same payment page on another device.</small>
             </span>
           </label>
         </div>
-        <p class="checkout-note" data-checkout-payment-note>Enter your delivery details, choose a payment method, then continue to Stripe Checkout.</p>
-        <button class="checkout-button" type="button" data-cart-checkout disabled>Proceed to Stripe Checkout</button>
+        <p class="checkout-note" data-checkout-payment-note>Enter your delivery details, choose a payment method, then continue to payment.</p>
+        <button class="checkout-button" type="button" data-cart-checkout disabled>Proceed to Card Payment</button>
         <div data-payment-request></div>
       </div>
     `;
