@@ -2813,9 +2813,10 @@ function bindProductCards() {
 
     card.dataset.productCardBound = "true";
     const select = card.querySelector("[data-variant-select]");
+    const quantityInput = card.querySelector("[data-variant-quantity-input]");
     const button = card.querySelector("[data-add-product]");
 
-    if (!select || !button) {
+    if (!select || !quantityInput || !button) {
       return;
     }
 
@@ -2827,6 +2828,10 @@ function bindProductCards() {
 
     syncProductButton();
     select.addEventListener("change", syncProductButton);
+    quantityInput.addEventListener("input", () => {
+      const nextQuantity = Math.max(1, Number.parseInt(quantityInput.value, 10) || 1);
+      quantityInput.value = String(nextQuantity);
+    });
     button.textContent = "Add to Cart";
 
     if (button.dataset.clickBound !== "true") {
@@ -2837,6 +2842,7 @@ function bindProductCards() {
         }
 
         const option = select.options[select.selectedIndex];
+        const quantity = Math.max(1, Number.parseInt(quantityInput.value, 10) || 1);
 
         if (!option || !option.value) {
           if (typeof select.focus === "function") {
@@ -2852,7 +2858,7 @@ function bindProductCards() {
           variantValue: option.value,
           variantLabel: option.dataset.label || option.textContent,
           unitPrice: Number(option.dataset.price || 0),
-          quantity: 1
+          quantity
         };
 
         addToCart(item);
@@ -2867,6 +2873,7 @@ function bindProductCards() {
         renderCart();
         flashAddedState(button);
         select.selectedIndex = 0;
+        quantityInput.value = "1";
         window.setTimeout(syncProductButton, 900);
       });
     }
