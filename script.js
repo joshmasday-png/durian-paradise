@@ -2823,7 +2823,6 @@ function bindProductCards() {
       const option = select.options[select.selectedIndex];
       const isReady = Boolean(option && option.value);
       setActionButtonState(button, isReady);
-      button.hidden = !isReady;
     };
 
     syncProductButton();
