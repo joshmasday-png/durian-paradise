@@ -2771,28 +2771,16 @@ function bindProductCards() {
 
     card.dataset.productCardBound = "true";
     const button = card.querySelector("[data-add-product]");
-    const details = card.querySelector("[data-multi-option]");
-    const summary = card.querySelector("[data-multi-option-summary]");
     const rows = Array.from(card.querySelectorAll("[data-variant-row]"));
 
-    if (!button || !details || !summary || !rows.length) {
+    if (!button || !rows.length) {
       return;
     }
 
     const syncCardState = () => {
       const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
-      summary.textContent = selectedRows.length
-        ? selectedRows.map((row) => `${row.dataset.variantValue} x${row.dataset.quantity}`).join(", ")
-        : "Choose 650g or 800g";
       setActionButtonState(button, selectedRows.length > 0);
     };
-
-    if (summary.dataset.summaryTapBound !== "true") {
-      summary.dataset.summaryTapBound = "true";
-      bindTap(summary, () => {
-        details.open = !details.open;
-      }, { preventDefault: true });
-    }
 
     rows.forEach((row) => {
       row.dataset.quantity = row.dataset.quantity || "0";
@@ -2830,24 +2818,12 @@ function bindProductCards() {
             return;
           }
 
-          details.open = true;
           updateQty(Number(row.dataset.quantity || 0) + 1);
         }, { stopPropagation: true });
       }
 
       updateQty(Number(row.dataset.quantity || 0));
     });
-
-    if (!productCardsBound) {
-      productCardsBound = true;
-      document.addEventListener("click", (event) => {
-        document.querySelectorAll("[data-multi-option]").forEach((openDetails) => {
-          if (!openDetails.contains(event.target)) {
-            openDetails.removeAttribute("open");
-          }
-        });
-      });
-    }
 
     syncCardState();
     button.textContent = "Add to Cart";
@@ -2862,10 +2838,6 @@ function bindProductCards() {
         const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
 
         if (!selectedRows.length) {
-          details.open = true;
-          if (typeof summary.focus === "function") {
-            summary.focus();
-          }
           return;
         }
 
@@ -2899,7 +2871,6 @@ function bindProductCards() {
             qtyEl.textContent = "0";
           }
         });
-        details.removeAttribute("open");
         window.setTimeout(syncCardState, 900);
       });
     }

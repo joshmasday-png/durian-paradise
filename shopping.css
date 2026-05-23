@@ -250,28 +250,12 @@
 
 .standard-delivery-grid .party-order-grid {
   grid-template-columns: 1fr;
+  justify-items: center;
 }
 
 .standard-delivery-grid .shop-button {
   width: 100%;
-}
-
-.multi-option-select {
-  position: relative;
-  z-index: 1;
-}
-
-.multi-option-select summary {
-  list-style: none;
-  width: 100%;
-  padding: 12px 42px 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(170, 156, 138, 0.32);
-  background: rgba(250, 246, 240, 0.96);
-  font-size: 16px;
-  color: #222;
-  cursor: pointer;
-  touch-action: manipulation;
+  max-width: 420px;
 }
 
 @media (max-width: 768px) {
@@ -283,29 +267,9 @@
   }
 }
 
-.multi-option-select summary::-webkit-details-marker {
-  display: none;
-}
-
-.multi-option-select summary::after {
-  content: "▾";
-  float: right;
-  color: #7a5e39;
-}
-
-.multi-option-select[open] summary::after {
-  content: "▴";
-}
-
-.party-order-card:focus-within {
-  z-index: 6;
-}
-
-.multi-option-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
+.delivery-option-list {
+  width: 100%;
+  max-width: 420px;
   z-index: 20;
   display: grid;
   gap: 8px;
@@ -314,8 +278,6 @@
   background: rgba(252, 249, 245, 0.98);
   border: 1px solid rgba(170, 156, 138, 0.22);
   box-shadow: 0 18px 36px rgba(104, 73, 36, 0.12);
-  max-height: min(400px, 60vh);
-  overflow-y: auto;
 }
 
 .multi-option-item {
