@@ -76,22 +76,19 @@
     }
 
     .topbar-inner {
-      position: relative;
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
       align-items: center;
-      justify-content: center;
       gap: 22px;
       padding: 18px 0;
       min-height: 92px;
     }
 
     .site-logo {
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
       display: inline-flex;
       align-items: center;
+      grid-column: 1;
+      justify-self: start;
     }
 
     .site-logo img {
