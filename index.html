@@ -1124,10 +1124,22 @@
             </div>
             <div class="referral-message" data-referral-message></div>
             <div class="referral-output" data-referral-output>
+              <strong>Your referral code</strong>
+              <code data-referral-code></code>
               <strong>Your referral link</strong>
               <code data-referral-link></code>
               <button class="btn-email" type="button" data-copy-referral-link>Copy Referral Link</button>
             </div>
+            <div class="referral-form" style="margin-top: 14px;">
+              <div class="referral-field">
+                <label for="referral-lookup-code">Check Rewards By Referral Code</label>
+                <input id="referral-lookup-code" type="text" maxlength="4" inputmode="numeric" placeholder="Enter your 4-digit referral code" data-referral-lookup-code />
+              </div>
+              <div class="referral-actions" style="margin-top: 14px;">
+                <button class="btn-email" type="button" data-check-referral>Check My Rewards</button>
+              </div>
+            </div>
+            <div class="referral-output" data-referral-status hidden></div>
           </div>
         </div>
       </section>
