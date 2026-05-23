@@ -2068,49 +2068,7 @@ function bindNavMenus() {
 }
 
 function enhanceVarietyImages() {
-  if (!document.querySelector(".variety-gallery img")) {
-    return;
-  }
-
-  const isMobile = window.matchMedia("(max-width: 640px)").matches;
-  const wrapImages = () => {
-    document.querySelectorAll(".variety-gallery img").forEach((img) => {
-      if (!img.hasAttribute("loading")) {
-        img.loading = "lazy";
-      }
-
-      if (!img.hasAttribute("decoding")) {
-        img.decoding = "async";
-      }
-
-      if (isMobile) {
-        return;
-      }
-
-      if (img.parentElement && img.parentElement.classList.contains("smart-image-frame")) {
-        return;
-      }
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "smart-image-frame";
-      wrapper.style.setProperty("--image-src", `url("${img.getAttribute("src")}")`);
-      img.classList.add("smart-image-fg");
-
-      img.parentNode.insertBefore(wrapper, img);
-      wrapper.appendChild(img);
-    });
-  };
-
-  if (isMobile) {
-    wrapImages();
-    return;
-  }
-
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(wrapImages, { timeout: 900 });
-  } else {
-    window.setTimeout(wrapImages, 120);
-  }
+  return;
 }
 
 function ensureCartUI() {
