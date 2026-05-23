@@ -419,7 +419,7 @@ function getPaymentMethodConfig(methodKey) {
     key: DEFAULT_PAYMENT_METHOD_KEY,
     title: "Secure Checkout",
     checkoutButtonLabel: "Proceed to Secure Checkout",
-    checkoutNote: "Enter your delivery details, then continue to secure checkout. Inside checkout, customers can choose from available methods such as Card, PayNow, Apple Pay, and others supported by Stripe.",
+    checkoutNote: "Enter your delivery details here first, then continue to secure checkout. Inside payment, customers can choose from available methods such as Card, PayNow, Apple Pay, and others.",
     copyButtonLabel: "Copy Stripe checkout link",
     qrImageLabel: "",
     supportsQr: false
@@ -2461,7 +2461,7 @@ function renderPaymentRequestCard(pendingPayment) {
     <div class="payment-request-card">
       <h3>${escapeHtml(paymentMethod.title)}</h3>
       <div class="payment-request-total">
-        <span>${paymentMethod.supportsQr ? "Amount To Pay After Scanning" : "Amount To Pay In Stripe"}</span>
+        <span>${paymentMethod.supportsQr ? "Amount To Pay After Scanning" : "Amount To Pay"}</span>
         <strong>${escapeHtml(totalDisplay)}</strong>
       </div>
       ${paymentMethod.supportsQr ? `
@@ -2494,9 +2494,9 @@ function renderPaymentRequestCard(pendingPayment) {
       </div>
       ${(items.length || breakdown) ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
       <p>${escapeHtml(pendingPayment.message || "")}</p>
-      ${paymentConfirmed ? `<p><strong>Stripe has confirmed this payment.</strong> Your order is now marked as paid.</p>` : ""}
+      ${paymentConfirmed ? `<p><strong>Payment has been confirmed.</strong> Your order is now marked as paid.</p>` : ""}
       <div class="payment-request-actions">
-        ${checkoutUrl ? `<a class="btn-email" href="${escapeHtml(checkoutUrl)}" target="_blank" rel="noopener">Open Stripe Checkout</a>` : ""}
+        ${checkoutUrl ? `<a class="btn-email" href="${escapeHtml(checkoutUrl)}" target="_blank" rel="noopener">Open Payment Page</a>` : ""}
         <button class="payment-request-clear" type="button" data-clear-payment-request>Clear payment panel</button>
       </div>
     </div>
@@ -2705,8 +2705,8 @@ function bindCartUI() {
 
       checkout.disabled = true;
       checkout.textContent = selectedPaymentMethod.supportsQr
-        ? "Generating Stripe Checkout QR..."
-        : "Redirecting To Stripe Checkout...";
+        ? "Preparing Payment..."
+        : "Redirecting To Payment...";
 
       try {
         const response = await fetch(STRIPE_CHECKOUT_SESSION_API_PATH, {
@@ -2740,7 +2740,7 @@ function bindCartUI() {
         const payload = await response.json();
 
         if (!response.ok || !payload.order || !payload.checkoutUrl) {
-          throw new Error(payload.error || "Unable to create Stripe checkout session.");
+          throw new Error(payload.error || "Unable to start payment.");
         }
 
         savePendingPayment({
@@ -2754,8 +2754,8 @@ function bindCartUI() {
           paymentMethod: selectedPaymentMethod.title,
           paymentStatus: payload.order.paymentStatus || "checkout_pending",
           message: selectedPaymentMethod.supportsQr
-            ? "Scan this QR code or open the Stripe checkout link to pay the exact validated amount."
-            : "Redirecting you to Stripe Checkout to complete payment securely."
+            ? "Open the payment page to pay the exact validated amount."
+            : "Redirecting you to the secure payment page."
         });
         renderCart();
         const updatedPaymentRequest = document.querySelector("[data-payment-request]");
@@ -2768,7 +2768,7 @@ function bindCartUI() {
         checkout.disabled = false;
         syncCheckoutPaymentMethodUI();
       } catch (error) {
-        window.alert(error && error.message ? error.message : "Unable to create Stripe checkout session.");
+        window.alert(error && error.message ? error.message : "Unable to start payment.");
         checkout.disabled = false;
         syncCheckoutPaymentMethodUI();
       }

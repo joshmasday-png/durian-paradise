@@ -2240,10 +2240,7 @@ async function handleCreateCheckoutSession(req, res) {
       mode: "payment",
       client_reference_id: order.id,
       customer_email: order.customer.email,
-      billing_address_collection: "required",
-      phone_number_collection: {
-        enabled: true
-      },
+      billing_address_collection: "auto",
       line_items: lineItems,
       discounts: couponId ? [{ coupon: couponId }] : [],
       success_url: `${siteUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,

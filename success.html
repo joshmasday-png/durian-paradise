@@ -45,7 +45,7 @@
 <body>
   <main class="card">
     <h1>Payment Successful</h1>
-    <p id="status-message">Stripe has received your payment. We’re confirming the order now and will contact you if we need any follow-up details.</p>
+    <p id="status-message">We’ve received your payment. We’re confirming the order now and will contact you if we need any follow-up details.</p>
     <a href="index.html">Return to Homepage</a>
   </main>
   <script>
@@ -77,7 +77,7 @@
 
           if (response.ok && payload && payload.paymentStatus === "paid") {
             clearPrefixedStorage();
-            statusMessage.textContent = "Your Stripe payment has been confirmed and your durian order is locked in.";
+            statusMessage.textContent = "Your payment has been confirmed and your durian order is locked in.";
             return;
           }
         } catch (_error) {
@@ -89,7 +89,7 @@
         }
       }
 
-      statusMessage.textContent = "Stripe accepted your payment. We’re still waiting for final confirmation, so your order panel will stay available until the webhook finishes.";
+      statusMessage.textContent = "Your payment was accepted. We’re still waiting for final confirmation, so your order panel will stay available until processing finishes.";
     })();
   </script>
 </body>
