@@ -2828,7 +2828,7 @@ function bindCartUI() {
             paymentMethodKey: selectedPaymentMethod.key,
             referralCode: getStoredReferralCode(),
             referralRewardClaims,
-            totalAmount: pricing.total,
+            totalAmount: Math.round(Number(pricing.total || 0) * 100),
             visitorId: getVisitorId(),
             path: window.location.pathname,
             pageCategory: getPageCategory()
