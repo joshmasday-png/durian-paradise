@@ -415,10 +415,6 @@
       margin-top: 40px;
     }
 
-    #online-delivery {
-      scroll-margin-top: 120px;
-    }
-
     .payment-subsection {
       background: rgba(252, 249, 245, 0.9);
       border: 1px solid rgba(170, 156, 138, 0.14);
@@ -646,165 +642,6 @@
 
     .referral-message.is-success {
       color: #486c32;
-    }
-
-    .order-option-list {
-      display: grid;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .order-option-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 14px 16px;
-      border-radius: 18px;
-      border: 1px solid rgba(170, 156, 138, 0.16);
-      background: rgba(245, 237, 225, 0.94);
-    }
-
-    .order-option-controls {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-
-    .order-qty-button {
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      border: 1px solid rgba(120, 100, 76, 0.2);
-      background: #fffaf4;
-      color: #2d241c;
-      font: inherit;
-      font-size: 20px;
-      line-height: 1;
-      cursor: pointer;
-    }
-
-    .clean-cart-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(24, 18, 12, 0.38);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.22s ease;
-      z-index: 1200;
-    }
-
-    .clean-cart-overlay.is-open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .clean-cart-drawer {
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: min(540px, 100vw);
-      height: 100vh;
-      background: linear-gradient(180deg, #f7f1e7 0%, #eee3d3 100%);
-      box-shadow: -24px 0 40px rgba(42, 29, 16, 0.18);
-      transform: translateX(100%);
-      transition: transform 0.24s ease;
-      z-index: 1250;
-      display: flex;
-      flex-direction: column;
-      visibility: hidden;
-    }
-
-    .clean-cart-drawer.is-open {
-      transform: translateX(0);
-      visibility: visible;
-    }
-
-    .cart-drawer__content {
-      display: grid;
-      gap: 18px;
-      padding: 18px 20px 28px;
-      overflow-y: auto;
-    }
-
-    .cart-breakdown-shell,
-    .checkout-shell,
-    .clean-cart-body .cart-empty,
-    .clean-cart-line {
-      background: rgba(255, 250, 244, 0.92);
-      border: 1px solid rgba(170, 156, 138, 0.16);
-      border-radius: 22px;
-      padding: 18px;
-    }
-
-    .cart-breakdown-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 12px;
-    }
-
-    .clean-cart-body {
-      display: grid;
-      gap: 14px;
-    }
-
-    .clean-cart-line {
-      display: grid;
-      gap: 12px;
-    }
-
-    .clean-cart-line__top,
-    .clean-cart-line__bottom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .clean-cart-line__type {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #7a5d35;
-    }
-
-    .clean-cart-line__name {
-      font-size: 18px;
-      font-weight: 700;
-      color: #241b14;
-    }
-
-    .clean-cart-line__variant {
-      color: #4b4037;
-      font-size: 14px;
-    }
-
-    .clean-cart-line__subtotal {
-      font-weight: 700;
-      color: #241b14;
-    }
-
-    .clean-cart-line__remove {
-      border: none;
-      background: none;
-      color: #8e4a38;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .checkout-shell {
-      display: grid;
-      gap: 18px;
-    }
-
-    .clean-cart-message:empty {
-      display: none;
     }
 
     .reviews-section {
@@ -1162,14 +999,6 @@
         justify-content: center;
       }
 
-      .order-option-row,
-      .clean-cart-line__top,
-      .clean-cart-line__bottom,
-      .cart-breakdown-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
       .order-direct__image {
         padding: 14px;
       }
@@ -1208,7 +1037,7 @@
         </a>
         <nav class="nav">
         <a href="#top">Home</a>
-        <a href="#online-delivery">Order Now</a>
+        <a href="#online-delivery-heading" data-scroll-target="#online-delivery-heading">Order Now</a>
         <div class="nav-group">
           <button class="nav-toggle" type="button">Types of Durian</button>
           <div class="nav-menu">
@@ -1220,9 +1049,9 @@
         <a href="contact-us.html">Contact Us</a>
         <a href="#reviews">Reviews</a>
       </nav>
-      <button class="header-cart-trigger" type="button" data-order-cart-trigger aria-controls="order-cart-drawer" aria-expanded="false">
+      <button class="header-cart-trigger" type="button" data-cart-trigger aria-controls="cart-drawer" aria-expanded="false">
         <span>View Cart</span>
-        <span class="header-cart-badge" data-order-cart-count>0</span>
+        <span class="header-cart-badge" data-cart-count>0</span>
       </button>
     </div>
   </header>
@@ -1239,7 +1068,7 @@
     <div class="container">
       <div class="order-direct__content order-direct__content--compact">
           <div class="order-direct__text">
-          <a id="order-now-cta" href="#online-delivery" class="btn-email order-direct__cta">Order Now</a>
+          <a id="order-now-cta" href="#online-delivery-heading" class="btn-email order-direct__cta" data-scroll-target="#online-delivery-heading">Order Now</a>
         </div>
         <div class="order-direct__image">
           <img src="images/order-direct-durian.jpeg" alt="Opened durian showing yellow flesh" width="978" height="706" loading="eager" decoding="async" />
@@ -1268,56 +1097,42 @@
         </div>
       </div>
 
-      <section class="referral-section">
-        <div class="referral-card">
-          <h2>Refer A Friend</h2>
-          <p>Generate your own referral link, share it with your friends, and receive a reward only after their paid order is confirmed. Referral rewards are tied to the referral code on our backend, so you can check them later from any device by entering the same code.</p>
-          <div class="referral-rewards">
-            <div class="referral-reward">
-              <strong>1st Successful Referral</strong>
-              <p>Receive a $5 voucher after your first confirmed referred purchase.</p>
+      <section id="referral" class="section referral-section">
+        <div class="container">
+          <div class="referral-card">
+            <span class="order-badge party">Referral Program</span>
+            <h2>Refer A Friend</h2>
+            <p>Generate your referral link, send it to a friend, and when your friend places an order through that link and clicks I Have Paid, your referral reward is recorded automatically. The reward cycle repeats every 3 successful referred orders, so the 4th referred order starts again at the $5 reward.</p>
+
+            <div class="referral-rewards">
+              <div class="referral-reward">
+                <strong>1st Referral</strong>
+                <span>You will receive a $5 discount for the 1st referral.</span>
+              </div>
+              <div class="referral-reward">
+                <strong>2nd Referral</strong>
+                <span>You will receive a $10 discount for the 2nd referral.</span>
+              </div>
+              <div class="referral-reward">
+                <strong>3rd Referral</strong>
+                <span>You will receive a free 500g box of Group 1 durians for the 3rd referral.</span>
+              </div>
             </div>
-            <div class="referral-reward">
-              <strong>2nd Successful Referral</strong>
-              <p>Receive a $10 voucher after your second confirmed referred purchase.</p>
-            </div>
-            <div class="referral-reward">
-              <strong>3rd Successful Referral</strong>
-              <p>Receive a free 500g Group 1 durian box, then the cycle repeats back to $5.</p>
-            </div>
-          </div>
-          <form class="referral-form" data-order-referral-form>
-            <p>Share the generated link directly. When your friend checks out, make sure the referral code is filled in below the cart details before they create the order.</p>
+
             <div class="referral-actions">
-              <button class="btn-email" type="submit">Generate Referral Link</button>
-              <button class="btn-email" type="button" data-order-copy-referral>Copy Referral Link</button>
+              <button class="btn-email" type="button" data-referral-submit>Generate Referral Link</button>
             </div>
-            <div class="referral-message" data-order-referral-message></div>
-          </form>
-          <div class="referral-output" data-order-referral-output hidden>
-            <div class="referral-field">
-              <label>Your Referral Code</label>
-              <code data-order-referral-code></code>
+            <div class="referral-message" data-referral-message></div>
+            <div class="referral-output" data-referral-output>
+              <strong>Your referral link</strong>
+              <code data-referral-link></code>
+              <button class="btn-email" type="button" data-copy-referral-link>Copy Referral Link</button>
             </div>
-            <div class="referral-field">
-              <label>Your Referral Link</label>
-              <code data-order-referral-link></code>
-            </div>
-          </div>
-          <div class="referral-form">
-            <div class="referral-field">
-              <label for="referral-lookup-code">Check Rewards By Referral Code</label>
-              <input id="referral-lookup-code" type="text" inputmode="numeric" maxlength="4" placeholder="Enter your 4-digit code" data-order-referral-lookup-code />
-            </div>
-            <div class="referral-actions">
-              <button class="btn-email" type="button" data-order-check-referral>Check My Rewards</button>
-            </div>
-            <div class="referral-output is-visible" data-order-referral-rewards hidden></div>
           </div>
         </div>
       </section>
 
-      <div class="order-hub" data-order-flow-root>
+      <div class="order-hub">
         <section id="online-delivery" class="order-subsection">
           <div id="online-delivery-heading" class="order-label-row">
             <span class="order-badge delivery">Online Delivery</span>
@@ -1332,103 +1147,118 @@
             <p><strong>Buy 5 boxes, the 6th box from Group 1 with 500g is free.</strong></p>
           </div>
           <div class="shop-grid standard-delivery-grid">
-            <div class="party-order-card" data-order-delivery-card data-product-id="delivery-group1" data-product-name="Group 1 Durians" data-order-type="Online Delivery">
+            <div class="party-order-card" data-product-card data-product-id="delivery-group1" data-product-name="Group 1 Durians" data-order-type="Online Delivery">
               <h3>Group 1 <span class="availability">(upon availability)</span></h3>
               <p>Standard online delivery order.</p>
-              <div class="order-option-list">
-                <div class="order-option-row" data-order-delivery-row data-variant-value="650g" data-variant-label="650g - $49 / box" data-unit-price="49">
-                  <div class="multi-option-copy">
-                    <strong>650g</strong>
-                    <span>$49 / box</span>
-                  </div>
-                  <div class="order-option-controls">
-                    <button class="order-qty-button" type="button" data-order-action="delivery-decrease">-</button>
-                    <span data-order-quantity>0</span>
-                    <button class="order-qty-button" type="button" data-order-action="delivery-increase">+</button>
-                  </div>
-                </div>
-                <div class="order-option-row" data-order-delivery-row data-variant-value="800g" data-variant-label="800g - $60 / box" data-unit-price="60">
-                  <div class="multi-option-copy">
-                    <strong>800g</strong>
-                    <span>$60 / box</span>
-                  </div>
-                  <div class="order-option-controls">
-                    <button class="order-qty-button" type="button" data-order-action="delivery-decrease">-</button>
-                    <span data-order-quantity>0</span>
-                    <button class="order-qty-button" type="button" data-order-action="delivery-increase">+</button>
-                  </div>
-                </div>
-              </div>
               <div class="party-order-grid">
-                <button class="shop-button" type="button" data-order-action="add-delivery">Add to Cart</button>
+                <div class="shop-field">
+                  <label>Delivery Option</label>
+                  <details class="multi-option-select" data-multi-option>
+                    <summary data-multi-option-summary>Choose option(s)</summary>
+                    <div class="multi-option-menu">
+                      <div class="multi-option-item" data-variant-row data-variant-value="650g" data-variant-label="650g - $49 / box" data-unit-price="49">
+                        <div class="multi-option-copy">
+                          <strong>650g</strong>
+                          <span>$49 / box</span>
+                        </div>
+                        <div class="multi-option-qty">
+                          <button type="button" data-variant-decrease>-</button>
+                          <span data-variant-quantity>0</span>
+                          <button type="button" data-variant-increase>+</button>
+                        </div>
+                      </div>
+                      <div class="multi-option-item" data-variant-row data-variant-value="800g" data-variant-label="800g - $60 / box" data-unit-price="60">
+                        <div class="multi-option-copy">
+                          <strong>800g</strong>
+                          <span>$60 / box</span>
+                        </div>
+                        <div class="multi-option-qty">
+                          <button type="button" data-variant-decrease>-</button>
+                          <span data-variant-quantity>0</span>
+                          <button type="button" data-variant-increase>+</button>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
-              <div class="referral-message" data-order-card-message></div>
             </div>
 
-            <div class="party-order-card" data-order-delivery-card data-product-id="delivery-group2" data-product-name="Group 2 Durians" data-order-type="Online Delivery">
+            <div class="party-order-card" data-product-card data-product-id="delivery-group2" data-product-name="Group 2 Durians" data-order-type="Online Delivery">
               <h3>Group 2 <span class="availability">(upon availability)</span></h3>
               <p>Mao Shan Wang delivery order.</p>
-              <div class="order-option-list">
-                <div class="order-option-row" data-order-delivery-row data-variant-value="650g" data-variant-label="650g - $60 / box" data-unit-price="60">
-                  <div class="multi-option-copy">
-                    <strong>650g</strong>
-                    <span>$60 / box</span>
-                  </div>
-                  <div class="order-option-controls">
-                    <button class="order-qty-button" type="button" data-order-action="delivery-decrease">-</button>
-                    <span data-order-quantity>0</span>
-                    <button class="order-qty-button" type="button" data-order-action="delivery-increase">+</button>
-                  </div>
-                </div>
-                <div class="order-option-row" data-order-delivery-row data-variant-value="800g" data-variant-label="800g - $72 / box" data-unit-price="72">
-                  <div class="multi-option-copy">
-                    <strong>800g</strong>
-                    <span>$72 / box</span>
-                  </div>
-                  <div class="order-option-controls">
-                    <button class="order-qty-button" type="button" data-order-action="delivery-decrease">-</button>
-                    <span data-order-quantity>0</span>
-                    <button class="order-qty-button" type="button" data-order-action="delivery-increase">+</button>
-                  </div>
-                </div>
-              </div>
               <div class="party-order-grid">
-                <button class="shop-button" type="button" data-order-action="add-delivery">Add to Cart</button>
+                <div class="shop-field">
+                  <label>Delivery Option</label>
+                  <details class="multi-option-select" data-multi-option>
+                    <summary data-multi-option-summary>Choose option(s)</summary>
+                    <div class="multi-option-menu">
+                      <div class="multi-option-item" data-variant-row data-variant-value="650g" data-variant-label="650g - $60 / box" data-unit-price="60">
+                        <div class="multi-option-copy">
+                          <strong>650g</strong>
+                          <span>$60 / box</span>
+                        </div>
+                        <div class="multi-option-qty">
+                          <button type="button" data-variant-decrease>-</button>
+                          <span data-variant-quantity>0</span>
+                          <button type="button" data-variant-increase>+</button>
+                        </div>
+                      </div>
+                      <div class="multi-option-item" data-variant-row data-variant-value="800g" data-variant-label="800g - $72 / box" data-unit-price="72">
+                        <div class="multi-option-copy">
+                          <strong>800g</strong>
+                          <span>$72 / box</span>
+                        </div>
+                        <div class="multi-option-qty">
+                          <button type="button" data-variant-decrease>-</button>
+                          <span data-variant-quantity>0</span>
+                          <button type="button" data-variant-increase>+</button>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
-              <div class="referral-message" data-order-card-message></div>
             </div>
 
-            <div class="party-order-card" data-order-delivery-card data-product-id="delivery-group3" data-product-name="Group 3 Durians" data-order-type="Online Delivery">
+            <div class="party-order-card" data-product-card data-product-id="delivery-group3" data-product-name="Group 3 Durians" data-order-type="Online Delivery">
               <h3>Group 3 <span class="availability">(upon availability)</span></h3>
               <p>Black Gold and Black Thorn premium delivery order.</p>
-              <div class="order-option-list">
-                <div class="order-option-row" data-order-delivery-row data-variant-value="650g" data-variant-label="650g - $65 / box" data-unit-price="65">
-                  <div class="multi-option-copy">
-                    <strong>650g</strong>
-                    <span>$65 / box</span>
-                  </div>
-                  <div class="order-option-controls">
-                    <button class="order-qty-button" type="button" data-order-action="delivery-decrease">-</button>
-                    <span data-order-quantity>0</span>
-                    <button class="order-qty-button" type="button" data-order-action="delivery-increase">+</button>
-                  </div>
-                </div>
-                <div class="order-option-row" data-order-delivery-row data-variant-value="800g" data-variant-label="800g - $75 / box" data-unit-price="75">
-                  <div class="multi-option-copy">
-                    <strong>800g</strong>
-                    <span>$75 / box</span>
-                  </div>
-                  <div class="order-option-controls">
-                    <button class="order-qty-button" type="button" data-order-action="delivery-decrease">-</button>
-                    <span data-order-quantity>0</span>
-                    <button class="order-qty-button" type="button" data-order-action="delivery-increase">+</button>
-                  </div>
-                </div>
-              </div>
               <div class="party-order-grid">
-                <button class="shop-button" type="button" data-order-action="add-delivery">Add to Cart</button>
+                <div class="shop-field">
+                  <label>Delivery Option</label>
+                  <details class="multi-option-select" data-multi-option>
+                    <summary data-multi-option-summary>Choose option(s)</summary>
+                    <div class="multi-option-menu">
+                      <div class="multi-option-item" data-variant-row data-variant-value="650g" data-variant-label="650g - $65 / box" data-unit-price="65">
+                        <div class="multi-option-copy">
+                          <strong>650g</strong>
+                          <span>$65 / box</span>
+                        </div>
+                        <div class="multi-option-qty">
+                          <button type="button" data-variant-decrease>-</button>
+                          <span data-variant-quantity>0</span>
+                          <button type="button" data-variant-increase>+</button>
+                        </div>
+                      </div>
+                      <div class="multi-option-item" data-variant-row data-variant-value="800g" data-variant-label="800g - $75 / box" data-unit-price="75">
+                        <div class="multi-option-copy">
+                          <strong>800g</strong>
+                          <span>$75 / box</span>
+                        </div>
+                        <div class="multi-option-qty">
+                          <button type="button" data-variant-decrease>-</button>
+                          <span data-variant-quantity>0</span>
+                          <button type="button" data-variant-increase>+</button>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
-              <div class="referral-message" data-order-card-message></div>
             </div>
           </div>
         </section>
@@ -1441,58 +1271,55 @@
           <h3>Durian Party</h3>
           <p>Choose your party group and select the package size for hosting and event bookings.</p>
           <div class="shop-grid">
-            <div class="party-order-card" data-order-party-card data-product-id-base="party-group1" data-product-name="Group 1 Durians" data-order-type="Durian Party">
+            <div class="party-order-card" data-party-form data-product-id-base="party-group1" data-product-name="Group 1 Durians" data-order-type="Durian Party">
               <h3>Group 1 <span class="availability">(upon availability)</span></h3>
               <p>Mixed classic durian party selection.</p>
               <div class="party-order-grid">
                 <div class="shop-field">
-                  <label for="clean-party-group1-select">Party Package</label>
-                  <select id="clean-party-group1-select" class="party-select" data-order-party-select>
+                  <label for="party-group1-select">Party Package</label>
+                  <select id="party-group1-select" class="party-select" data-party-select>
                     <option value="">Choose an option</option>
                     <option value="g1-21" data-label="8 pax - 21kg (est 11 to 13 durians) at $10/kg" data-price="210">8 pax - 21kg (est 11 to 13 durians) at $10/kg</option>
                     <option value="g1-24" data-label="13 pax - 24kg (est 14 to 17 durians) at $10/kg" data-price="240">13 pax - 24kg (est 14 to 17 durians) at $10/kg</option>
                     <option value="g1-27" data-label="18 pax - 27kg (est 16 to 19 durians) at $8/kg" data-price="216">18 pax - 27kg (est 16 to 19 durians) at $8/kg</option>
                   </select>
                 </div>
-                <button class="shop-button" type="button" data-order-action="add-party">Add to Cart</button>
+                <button class="shop-button" type="button" data-add-party>Add to Cart</button>
               </div>
-              <div class="referral-message" data-order-card-message></div>
             </div>
 
-            <div class="party-order-card" data-order-party-card data-product-id-base="party-group2" data-product-name="Group 2 Durians - Mao Shan Wang" data-order-type="Durian Party">
+            <div class="party-order-card" data-party-form data-product-id-base="party-group2" data-product-name="Group 2 Durians - Mao Shan Wang" data-order-type="Durian Party">
               <h3>Group 2 <span class="availability">(upon availability)</span></h3>
               <p>Mao Shan Wang party selection.</p>
               <div class="party-order-grid">
                 <div class="shop-field">
-                  <label for="clean-party-group2-select">Party Package</label>
-                  <select id="clean-party-group2-select" class="party-select" data-order-party-select>
+                  <label for="party-group2-select">Party Package</label>
+                  <select id="party-group2-select" class="party-select" data-party-select>
                     <option value="">Choose an option</option>
                     <option value="g2-21" data-label="8 pax - 21kg (est 11 to 13 durians) at $16/kg" data-price="336">8 pax - 21kg (est 11 to 13 durians) at $16/kg</option>
                     <option value="g2-24" data-label="13 pax - 24kg (est 14 to 17 durians) at $16/kg" data-price="384">13 pax - 24kg (est 14 to 17 durians) at $16/kg</option>
                     <option value="g2-27" data-label="18 pax - 27kg (est 16 to 19 durians) at $14/kg" data-price="378">18 pax - 27kg (est 16 to 19 durians) at $14/kg</option>
                   </select>
                 </div>
-                <button class="shop-button" type="button" data-order-action="add-party">Add to Cart</button>
+                <button class="shop-button" type="button" data-add-party>Add to Cart</button>
               </div>
-              <div class="referral-message" data-order-card-message></div>
             </div>
 
-            <div class="party-order-card" data-order-party-card data-product-id-base="party-group3" data-product-name="Group 3 Durians - Black Gold, Black Thorns Orchee" data-order-type="Durian Party">
+            <div class="party-order-card" data-party-form data-product-id-base="party-group3" data-product-name="Group 3 Durians - Black Gold, Black Thorns Orchee" data-order-type="Durian Party">
               <h3>Group 3 <span class="availability">(upon availability)</span></h3>
               <p>Black Gold and Black Thorn premium party selection.</p>
               <div class="party-order-grid">
                 <div class="shop-field">
-                  <label for="clean-party-group3-select">Party Package</label>
-                  <select id="clean-party-group3-select" class="party-select" data-order-party-select>
+                  <label for="party-group3-select">Party Package</label>
+                  <select id="party-group3-select" class="party-select" data-party-select>
                     <option value="">Choose an option</option>
                     <option value="g3-21" data-label="8 pax - 21kg (est 11 to 13 durians) at $18/kg" data-price="378">8 pax - 21kg (est 11 to 13 durians) at $18/kg</option>
                     <option value="g3-24" data-label="13 pax - 24kg (est 14 to 17 durians) at $18/kg" data-price="432">13 pax - 24kg (est 14 to 17 durians) at $18/kg</option>
                     <option value="g3-27" data-label="18 pax - 27kg (est 16 to 19 durians) at $16/kg" data-price="432">18 pax - 27kg (est 16 to 19 durians) at $16/kg</option>
                   </select>
                 </div>
-                <button class="shop-button" type="button" data-order-action="add-party">Add to Cart</button>
+                <button class="shop-button" type="button" data-add-party>Add to Cart</button>
               </div>
-              <div class="referral-message" data-order-card-message></div>
             </div>
           </div>
         </section>
@@ -1594,73 +1421,7 @@
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
 
-  <div class="clean-cart-overlay" data-order-cart-overlay hidden></div>
-  <aside class="clean-cart-drawer" id="order-cart-drawer" data-order-cart-drawer aria-hidden="true">
-    <div class="cart-drawer__header">
-      <div class="cart-drawer__title-row">
-        <h2>Your Cart</h2>
-        <button class="cart-close" type="button" aria-label="Close cart" data-order-action="close-cart">&times;</button>
-      </div>
-      <p class="cart-subtitle">Add, remove, or update your durian selections below.</p>
-    </div>
-    <div class="cart-drawer__content">
-      <div class="cart-breakdown-shell">
-        <div class="cart-breakdown-header">
-          <strong data-order-cart-items-label>0 items</strong>
-          <strong data-order-cart-total>$0</strong>
-        </div>
-        <div data-order-cart-breakdown></div>
-      </div>
-      <div class="clean-cart-body" data-order-cart-body></div>
-      <div class="clean-cart-message referral-message" data-order-cart-message></div>
-      <div class="checkout-shell">
-        <div class="checkout-grid">
-          <div class="checkout-field">
-            <label for="clean-checkout-name">Name</label>
-            <input id="clean-checkout-name" type="text" maxlength="80" autocomplete="name" data-order-checkout-name />
-          </div>
-          <div class="checkout-field">
-            <label for="clean-checkout-phone">Contact Number</label>
-            <input id="clean-checkout-phone" type="tel" maxlength="40" autocomplete="tel" data-order-checkout-phone required />
-          </div>
-          <div class="checkout-field">
-            <label for="clean-checkout-email">Email</label>
-            <input id="clean-checkout-email" type="email" maxlength="120" autocomplete="email" data-order-checkout-email required />
-          </div>
-          <div class="checkout-field">
-            <label for="clean-checkout-address">Delivery Address</label>
-            <textarea id="clean-checkout-address" maxlength="260" autocomplete="street-address" data-order-checkout-address required></textarea>
-          </div>
-          <div class="checkout-field">
-            <label for="clean-checkout-referral-code">Referral Code (if any)</label>
-            <input id="clean-checkout-referral-code" type="text" maxlength="40" inputmode="numeric" placeholder="Auto-filled from referral link or enter manually" data-order-checkout-referral-code />
-          </div>
-        </div>
-        <div class="checkout-payment-methods">
-          <h3>Payment Method</h3>
-          <label class="checkout-payment-option">
-            <input type="radio" name="clean-checkout-payment-method" value="paynow_uen" data-order-checkout-payment-method checked />
-            <span>
-              <strong>PayNow to UEN No</strong>
-              <small>Enter the business UEN inside your Singapore banking app and use your order reference.</small>
-            </span>
-          </label>
-          <label class="checkout-payment-option">
-            <input type="radio" name="clean-checkout-payment-method" value="paynow_qr" data-order-checkout-payment-method />
-            <span>
-              <strong>SGQR / PayNow QR</strong>
-              <small>Scan the QR code payment note after checkout and pay the exact order amount shown.</small>
-            </span>
-          </label>
-        </div>
-        <p class="checkout-note" data-order-checkout-note>Enter your delivery details, choose a payment method, then create your payment note.</p>
-        <button class="checkout-button" type="button" data-order-action="checkout">Create PayNow UEN Order</button>
-        <div data-order-payment-request></div>
-      </div>
-    </div>
-  </aside>
-
-  <script src="script.js?v=20260517-5" defer></script>
+  <script src="script.js?v=20260516-7" defer></script>
 
 </body>
 </html>

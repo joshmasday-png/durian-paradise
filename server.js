@@ -4,20 +4,22 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const Stripe = require("stripe");
+const QRCode = require("qrcode");
 
 const app = express();
 app.set("trust proxy", true);
 const port = process.env.PORT || 3000;
 const siteUrl = process.env.SITE_URL || "https://www.durianparadises.com";
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 const reviewsPath = process.env.REVIEWS_FILE_PATH || path.join(__dirname, "reviews.json");
 const ordersPath = process.env.ORDERS_FILE_PATH || path.join(__dirname, "orders.json");
 const referralsPath = process.env.REFERRALS_FILE_PATH || path.join(__dirname, "referrals.json");
 const analyticsPath = process.env.ANALYTICS_FILE_PATH || path.join(__dirname, "analytics.json");
 const businessUen = process.env.BUSINESS_UEN || "53490378M";
-const paymentProvider = process.env.PAYMENT_PROVIDER || "pending_dynamic_sgqr";
-const paymentProviderName = process.env.PAYMENT_PROVIDER_NAME || "PayNow / SGQR";
-const defaultPaymentMethodKey = "paynow_uen";
+const paymentProvider = process.env.PAYMENT_PROVIDER || "stripe_checkout";
+const paymentProviderName = process.env.PAYMENT_PROVIDER_NAME || "Stripe Checkout";
+const defaultPaymentMethodKey = "stripe_checkout";
 const enableTestHelpers = process.env.ENABLE_TEST_HELPERS === "1";
 const resendApiKey = process.env.RESEND_API_KEY || "";
 const orderEmailFrom = process.env.ORDER_EMAIL_FROM || "Durian Paradise <orders@durianparadises.com>";
@@ -47,6 +49,7 @@ const blockedStaticPaths = new Set([
   "/.env.example",
   "/.gitignore"
 ]);
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 const productCatalog = {
   "delivery-group1|650g": {
@@ -140,6 +143,95 @@ const productCatalog = {
     orderType: "Durian Party"
   }
 };
+
+app.post("/stripe-webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  if (!stripe || !stripeWebhookSecret) {
+    return res.status(503).send("Stripe webhook is not configured.");
+  }
+
+  const signature = req.get("stripe-signature");
+
+  if (!signature) {
+    return res.status(400).send("Missing Stripe signature.");
+  }
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, signature, stripeWebhookSecret);
+  } catch (error) {
+    return res.status(400).send(`Webhook signature verification failed: ${error.message}`);
+  }
+
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const orders = readOrders();
+      const order = orders.find((entry) => entry.stripe && entry.stripe.checkoutSessionId === session.id);
+
+      if (order && order.paymentStatus !== "paid") {
+        order.paymentStatus = "paid";
+        order.status = "paid";
+        order.paidAt = new Date().toISOString();
+        order.stripe = {
+          ...(order.stripe || {}),
+          checkoutSessionId: session.id,
+          checkoutUrl: order.stripe && order.stripe.checkoutUrl ? order.stripe.checkoutUrl : "",
+          paymentStatus: "paid",
+          paymentIntentId: String(session.payment_intent || ""),
+          customerId: String(session.customer || ""),
+          completedAt: order.paidAt
+        };
+        order.claimedReferralRewards = dedupeReferralRewards([
+          ...claimReferralRewards(order.requestedReferralRewardClaims, order.id)
+        ]);
+        order.referral = issueReferralRewardForOrder(order) || order.referral || null;
+
+        try {
+          order.businessPaymentNotification = await sendPaidNotificationEmail(order);
+        } catch (error) {
+          order.businessPaymentNotification = {
+            status: "failed",
+            reason: error && error.message ? error.message : "Unable to send business notification email."
+          };
+        }
+
+        writeOrders(orders.slice(0, 500));
+        recordAnalyticsEvent({
+          type: "order_created",
+          orderId: order.id,
+          path: "/stripe-webhook",
+          referralCode: order.referral && order.referral.code ? order.referral.code : "",
+          userAgent: "stripe-webhook",
+          metadata: {
+            itemCount: Array.isArray(order.items) ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0
+          }
+        });
+      }
+    }
+
+    if (event.type === "checkout.session.expired") {
+      const session = event.data.object;
+      const orders = readOrders();
+      const order = orders.find((entry) => entry.stripe && entry.stripe.checkoutSessionId === session.id);
+
+      if (order && order.paymentStatus !== "paid") {
+        order.paymentStatus = "expired";
+        order.status = "checkout_expired";
+        order.stripe = {
+          ...(order.stripe || {}),
+          paymentStatus: "expired",
+          expiredAt: new Date().toISOString()
+        };
+        writeOrders(orders.slice(0, 500));
+      }
+    }
+
+    return res.json({ received: true });
+  } catch (error) {
+    return res.status(500).send(error && error.message ? error.message : "Webhook handling failed.");
+  }
+});
 
 app.use(express.json({ limit: "3mb" }));
 
@@ -904,26 +996,26 @@ function formatAmount(cents) {
 function normalizePaymentMethodKey(rawValue) {
   const normalizedValue = String(rawValue || "").trim().toLowerCase();
 
-  return normalizedValue === "paynow_qr" || normalizedValue.includes("qr")
-    ? "paynow_qr"
+  return normalizedValue === "stripe_qr" || normalizedValue.includes("qr")
+    ? "stripe_qr"
     : defaultPaymentMethodKey;
 }
 
 function getPaymentMethodConfig(rawPaymentMethodKey) {
   const key = normalizePaymentMethodKey(rawPaymentMethodKey);
 
-  if (key === "paynow_qr") {
+  if (key === "stripe_qr") {
     return {
       key,
-      label: "SGQR / PayNow QR",
-      message: "Open your Singapore banking app, scan the SGQR code shown on the website payment note, pay this exact amount, and keep the order reference below for confirmation."
+      label: "Stripe Checkout QR",
+      message: "Generate a QR code that opens the exact Stripe Checkout payment page on another device."
     };
   }
 
   return {
     key,
-    label: "PayNow to UEN No",
-    message: "Open your Singapore banking app, choose PayNow UEN, enter this exact amount, and use the order reference below."
+    label: "Stripe Checkout",
+    message: "Continue to Stripe Checkout where the exact payable amount is shown automatically."
   };
 }
 
@@ -1086,6 +1178,36 @@ function normalizeRewardClaims(rawClaims) {
   }, []);
 }
 
+function resolveReferralRewardsForCheckout(rewardClaims) {
+  const claims = normalizeRewardClaims(rewardClaims);
+
+  if (!claims.length) {
+    return [];
+  }
+
+  const referrals = readReferrals();
+
+  return dedupeReferralRewards(claims.map((claim) => {
+    const referral = referrals.find((entry) => entry.code === claim.referralCode);
+
+    if (!referral) {
+      return null;
+    }
+
+    normalizeReferralEntry(referral);
+    const reward = referral.rewards.find((entry) => entry.id === claim.rewardId);
+
+    if (!reward || reward.status === "claimed") {
+      return null;
+    }
+
+    return {
+      ...reward,
+      referralCode: referral.code
+    };
+  }).filter(Boolean));
+}
+
 function claimReferralRewards(rewardClaims, orderId) {
   const claims = normalizeRewardClaims(rewardClaims);
 
@@ -1127,6 +1249,52 @@ function claimReferralRewards(rewardClaims, orderId) {
   }
 
   return claimedRewards;
+}
+
+function buildSelectedDurianOptionSummary(items) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => `${item.name} ${item.variantLabel} x${item.quantity}`)
+    .join("; ")
+    .slice(0, 500);
+}
+
+function buildStripeLineItems(order) {
+  const lineItems = (Array.isArray(order.items) ? order.items : []).map((item) => ({
+    quantity: Number(item.quantity || 1),
+    price_data: {
+      currency: "sgd",
+      unit_amount: Number(item.unitAmount || 0),
+      product_data: {
+        name: item.name,
+        description: `${item.orderType} - ${item.variantLabel}`
+      }
+    }
+  }));
+  const breakdown = order.summary && order.summary.priceBreakdown ? order.summary.priceBreakdown : {};
+  const deliveryFee = Number(breakdown.deliveryFee || 0);
+
+  if (deliveryFee > 0) {
+    lineItems.push({
+      quantity: 1,
+      price_data: {
+        currency: "sgd",
+        unit_amount: deliveryFee,
+        product_data: {
+          name: "Delivery Fee",
+          description: "Applied to 3-box online delivery orders"
+        }
+      }
+    });
+  }
+
+  return lineItems;
+}
+
+function getStripeDiscountAmount(order) {
+  const breakdown = order.summary && order.summary.priceBreakdown ? order.summary.priceBreakdown : {};
+  return Number(breakdown.deliveryDiscount || 0)
+    + Number(breakdown.freeBoxDiscount || 0)
+    + Number(breakdown.referralCashDiscount || 0);
 }
 
 function issueReferralRewardForOrder(order) {
@@ -1252,7 +1420,7 @@ function issueReferralRewardForOrder(order) {
 
 function buildOrderEmail(order) {
   const breakdown = order.summary.priceBreakdown || {};
-  const paymentMethod = order.paymentMethod || "PayNow to UEN No";
+  const paymentMethod = order.paymentMethod || "Stripe Checkout";
   const itemLinesText = order.items
     .map((item) => `- ${item.name} (${item.variantLabel}) x ${item.quantity}: ${formatAmount(item.subtotalAmount)}`)
     .join("\n");
@@ -1267,13 +1435,12 @@ function buildOrderEmail(order) {
     .join("");
 
   return {
-    subject: `Order confirmed - ${order.id}`,
+    subject: `Order summary - ${order.id}`,
     text: [
-      "Order confirmed",
+      "Order summary",
       "",
       `Order reference: ${order.id}`,
       `Payment method: ${paymentMethod}`,
-      paymentMethod === "PayNow to UEN No" ? `PayNow UEN: ${order.businessUen}` : null,
       `Items subtotal: ${formatAmount(breakdown.subtotalBeforeAdjustments || order.summary.totalAmount)}`,
       breakdown.deliveryFee ? `Delivery fee: ${formatAmount(breakdown.deliveryFee)}` : "Delivery fee: Free",
       breakdown.deliveryDiscount ? `10% delivery discount: -${formatAmount(breakdown.deliveryDiscount)}` : null,
@@ -1286,20 +1453,15 @@ function buildOrderEmail(order) {
       itemLinesText,
       "",
       `Delivery address: ${order.customer.address}`,
-      `Contact number: ${order.customer.phone}`,
-      "",
-      paymentMethod === "PayNow to UEN No"
-        ? "Please complete payment using the PayNow UEN and order reference above."
-        : "Please complete payment using the SGQR code shown on the website payment note and keep the order reference above."
+      `Contact number: ${order.customer.phone}`
     ].filter(Boolean).join("\n"),
     html: `
       <div style="font-family:Arial,sans-serif;color:#211a13;background:#f7f1e7;padding:24px;">
         <div style="max-width:640px;margin:0 auto;background:#fffaf4;border-radius:18px;padding:24px;border:1px solid #eadfce;">
-          <h1 style="margin:0 0 12px;font-size:28px;">Order confirmed</h1>
-          <p style="margin:0 0 18px;">Thank you for ordering from Durian Paradise. Please complete payment using the PayNow details below.</p>
+          <h1 style="margin:0 0 12px;font-size:28px;">Order summary</h1>
+          <p style="margin:0 0 18px;">This is the order summary captured by Durian Paradise.</p>
           <p><strong>Order reference:</strong> ${escapeEmailHtml(order.id)}</p>
           <p><strong>Payment method:</strong> ${escapeEmailHtml(paymentMethod)}</p>
-          ${paymentMethod === "PayNow to UEN No" ? `<p><strong>PayNow UEN:</strong> ${escapeEmailHtml(order.businessUen)}</p>` : ""}
           <p><strong>Items subtotal:</strong> ${escapeEmailHtml(formatAmount(breakdown.subtotalBeforeAdjustments || order.summary.totalAmount))}</p>
           <p><strong>Delivery fee:</strong> ${escapeEmailHtml(breakdown.deliveryFee ? formatAmount(breakdown.deliveryFee) : "Free")}</p>
           ${breakdown.deliveryDiscount ? `<p><strong>10% delivery discount:</strong> -${escapeEmailHtml(formatAmount(breakdown.deliveryDiscount))}</p>` : ""}
@@ -1327,35 +1489,39 @@ function buildOrderEmail(order) {
 
 function buildPaidNotificationEmail(order) {
   const orderEmail = buildOrderEmail(order);
-  const paymentMethod = order.paymentMethod || "PayNow to UEN No";
+  const paymentMethod = order.paymentMethod || "Stripe Checkout";
+  const stripeSessionId = order.stripe && order.stripe.checkoutSessionId ? String(order.stripe.checkoutSessionId) : "";
+  const stripePaymentIntentId = order.stripe && order.stripe.paymentIntentId ? String(order.stripe.paymentIntentId) : "";
 
   return {
-    subject: `Customer marked paid - ${order.id}`,
+    subject: `Payment received - ${order.id}`,
     text: [
-      "Customer marked this order as paid.",
+      "Stripe has confirmed payment for this order.",
       "",
       `Order reference: ${order.id}`,
       `Payment method: ${paymentMethod}`,
-      paymentMethod === "PayNow to UEN No" ? `PayNow UEN: ${order.businessUen}` : null,
+      stripeSessionId ? `Stripe session: ${stripeSessionId}` : null,
+      stripePaymentIntentId ? `Stripe payment intent: ${stripePaymentIntentId}` : null,
       `Total: ${order.summary.totalDisplay}`,
       `Customer: ${order.customer.name || "Not provided"}`,
       `Email: ${order.customer.email}`,
       `Contact number: ${order.customer.phone}`,
       `Delivery address: ${order.customer.address}`,
       "",
-      "Please verify this payment in the business bank account using the amount and order reference.",
+      "This order was paid successfully through Stripe Checkout.",
       "",
       orderEmail.text
-    ].join("\n"),
+    ].filter(Boolean).join("\n"),
     html: `
       <div style="font-family:Arial,sans-serif;color:#211a13;background:#f7f1e7;padding:24px;">
         <div style="max-width:680px;margin:0 auto;background:#fffaf4;border-radius:18px;padding:24px;border:1px solid #eadfce;">
-          <h1 style="margin:0 0 12px;font-size:28px;">Customer marked order as paid</h1>
-          <p style="margin:0 0 18px;">Please verify this payment in the business bank account using the amount and order reference.</p>
+          <h1 style="margin:0 0 12px;font-size:28px;">Payment received through Stripe</h1>
+          <p style="margin:0 0 18px;">Stripe Checkout has confirmed payment for this order.</p>
           <p><strong>Order reference:</strong> ${escapeEmailHtml(order.id)}</p>
           <p><strong>Total:</strong> ${escapeEmailHtml(order.summary.totalDisplay)}</p>
           <p><strong>Payment method:</strong> ${escapeEmailHtml(paymentMethod)}</p>
-          ${paymentMethod === "PayNow to UEN No" ? `<p><strong>PayNow UEN:</strong> ${escapeEmailHtml(order.businessUen)}</p>` : ""}
+          ${stripeSessionId ? `<p><strong>Stripe session:</strong> ${escapeEmailHtml(stripeSessionId)}</p>` : ""}
+          ${stripePaymentIntentId ? `<p><strong>Stripe payment intent:</strong> ${escapeEmailHtml(stripePaymentIntentId)}</p>` : ""}
           <p><strong>Customer:</strong> ${escapeEmailHtml(order.customer.name || "Not provided")}</p>
           <p><strong>Email:</strong> ${escapeEmailHtml(order.customer.email)}</p>
           <p><strong>Contact:</strong> ${escapeEmailHtml(order.customer.phone)}</p>
@@ -1447,7 +1613,7 @@ function buildPendingPaymentResponse(order, rawPaymentMethodKey) {
     paymentMethodKey: paymentMethod.key,
     paymentMethodLabel: paymentMethod.label,
     message: paymentMethod.message,
-    paynowToUen: paymentMethod.key === "paynow_uen" ? businessUen : "",
+    paynowToUen: "",
     amountDisplay: order.summary.totalDisplay,
     reference: order.id
   };
@@ -1797,7 +1963,7 @@ app.get("/api/payment-config", (_req, res) => {
     businessUen,
     provider: paymentProvider,
     providerName: paymentProviderName,
-    dynamicQrReady: false
+    dynamicQrReady: true
   });
 });
 
@@ -1920,18 +2086,10 @@ app.post("/api/payment-orders", async (req, res) => {
       claimedReferralRewards,
       paymentRequest: buildPendingPaymentResponse({ summary, id: orderId }, paymentMethod.key),
       emailConfirmation: {
-        status: "pending"
+        status: "disabled",
+        reason: "Stripe checkout flow sends the business order summary only after confirmed payment."
       }
     };
-
-    try {
-      order.emailConfirmation = await sendOrderConfirmationEmail(order);
-    } catch (error) {
-      order.emailConfirmation = {
-        status: "failed",
-        reason: error && error.message ? error.message : "Unable to send confirmation email."
-      };
-    }
 
     orders.unshift(order);
     writeOrders(orders.slice(0, 500));
@@ -1959,52 +2117,187 @@ app.post("/api/payment-orders", async (req, res) => {
   }
 });
 
-app.post("/api/create-checkout-session", async (req, res) => {
-  if (!stripeSecretKey) {
+app.post("/api/checkout-sessions/:sessionId/status", (req, res) => {
+  const sessionId = String(req.params.sessionId || "").trim();
+  const order = readOrders().find((entry) => entry.stripe && entry.stripe.checkoutSessionId === sessionId);
+
+  if (!order) {
+    return res.status(404).json({ error: "Checkout session not found." });
+  }
+
+  return res.json({
+    order: {
+      id: order.id,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      paidAt: order.paidAt || "",
+      stripe: order.stripe || {}
+    }
+  });
+});
+
+async function handleCreateCheckoutSession(req, res) {
+  if (!stripe) {
     return res.status(500).json({ error: "Stripe secret key is not configured." });
   }
 
-  const stripe = new Stripe(stripeSecretKey);
-  let normalizedItems;
-
   try {
-    normalizedItems = normalizeCartItems(req.body && req.body.items);
-  } catch (error) {
-    return res.status(400).json({ error: error && error.message ? error.message : "Unable to read cart items." });
-  }
+    const items = normalizeCartItems(req.body && req.body.items);
+    const orders = readOrders();
+    const orderId = makeOrderId(orders);
+    const customer = req.body && req.body.customer ? req.body.customer : {};
+    const customerPhone = String(customer.phone || "").trim();
+    const customerEmail = String(customer.email || "").trim();
+    const customerAddress = String(customer.address || "").trim();
+    const referralCode = sanitizeReferralCode(req.body && req.body.referralCode);
+    const voucherCode = sanitizeText(req.body && req.body.voucherCode, 80);
+    const paymentMethodKey = normalizePaymentMethodKey(req.body && req.body.paymentMethodKey);
+    const paymentMethod = getPaymentMethodConfig(paymentMethodKey);
+    const frontendTotalAmount = Number(req.body && req.body.totalAmount);
+    const requestedReferralRewardClaims = normalizeRewardClaims(req.body && req.body.referralRewardClaims);
+    const claimedReferralRewards = resolveReferralRewardsForCheckout(requestedReferralRewardClaims);
+    const summary = summarizeOrder(items, claimedReferralRewards);
 
-  const lineItems = normalizedItems.map((item) => ({
-      quantity: item.quantity,
-      price_data: {
-        currency: "sgd",
-        unit_amount: item.unitAmount,
-        product_data: {
-          name: item.name,
-          description: `${item.orderType} - ${item.variantLabel}`
-        }
+    if (!customerPhone) {
+      throw new Error("Please enter your contact number.");
+    }
+
+    if (!isValidEmail(customerEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+
+    if (!customerAddress) {
+      throw new Error("Please enter your delivery address.");
+    }
+
+    if (!summary.priceBreakdown.minimumDeliveryBoxesMet) {
+      throw new Error("Online Delivery requires a minimum of 3 boxes.");
+    }
+
+    if (Number.isFinite(frontendTotalAmount) && Math.round(frontendTotalAmount) !== Number(summary.totalAmount || 0)) {
+      throw new Error("Order total changed. Please review your cart and try again.");
+    }
+
+    const order = {
+      id: orderId,
+      createdAt: new Date().toISOString(),
+      status: "checkout_created",
+      paymentStatus: "checkout_pending",
+      paymentMethod: paymentMethod.label,
+      businessUen,
+      items,
+      summary,
+      customer: {
+        name: String(customer.name || "").trim().slice(0, 80),
+        phone: customerPhone.slice(0, 40),
+        email: customerEmail.slice(0, 120),
+        address: customerAddress.slice(0, 260),
+        deliveryNotes: String(customer.deliveryNotes || "").trim().slice(0, 220)
+      },
+      referral: referralCode ? {
+        code: referralCode,
+        status: "awaiting_stripe_payment_confirmation",
+        reward: null,
+        conversionRecordedAt: ""
+      } : null,
+      voucherCode,
+      requestedReferralRewardClaims,
+      claimedReferralRewards,
+      stripe: {
+        checkoutSessionId: "",
+        checkoutUrl: "",
+        paymentStatus: "checkout_pending",
+        checkoutMode: paymentMethod.key
+      },
+      emailConfirmation: {
+        status: "pending_stripe_payment"
       }
-    }));
+    };
 
-  try {
+    const lineItems = buildStripeLineItems(order);
+    const totalDiscountAmount = getStripeDiscountAmount(order);
+    const metadata = {
+      order_id: order.id,
+      referral_code: referralCode || "",
+      voucher_code: voucherCode || "",
+      customer_name: order.customer.name || "Customer",
+      selected_durian_option: buildSelectedDurianOptionSummary(order.items)
+    };
+    let couponId = "";
+
+    if (totalDiscountAmount > 0) {
+      const coupon = await stripe.coupons.create({
+        amount_off: totalDiscountAmount,
+        currency: "sgd",
+        duration: "once",
+        name: `Durian Paradise order ${order.id} adjustments`,
+        metadata
+      });
+      couponId = coupon.id;
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: lineItems,
-      success_url: `${siteUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/cancel.html`,
-      billing_address_collection: "auto",
+      client_reference_id: order.id,
+      customer_email: order.customer.email,
+      billing_address_collection: "required",
       phone_number_collection: {
         enabled: true
       },
-      allow_promotion_codes: true
+      line_items: lineItems,
+      discounts: couponId ? [{ coupon: couponId }] : [],
+      success_url: `${siteUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/cancel.html`,
+      metadata,
+      payment_intent_data: {
+        metadata
+      }
     });
 
-    return res.json({ url: session.url });
+    const qrCodeDataUrl = await QRCode.toDataURL(session.url, {
+      margin: 1,
+      width: 280
+    });
+
+    order.stripe = {
+      ...order.stripe,
+      checkoutSessionId: session.id,
+      checkoutUrl: session.url,
+      qrCodeDataUrl,
+      couponId,
+      createdAt: new Date().toISOString()
+    };
+
+    orders.unshift(order);
+    writeOrders(orders.slice(0, 500));
+    recordAnalyticsEvent({
+      type: "checkout_started",
+      orderId,
+      visitorId: req.body && req.body.visitorId,
+      path: sanitizeAnalyticsPath(req.body && req.body.path),
+      pageCategory: req.body && req.body.pageCategory,
+      referralCode,
+      metadata: {
+        itemCount: items.reduce((sum, item) => sum + item.quantity, 0)
+      },
+      userAgent: req.get("user-agent")
+    });
+
+    return res.status(201).json({
+      order,
+      checkoutUrl: session.url,
+      qrCodeDataUrl,
+      sessionId: session.id
+    });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(400).json({
       error: error && error.message ? error.message : "Unable to create Stripe checkout session."
     });
   }
-});
+}
+
+app.post("/create-checkout-session", handleCreateCheckoutSession);
+app.post("/api/create-checkout-session", handleCreateCheckoutSession);
 
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));

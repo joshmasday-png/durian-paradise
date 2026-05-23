@@ -12,14 +12,14 @@ const STORAGE_MIGRATION_KEY = `durianParadiseStorageMigration:${STORAGE_VERSION}
 const CART_STORAGE_KEY = `durianParadiseCart:${STORAGE_VERSION}`;
 const REVIEWS_API_PATH = "/api/reviews";
 const PAYMENT_ORDERS_API_PATH = "/api/payment-orders";
+const STRIPE_CHECKOUT_SESSION_API_PATH = "/create-checkout-session";
 const REFERRALS_API_PATH = "/api/referrals";
 const ANALYTICS_EVENTS_API_PATH = "/api/analytics/events";
 const PENDING_PAYMENT_STORAGE_KEY = `durianParadisePendingPayment:${STORAGE_VERSION}`;
 const REFERRAL_STORAGE_KEY = `durianParadiseReferral:${STORAGE_VERSION}`;
 const OWNED_REFERRALS_STORAGE_KEY = `durianParadiseOwnedReferrals:${STORAGE_VERSION}`;
-const REFERRAL_LOOKUP_STORAGE_KEY = `durianParadiseReferralLookup:${STORAGE_VERSION}`;
 const VISITOR_STORAGE_KEY = `durianParadiseVisitorId:${STORAGE_VERSION}`;
-const DEFAULT_PAYMENT_METHOD_KEY = "paynow_uen";
+const DEFAULT_PAYMENT_METHOD_KEY = "stripe_checkout";
 const CART_HISTORY_STATE_KEY = "__durianParadiseCartOpen";
 const PAYNOW_QR_ASSET_VERSION = "20260430-qr2";
 const PAYNOW_QR_IMAGE_PATH = `images/paynow-qr.jpeg?v=${PAYNOW_QR_ASSET_VERSION}`;
@@ -71,33 +71,11 @@ function normalizeOwnedReferralEntry(referral) {
       : []
   };
 
-  if (!normalized.code) {
+  if (!normalized.code || !normalized.ownerToken) {
     return null;
   }
 
   return normalized;
-}
-
-function isFourDigitClientReferralCode(value) {
-  return /^\d{4}$/.test(String(value || "").trim());
-}
-
-function buildClientReferralLink(code) {
-  const normalizedCode = String(code || "").trim();
-
-  if (!isFourDigitClientReferralCode(normalizedCode)) {
-    return "";
-  }
-
-  return `${window.location.origin}/referral.html?code=${encodeURIComponent(normalizedCode)}`;
-}
-
-function isOwnedReferralEntry(referral) {
-  return Boolean(
-    referral
-    && isFourDigitClientReferralCode(referral.code)
-    && String(referral.ownerToken || "").trim()
-  );
 }
 
 function getIsoTimestamp(value) {
@@ -426,43 +404,35 @@ function isLegacyReferralRewardMessage(message) {
 function normalizePaymentMethodKey(value) {
   const normalizedValue = String(value || "").trim().toLowerCase();
 
-  return normalizedValue === "paynow_qr" || normalizedValue.includes("qr")
-    ? "paynow_qr"
+  return normalizedValue === "stripe_qr" || normalizedValue.includes("qr")
+    ? "stripe_qr"
     : DEFAULT_PAYMENT_METHOD_KEY;
 }
 
 function getPaymentMethodConfig(methodKey) {
   const key = normalizePaymentMethodKey(methodKey);
 
-  if (key === "paynow_qr") {
+  if (key === "stripe_qr") {
     return {
       key,
-      title: "SGQR / PayNow QR",
-      checkoutButtonLabel: "Create SGQR Payment Note",
-      checkoutNote: "Enter your delivery details, choose a payment method, then create your payment note.",
-      copyButtonLabel: "Copy amount & ticket no",
-      qrImageLabel: "Scan this SGQR code",
+      title: "Stripe Checkout QR",
+      checkoutButtonLabel: "Generate Stripe Checkout QR",
+      checkoutNote: "Enter your delivery details, then generate a QR code that opens the exact Stripe Checkout payment page on another device.",
+      copyButtonLabel: "Copy Stripe checkout link",
+      qrImageLabel: "Scan this QR code to open Stripe Checkout",
       supportsQr: true
     };
   }
 
   return {
     key,
-    title: "PayNow to UEN No",
-    checkoutButtonLabel: "Create PayNow UEN Order",
-    checkoutNote: "Enter your delivery details, choose a payment method, then create your payment note.",
-    copyButtonLabel: "Copy UEN, amount & ticket no",
+    title: "Stripe Checkout",
+    checkoutButtonLabel: "Proceed to Stripe Checkout",
+    checkoutNote: "Enter your delivery details, then continue to Stripe Checkout to pay the exact validated order amount automatically.",
+    copyButtonLabel: "Copy Stripe checkout link",
     qrImageLabel: "",
     supportsQr: false
   };
-}
-
-function renderPaynowQrImage() {
-  return `
-    <div class="paynow-qr-frame">
-      <img class="paynow-qr-image" src="${PAYNOW_QR_IMAGE_PATH}" alt="PayNow SGQR code" width="220" height="220" loading="eager" decoding="async" onerror="this.onerror=null;this.src='${PAYNOW_QR_PLACEHOLDER_PATH}'" />
-    </div>
-  `;
 }
 
 function readReviewImage(file) {
@@ -586,45 +556,10 @@ function storeOwnedReferral(referral) {
   saveOwnedReferrals(ownedReferrals.slice(0, 25));
 }
 
-function getStoredReferralLookupCode() {
-  try {
-    const storedCode = String(readStorageItem(REFERRAL_LOOKUP_STORAGE_KEY) || "").trim();
-    return isFourDigitClientReferralCode(storedCode) ? storedCode : "";
-  } catch (_error) {
-    return "";
-  }
-}
-
-function getLatestGeneratedReferral(includeExpired = true) {
-  return loadOwnedReferrals()
-    .filter((entry) => isOwnedReferralEntry(entry))
-    .filter((entry) => {
-      if (includeExpired) {
-        return true;
-      }
-
-      const expiresAt = getIsoTimestamp(entry.expiresAt);
-      return !expiresAt || expiresAt >= Date.now();
-    })
-    .sort((left, right) => getIsoTimestamp(right.createdAt || right.expiresAt) - getIsoTimestamp(left.createdAt || left.expiresAt))[0] || null;
-}
-
-function setStoredReferralLookupCode(code) {
-  const normalizedCode = String(code || "").trim();
-
-  if (!isFourDigitClientReferralCode(normalizedCode)) {
-    removeStorageItem(REFERRAL_LOOKUP_STORAGE_KEY);
-    return "";
-  }
-
-  writeStorageItem(REFERRAL_LOOKUP_STORAGE_KEY, normalizedCode);
-  return normalizedCode;
-}
-
 function getLatestOwnedReferral(includeExpired = true) {
   return loadOwnedReferrals()
     .filter((entry) => {
-      if (!entry.code) {
+      if (!entry.code || !entry.ownerToken) {
         return false;
       }
 
@@ -662,6 +597,7 @@ function getActiveOwnedReferralRewards() {
       result.push({
         ...reward,
         referralCode: String(referral.code || ""),
+        ownerToken: String(referral.ownerToken || ""),
         message: getReferralRewardMessage(reward)
       });
     });
@@ -724,56 +660,11 @@ function mergeReferralRewards(rewardGroups) {
 }
 
 function getDisplayableReferralRewards() {
-  const activeCode = getStoredReferralLookupCode();
-  const referrals = loadOwnedReferrals();
-  const activeReferral = (activeCode
-    ? referrals.find((entry) => String(entry.code || "") === activeCode)
-    : null) || [getLatestOwnedReferral(false), getLatestOwnedReferral(true)].find((entry) => entry && isFourDigitClientReferralCode(entry.code));
-
-  if (!activeReferral) {
-    return [];
-  }
-
-  return (Array.isArray(activeReferral.rewards) ? activeReferral.rewards : [])
-    .filter((reward) => String(reward && reward.status || "") === "issued_for_next_purchase")
-    .map((reward) => ({
-      ...reward,
-      referralCode: String(activeReferral.code || ""),
-      message: getReferralRewardMessage(reward)
-    }));
-}
-
-async function fetchReferralStatusByCode(code) {
-  const normalizedCode = normalizeClientReferralCode(code);
-
-  if (!isFourDigitClientReferralCode(normalizedCode)) {
-    throw new Error("Enter a valid referral code.");
-  }
-
-  const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}`, {
-    headers: {
-      Accept: "application/json"
-    }
-  });
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok || !payload.referral) {
-    throw new Error(payload.error || "Referral code not found.");
-  }
-
-  const nextReferral = normalizeOwnedReferralEntry(payload.referral);
-
-  if (!nextReferral) {
-    throw new Error("Referral code not found.");
-  }
-
-  storeOwnedReferral(nextReferral);
-  setStoredReferralLookupCode(nextReferral.code);
-  return nextReferral;
+  return getActiveOwnedReferralRewards();
 }
 
 async function refreshOwnedReferralRewards() {
-  const ownedReferrals = loadOwnedReferrals().filter((entry) => entry.code);
+  const ownedReferrals = loadOwnedReferrals().filter((entry) => entry.code && entry.ownerToken);
 
   if (!ownedReferrals.length) {
     renderCart();
@@ -782,7 +673,7 @@ async function refreshOwnedReferralRewards() {
 
   const updatedReferrals = await Promise.all(ownedReferrals.map(async (entry) => {
     try {
-      const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(entry.code)}`, {
+      const response = await fetch(`${REFERRALS_API_PATH}/${encodeURIComponent(entry.code)}/owner-status?ownerToken=${encodeURIComponent(entry.ownerToken)}`, {
         headers: {
           Accept: "application/json"
         }
@@ -827,57 +718,25 @@ function getStoredReferralCode() {
       return "";
     }
 
-    const code = String(parsed.code || "").trim();
-
-    if (!isFourDigitClientReferralCode(code)) {
-      removeStorageItem(REFERRAL_STORAGE_KEY);
-      return "";
-    }
-
-    return code;
+    return String(parsed.code);
   } catch (_error) {
     removeStorageItem(REFERRAL_STORAGE_KEY);
     return "";
   }
 }
 
-function normalizeClientReferralCode(value) {
-  return String(value || "")
-    .replace(/\D/g, "")
-    .slice(0, 4);
-}
+function captureReferralCode() {
+  const params = new URLSearchParams(window.location.search);
+  const code = String(params.get("ref") || "").trim();
 
-function storeReferralCode(code) {
-  const normalizedCode = normalizeClientReferralCode(code);
-
-  if (!isFourDigitClientReferralCode(normalizedCode)) {
-    clearStoredReferralCode();
-    return "";
+  if (!code) {
+    return;
   }
 
   writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
-    code: normalizedCode,
+    code,
     expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
   }));
-
-  return normalizedCode;
-}
-
-function captureReferralCode() {
-  try {
-    const params = new URLSearchParams(window.location.search || "");
-    const rawCode = String(params.get("ref") || "").trim();
-    const capturedCode = isFourDigitClientReferralCode(rawCode) ? rawCode : "";
-
-    if (!capturedCode) {
-      return;
-    }
-
-    storeReferralCode(capturedCode);
-    syncCleanReferralCodeField();
-  } catch (_error) {
-    // Ignore malformed URLs and preserve the current checkout state.
-  }
 }
 
 function clearStoredReferralCode() {
@@ -2256,22 +2115,22 @@ function ensureCartUI() {
         <div class="checkout-payment-methods">
           <h3>Payment Method</h3>
           <label class="checkout-payment-option">
-            <input type="radio" name="checkout-payment-method" value="paynow_uen" data-checkout-payment-method checked />
+            <input type="radio" name="checkout-payment-method" value="stripe_checkout" data-checkout-payment-method checked />
             <span>
-              <strong>PayNow to UEN No</strong>
-              <small>Enter the business UEN inside your Singapore banking app and use your order reference.</small>
+              <strong>Stripe Checkout</strong>
+              <small>Continue to Stripe’s secure payment page with the exact validated order amount.</small>
             </span>
           </label>
           <label class="checkout-payment-option">
-            <input type="radio" name="checkout-payment-method" value="paynow_qr" data-checkout-payment-method />
+            <input type="radio" name="checkout-payment-method" value="stripe_qr" data-checkout-payment-method />
             <span>
-              <strong>SGQR / PayNow QR</strong>
-              <small>Scan the QR code payment note after checkout and pay the exact order amount shown.</small>
+              <strong>Stripe Checkout QR</strong>
+              <small>Generate a QR code that opens the same Stripe Checkout payment page on another device.</small>
             </span>
           </label>
         </div>
-        <p class="checkout-note" data-checkout-payment-note>Enter your delivery details, choose a payment method, then create your payment note.</p>
-        <button class="checkout-button" type="button" data-cart-checkout disabled>Create PayNow UEN Order</button>
+        <p class="checkout-note" data-checkout-payment-note>Enter your delivery details, choose a payment method, then continue to Stripe Checkout.</p>
+        <button class="checkout-button" type="button" data-cart-checkout disabled>Proceed to Stripe Checkout</button>
         <div data-payment-request></div>
       </div>
     `;
@@ -2562,38 +2421,39 @@ function renderPaymentRequestCard(pendingPayment) {
   const order = pendingPayment.order || {};
   const customer = order.customer || {};
   const items = Array.isArray(order.items) ? order.items : [];
-  const hasMarkedPaid = order.status === "customer_marked_paid" || Boolean(order.customerPaymentAcknowledgement);
+  const paymentConfirmed = String(order.paymentStatus || pendingPayment.paymentStatus || "") === "paid";
   const breakdown = order.summary && order.summary.priceBreakdown ? order.summary.priceBreakdown : null;
   const totalDisplay = pendingPayment.amountDisplay || order.summary?.totalDisplay || "";
   const orderLines = buildPaymentRequestOrderSummary(items, breakdown, totalDisplay);
+  const checkoutUrl = String(pendingPayment.checkoutUrl || "").trim();
+  const qrCodeDataUrl = String(pendingPayment.qrCodeDataUrl || "").trim();
+  const sessionId = String(
+    pendingPayment.sessionId
+    || (pendingPayment.stripe && pendingPayment.stripe.checkoutSessionId)
+    || (order.stripe && order.stripe.checkoutSessionId)
+    || ""
+  ).trim();
 
   return `
     <div class="payment-request-card">
       <h3>${escapeHtml(paymentMethod.title)}</h3>
       <div class="payment-request-total">
-        <span>${paymentMethod.supportsQr ? "Amount To Pay After Scanning" : "Amount To Pay Now"}</span>
+        <span>${paymentMethod.supportsQr ? "Amount To Pay After Scanning" : "Amount To Pay In Stripe"}</span>
         <strong>${escapeHtml(totalDisplay)}</strong>
       </div>
       ${paymentMethod.supportsQr ? `
         <div class="payment-request-qr">
           <span>${escapeHtml(paymentMethod.qrImageLabel)}</span>
-          ${renderPaynowQrImage()}
+          ${qrCodeDataUrl ? `<div class="paynow-qr-frame"><img class="paynow-qr-image" src="${escapeHtml(qrCodeDataUrl)}" alt="Stripe Checkout QR code" width="220" height="220" loading="eager" decoding="async" /></div>` : ""}
         </div>
       ` : ""}
       <div class="payment-detail-grid">
-        ${paymentMethod.supportsQr ? `
-          <div class="payment-detail">
-            <span>Payment Method</span>
-            <strong>${escapeHtml(paymentMethod.title)}</strong>
-          </div>
-        ` : `
-          <div class="payment-detail">
-            <span>PayNow UEN No</span>
-            <strong>${escapeHtml(pendingPayment.paynowToUen || "")}</strong>
-          </div>
-        `}
         <div class="payment-detail">
-          <span>Ticket / Order No</span>
+          <span>Payment Method</span>
+          <strong>${escapeHtml(paymentMethod.title)}</strong>
+        </div>
+        <div class="payment-detail">
+          <span>Order No</span>
           <strong>${escapeHtml(pendingPayment.reference || order.id || "")}</strong>
         </div>
         <div class="payment-detail">
@@ -2611,11 +2471,12 @@ function renderPaymentRequestCard(pendingPayment) {
       </div>
       ${(items.length || breakdown) ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
       <p>${escapeHtml(pendingPayment.message || "")}</p>
-      ${hasMarkedPaid ? `<p><strong>Payment acknowledgement received.</strong> Durian Paradise will verify the bank transfer using your ticket number.</p>` : ""}
+      ${paymentConfirmed ? `<p><strong>Stripe has confirmed this payment.</strong> Your order is now marked as paid.</p>` : ""}
       <div class="payment-request-actions">
-        <button class="payment-request-paid" type="button" data-mark-payment-paid ${hasMarkedPaid ? "disabled" : ""}>${hasMarkedPaid ? "Paid Acknowledgement Sent" : "I Have Paid"}</button>
+        ${checkoutUrl ? `<a class="btn-email" href="${escapeHtml(checkoutUrl)}" target="_blank" rel="noopener">Open Stripe Checkout</a>` : ""}
+        ${sessionId && !paymentConfirmed ? `<button class="payment-request-copy" type="button" data-refresh-payment-status>Refresh payment status</button>` : ""}
         <button class="payment-request-copy" type="button" data-copy-payment-reference>${escapeHtml(paymentMethod.copyButtonLabel)}</button>
-        <button class="payment-request-clear" type="button" data-clear-payment-request>Clear payment note</button>
+        <button class="payment-request-clear" type="button" data-clear-payment-request>Clear payment panel</button>
       </div>
     </div>
   `;
@@ -2751,47 +2612,52 @@ function bindCartUI() {
   }
 
   if (paymentRequest) {
-    bindDelegatedTap(paymentRequest, "[data-clear-payment-request], [data-mark-payment-paid], [data-copy-payment-reference]", async (_event, target) => {
+    bindDelegatedTap(paymentRequest, "[data-clear-payment-request], [data-refresh-payment-status], [data-copy-payment-reference]", async (_event, target) => {
       if (target.matches("[data-clear-payment-request]")) {
         clearPendingPayment();
         renderCart();
       }
 
-      if (target.matches("[data-mark-payment-paid]")) {
+      if (target.matches("[data-refresh-payment-status]")) {
         const pendingPayment = loadPendingPayment();
-        const orderId = pendingPayment && (pendingPayment.reference || (pendingPayment.order && pendingPayment.order.id));
+        const sessionId = String(
+          pendingPayment && (
+            pendingPayment.sessionId
+            || (pendingPayment.stripe && pendingPayment.stripe.checkoutSessionId)
+            || (pendingPayment.order && pendingPayment.order.stripe && pendingPayment.order.stripe.checkoutSessionId)
+            || ""
+          )
+        ).trim();
 
-        if (!pendingPayment || !orderId) {
+        if (!pendingPayment || !sessionId) {
+          window.alert("No Stripe checkout session was found for this payment panel.");
           return;
         }
 
-        target.disabled = true;
-        target.textContent = "Sending...";
-
         try {
-          const response = await fetch(`${PAYMENT_ORDERS_API_PATH}/${encodeURIComponent(orderId)}/paid`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({})
-          });
+          const response = await fetch(`/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`);
           const payload = await response.json();
 
           if (!response.ok || !payload.order) {
-            throw new Error(payload.error || "Unable to mark payment as paid.");
+            throw new Error(payload.error || "Unable to refresh Stripe payment status.");
           }
 
           savePendingPayment({
             ...pendingPayment,
             order: payload.order,
-            paymentMarkedPaid: true
+            paymentStatus: payload.paymentStatus || payload.order.paymentStatus || pendingPayment.paymentStatus,
+            sessionId,
+            checkoutUrl: (payload.stripe && payload.stripe.checkoutUrl) || pendingPayment.checkoutUrl || "",
+            stripe: payload.stripe || pendingPayment.stripe || {}
           });
+
+          if (String((payload.order && payload.order.paymentStatus) || payload.paymentStatus || "") === "paid") {
+            saveCart([]);
+          }
+
           renderCart();
         } catch (error) {
-          window.alert(error && error.message ? error.message : "Unable to mark payment as paid.");
-          target.disabled = false;
-          target.textContent = "I Have Paid";
+          window.alert(error && error.message ? error.message : "Unable to refresh Stripe payment status.");
         }
       }
 
@@ -2805,17 +2671,12 @@ function bindCartUI() {
         );
         const order = pendingPayment.order || {};
         const customer = order.customer || {};
-        const paymentLines = paymentMethod.supportsQr
-          ? [
-              `Payment method: ${paymentMethod.title}`,
-              `Amount: ${pendingPayment.amountDisplay || ""}`,
-              `Ticket / Order No: ${pendingPayment.reference || ""}`
-            ]
-          : [
-              `PayNow UEN: ${pendingPayment.paynowToUen || ""}`,
-              `Amount: ${pendingPayment.amountDisplay || ""}`,
-              `Ticket / Order No: ${pendingPayment.reference || ""}`
-            ];
+        const paymentLines = [
+          `Payment method: ${paymentMethod.title}`,
+          `Amount: ${pendingPayment.amountDisplay || ""}`,
+          `Order No: ${pendingPayment.reference || ""}`,
+          `Stripe Checkout: ${pendingPayment.checkoutUrl || ""}`
+        ];
 
         navigator.clipboard.writeText(
           `${paymentLines.join("\n")}\nEmail: ${customer.email || ""}\nContact: ${customer.phone || ""}\nAddress: ${customer.address || ""}`
@@ -2833,6 +2694,7 @@ function bindCartUI() {
       const cart = loadCart();
       const selectedPaymentMethod = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
       const activeReferralRewards = getDisplayableReferralRewards();
+      const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
       const referralRewardClaims = activeReferralRewards.map((reward) => ({
         referralCode: reward.referralCode,
         rewardId: reward.id
@@ -2847,6 +2709,11 @@ function bindCartUI() {
       const address = addressInput ? addressInput.value.trim() : "";
 
       if (!cart.length) {
+        return;
+      }
+
+      if (!pricing.minimumDeliveryBoxesMet) {
+        window.alert("Online Delivery requires a minimum of 3 boxes.");
         return;
       }
 
@@ -2881,10 +2748,12 @@ function bindCartUI() {
       });
 
       checkout.disabled = true;
-      checkout.textContent = `Creating ${selectedPaymentMethod.title} Order...`;
+      checkout.textContent = selectedPaymentMethod.supportsQr
+        ? "Generating Stripe Checkout QR..."
+        : "Redirecting To Stripe Checkout...";
 
       try {
-        const response = await fetch(PAYMENT_ORDERS_API_PATH, {
+        const response = await fetch(STRIPE_CHECKOUT_SESSION_API_PATH, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -2905,6 +2774,7 @@ function bindCartUI() {
             paymentMethodKey: selectedPaymentMethod.key,
             referralCode: getStoredReferralCode(),
             referralRewardClaims,
+            totalAmount: pricing.total,
             visitorId: getVisitorId(),
             path: window.location.pathname,
             pageCategory: getPageCategory()
@@ -2913,26 +2783,36 @@ function bindCartUI() {
 
         const payload = await response.json();
 
-        if (!response.ok || !payload.order || !payload.paymentRequest) {
-          throw new Error(payload.error || "Unable to create payment order.");
+        if (!response.ok || !payload.order || !payload.checkoutUrl) {
+          throw new Error(payload.error || "Unable to create Stripe checkout session.");
         }
 
-        saveCart([]);
         savePendingPayment({
-          ...payload.paymentRequest,
-          order: payload.order
+          order: payload.order,
+          reference: payload.order.id || "",
+          amountDisplay: payload.order.summary?.totalDisplay || formatCheckoutMoney(pricing.total),
+          checkoutUrl: payload.checkoutUrl || "",
+          qrCodeDataUrl: payload.qrCodeDataUrl || "",
+          sessionId: payload.sessionId || "",
+          paymentMethodKey: selectedPaymentMethod.key,
+          paymentMethod: selectedPaymentMethod.title,
+          paymentStatus: payload.order.paymentStatus || "checkout_pending",
+          message: selectedPaymentMethod.supportsQr
+            ? "Scan this QR code or open the Stripe checkout link to pay the exact validated amount."
+            : "Redirecting you to Stripe Checkout to complete payment securely."
         });
-        clearStoredReferralCode();
-        markOwnedReferralRewardsAsClaimed(referralRewardClaims, payload.order.id);
         renderCart();
         const updatedPaymentRequest = document.querySelector("[data-payment-request]");
-        if (updatedPaymentRequest) {
+        if (selectedPaymentMethod.supportsQr && updatedPaymentRequest) {
           updatedPaymentRequest.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        if (!selectedPaymentMethod.supportsQr) {
+          window.location.assign(payload.checkoutUrl);
         }
         checkout.disabled = false;
         syncCheckoutPaymentMethodUI();
       } catch (error) {
-        window.alert(error && error.message ? error.message : "Unable to create payment order.");
+        window.alert(error && error.message ? error.message : "Unable to create Stripe checkout session.");
         checkout.disabled = false;
         syncCheckoutPaymentMethodUI();
       }
@@ -3029,7 +2909,7 @@ function bindProductCards() {
     syncCardState();
     button.textContent = "Add to Cart";
 
-    if (button.dataset.tapBound !== "true") {
+     if (button.dataset.tapBound !== "true") {
       button.dataset.tapBound = "true";
       bindTap(button, () => {
         if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
@@ -3476,848 +3356,4 @@ document.addEventListener("visibilitychange", () => {
 
 window.addEventListener("popstate", (event) => {
   syncCartDrawerWithHistoryState(event.state);
-});
-
-const cleanOrderFlowState = {
-  initialized: false,
-  isCartOpen: false,
-  isCreatingOrder: false,
-  isGeneratingReferral: false
-};
-
-function getCleanOrderFlowElements() {
-  return {
-    root: document.querySelector("[data-order-flow-root]"),
-    cartTrigger: document.querySelector("[data-order-cart-trigger]"),
-    cartCount: document.querySelector("[data-order-cart-count]"),
-    cartOverlay: document.querySelector("[data-order-cart-overlay]"),
-    cartDrawer: document.querySelector("[data-order-cart-drawer]"),
-    cartBody: document.querySelector("[data-order-cart-body]"),
-    cartBreakdown: document.querySelector("[data-order-cart-breakdown]"),
-    cartTotal: document.querySelector("[data-order-cart-total]"),
-    cartItemsLabel: document.querySelector("[data-order-cart-items-label]"),
-    cartMessage: document.querySelector("[data-order-cart-message]"),
-    checkoutName: document.querySelector("[data-order-checkout-name]"),
-    checkoutPhone: document.querySelector("[data-order-checkout-phone]"),
-    checkoutEmail: document.querySelector("[data-order-checkout-email]"),
-    checkoutAddress: document.querySelector("[data-order-checkout-address]"),
-    checkoutNotes: document.querySelector("[data-order-checkout-notes]"),
-    checkoutReferralCode: document.querySelector("[data-order-checkout-referral-code]"),
-    checkoutNote: document.querySelector("[data-order-checkout-note]"),
-    checkoutButton: document.querySelector('[data-order-action="checkout"]'),
-    paymentRequest: document.querySelector("[data-order-payment-request]"),
-    paymentMethodInputs: Array.from(document.querySelectorAll("[data-order-checkout-payment-method]")),
-    referralForm: document.querySelector("[data-order-referral-form]"),
-    referralLookupCode: document.querySelector("[data-order-referral-lookup-code]"),
-    referralMessage: document.querySelector("[data-order-referral-message]"),
-    referralOutput: document.querySelector("[data-order-referral-output]"),
-    referralCode: document.querySelector("[data-order-referral-code]"),
-    referralLink: document.querySelector("[data-order-referral-link]"),
-    referralCheck: document.querySelector("[data-order-check-referral]"),
-    referralCopy: document.querySelector("[data-order-copy-referral]"),
-    referralRewards: document.querySelector("[data-order-referral-rewards]")
-  };
-}
-
-function setCleanMessage(element, text, status = "") {
-  if (!element) {
-    return;
-  }
-
-  element.textContent = text;
-  element.className = "referral-message";
-
-  if (status === "success") {
-    element.classList.add("is-success");
-  } else if (status === "error") {
-    element.classList.add("is-error");
-  }
-}
-
-function getCleanSelectedPaymentMethodKey() {
-  const selectedInput = document.querySelector("[data-order-checkout-payment-method]:checked");
-  return normalizePaymentMethodKey(selectedInput ? selectedInput.value : DEFAULT_PAYMENT_METHOD_KEY);
-}
-
-function syncCleanCheckoutUI() {
-  const { checkoutNote, checkoutButton } = getCleanOrderFlowElements();
-  const config = getPaymentMethodConfig(getCleanSelectedPaymentMethodKey());
-
-  if (checkoutNote) {
-    checkoutNote.textContent = config.checkoutNote;
-  }
-
-  if (checkoutButton && !cleanOrderFlowState.isCreatingOrder) {
-    checkoutButton.textContent = config.checkoutButtonLabel;
-  }
-}
-
-function syncCleanReferralCodeField() {
-  const { checkoutReferralCode } = getCleanOrderFlowElements();
-
-  if (!checkoutReferralCode) {
-    return;
-  }
-
-  const storedCode = getStoredReferralCode();
-  checkoutReferralCode.value = storedCode || "";
-}
-
-function getEffectiveReferralCode() {
-  const { checkoutReferralCode } = getCleanOrderFlowElements();
-  const inputCode = checkoutReferralCode ? normalizeClientReferralCode(checkoutReferralCode.value) : "";
-  return inputCode || getStoredReferralCode();
-}
-
-function syncCleanCartTriggerCount() {
-  const { cartCount } = getCleanOrderFlowElements();
-
-  if (cartCount) {
-    cartCount.textContent = String(getCartCount(loadCart()));
-  }
-}
-
-function openCleanCartDrawer() {
-  const { cartDrawer, cartOverlay, cartTrigger } = getCleanOrderFlowElements();
-
-  if (!cartDrawer || !cartOverlay) {
-    return;
-  }
-
-  cleanOrderFlowState.isCartOpen = true;
-  cartDrawer.classList.add("is-open");
-  cartDrawer.setAttribute("aria-hidden", "false");
-  cartOverlay.hidden = false;
-  cartOverlay.classList.add("is-open");
-  document.body.classList.add("clean-cart-open");
-
-  if (cartTrigger) {
-    cartTrigger.setAttribute("aria-expanded", "true");
-  }
-
-  renderCleanOrderCart();
-  refreshOwnedReferralRewardsIfNeeded(true).then(() => {
-    renderCleanOrderReferralRewards();
-    renderCleanOrderCart();
-  });
-}
-
-function closeCleanCartDrawer() {
-  const { cartDrawer, cartOverlay, cartTrigger, cartMessage } = getCleanOrderFlowElements();
-
-  cleanOrderFlowState.isCartOpen = false;
-
-  if (cartDrawer) {
-    cartDrawer.classList.remove("is-open");
-    cartDrawer.setAttribute("aria-hidden", "true");
-  }
-
-  if (cartOverlay) {
-    cartOverlay.classList.remove("is-open");
-    cartOverlay.hidden = true;
-  }
-
-  if (cartTrigger) {
-    cartTrigger.setAttribute("aria-expanded", "false");
-  }
-
-  if (cartMessage) {
-    setCleanMessage(cartMessage, "");
-  }
-
-  document.body.classList.remove("clean-cart-open");
-}
-
-function resetCleanDeliveryCard(card) {
-  Array.from(card.querySelectorAll("[data-order-delivery-row]")).forEach((row) => {
-    row.dataset.quantity = "0";
-    const quantityEl = row.querySelector("[data-order-quantity]");
-    if (quantityEl) {
-      quantityEl.textContent = "0";
-    }
-  });
-}
-
-function renderCleanOrderReferralRewards() {
-  const { referralRewards } = getCleanOrderFlowElements();
-
-  if (!referralRewards) {
-    return;
-  }
-
-  const activeCode = getStoredReferralLookupCode();
-  const ownedReferrals = loadOwnedReferrals();
-  const latestReferral = (activeCode
-    ? ownedReferrals.find((entry) => String(entry.code || "") === activeCode)
-    : null) || [getLatestGeneratedReferral(false), getLatestGeneratedReferral(true)].find(Boolean);
-  const rewards = getDisplayableReferralRewards();
-
-  if (!latestReferral) {
-    referralRewards.hidden = true;
-    referralRewards.innerHTML = "";
-    return;
-  }
-
-  const conversionCount = latestReferral ? Number(latestReferral.conversionCount || 0) : 0;
-
-  referralRewards.hidden = false;
-  referralRewards.innerHTML = `
-    <strong>Successful referrals recorded: ${conversionCount}</strong>
-    ${rewards.length ? `
-      <ul class="feature-list">
-        ${rewards.map((reward) => `<li>${escapeHtml(getReferralRewardMessage(reward))}</li>`).join("")}
-      </ul>
-    ` : `<p>No available rewards are attached to this code yet.</p>`}
-  `;
-}
-
-function renderCleanOrderCart() {
-  const {
-    cartBody,
-    cartBreakdown,
-    cartTotal,
-    cartItemsLabel,
-    paymentRequest,
-    checkoutButton
-  } = getCleanOrderFlowElements();
-  const cart = loadCart();
-  const rewards = getDisplayableReferralRewards();
-  const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), rewards);
-  const pendingPayment = loadPendingPayment();
-
-  syncCleanCartTriggerCount();
-  syncCleanCheckoutUI();
-
-  if (!cartBody || !cartBreakdown || !cartTotal || !cartItemsLabel || !checkoutButton) {
-    return;
-  }
-
-  cartTotal.textContent = formatCheckoutMoney(pricing.total);
-  cartItemsLabel.textContent = `${getCartCount(cart)} item${getCartCount(cart) === 1 ? "" : "s"}`;
-  cartBreakdown.innerHTML = renderCartBreakdown(pricing);
-  checkoutButton.disabled = cleanOrderFlowState.isCreatingOrder || cart.length === 0 || !pricing.minimumDeliveryBoxesMet;
-
-  if (!cart.length) {
-    cartBody.innerHTML = `<div class="cart-empty">Your cart is empty. Add a durian package from the homepage and it will appear here immediately.</div>`;
-  } else {
-    cartBody.innerHTML = cart.map((item) => `
-      <article class="clean-cart-line" data-order-cart-item-key="${escapeHtml(getItemKey(item))}">
-        <div class="clean-cart-line__top">
-          <div>
-            <div class="clean-cart-line__type">${escapeHtml(item.orderType)}</div>
-            <div class="clean-cart-line__name">${escapeHtml(item.productName)}</div>
-            <div class="clean-cart-line__variant">${escapeHtml(item.variantLabel)}</div>
-          </div>
-          <div class="clean-cart-line__subtotal">${escapeHtml(formatCurrency(item.unitPrice * item.quantity))}</div>
-        </div>
-        <div class="clean-cart-line__bottom">
-          <div class="order-option-controls">
-            <button class="order-qty-button" type="button" data-order-action="cart-decrease">-</button>
-            <span>${item.quantity}</span>
-            <button class="order-qty-button" type="button" data-order-action="cart-increase">+</button>
-          </div>
-          <button class="clean-cart-line__remove" type="button" data-order-action="cart-remove">Remove</button>
-        </div>
-      </article>
-    `).join("");
-  }
-
-  if (paymentRequest) {
-    paymentRequest.innerHTML = renderPaymentRequestCard(pendingPayment);
-  }
-}
-
-async function copyCleanOrderReferralLink() {
-  const { referralLink } = getCleanOrderFlowElements();
-  const link = referralLink ? referralLink.textContent.trim() : "";
-
-  if (!link) {
-    return false;
-  }
-
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    await navigator.clipboard.writeText(link);
-    return true;
-  }
-
-  const selection = window.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(referralLink);
-  selection.removeAllRanges();
-  selection.addRange(range);
-
-  try {
-    return document.execCommand("copy");
-  } finally {
-    selection.removeAllRanges();
-  }
-}
-
-async function handleCleanReferralSubmit(event) {
-  if (event && typeof event.preventDefault === "function") {
-    event.preventDefault();
-  }
-
-  if (cleanOrderFlowState.isGeneratingReferral) {
-    return;
-  }
-
-  const { referralMessage, referralOutput, referralCode, referralLink, referralLookupCode } = getCleanOrderFlowElements();
-
-  cleanOrderFlowState.isGeneratingReferral = true;
-  setCleanMessage(referralMessage, "Creating referral link...");
-
-  try {
-    const ownedReferral = getLatestGeneratedReferral();
-    const response = await fetch(REFERRALS_API_PATH, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        ownerToken: ownedReferral ? ownedReferral.ownerToken : ""
-      })
-    });
-    const result = await response.json();
-
-    if (!response.ok || !result.referral || !result.referral.link) {
-      throw new Error(result.error || "Unable to create referral link.");
-    }
-
-    storeOwnedReferral(result.referral);
-    setStoredReferralLookupCode(result.referral.code || "");
-    if (referralCode) {
-      referralCode.textContent = result.referral.code || "";
-    }
-    if (referralLink) {
-      referralLink.textContent = buildClientReferralLink(result.referral.code || "") || result.referral.link || "";
-    }
-    if (referralLookupCode) {
-      referralLookupCode.value = result.referral.code || "";
-    }
-    if (referralOutput) {
-      referralOutput.hidden = false;
-      referralOutput.classList.add("is-visible");
-    }
-    setCleanMessage(referralMessage, "Referral link ready below.", "success");
-    await refreshOwnedReferralRewardsIfNeeded(true);
-    renderCleanOrderReferralRewards();
-    renderCleanOrderCart();
-  } catch (error) {
-    setCleanMessage(referralMessage, error && error.message ? error.message : "Unable to create referral link.", "error");
-  } finally {
-    cleanOrderFlowState.isGeneratingReferral = false;
-  }
-}
-
-async function handleCleanReferralLookup() {
-  const { referralLookupCode, referralMessage, referralOutput, referralCode, referralLink } = getCleanOrderFlowElements();
-  const inputCode = referralLookupCode ? referralLookupCode.value : "";
-
-  setCleanMessage(referralMessage, "Checking referral rewards...");
-
-  try {
-    const referral = await fetchReferralStatusByCode(inputCode);
-
-    if (referralLookupCode) {
-      referralLookupCode.value = referral.code || "";
-    }
-    if (referralCode) {
-      referralCode.textContent = referral.code || "";
-    }
-    if (referralLink) {
-      referralLink.textContent = buildClientReferralLink(referral.code || "") || referral.link || "";
-    }
-    if (referralOutput) {
-      referralOutput.hidden = false;
-      referralOutput.classList.add("is-visible");
-    }
-
-    setStoredReferralLookupCode(referral.code || "");
-    setCleanMessage(referralMessage, "Referral code loaded.", "success");
-    renderCleanOrderReferralRewards();
-    renderCleanOrderCart();
-  } catch (error) {
-    setCleanMessage(referralMessage, error && error.message ? error.message : "Unable to load referral code.", "error");
-  }
-}
-
-function updateCleanDeliveryQuantity(row, nextQuantity) {
-  const quantity = Math.max(0, Number(nextQuantity || 0));
-  row.dataset.quantity = String(quantity);
-  const quantityEl = row.querySelector("[data-order-quantity]");
-  if (quantityEl) {
-    quantityEl.textContent = String(quantity);
-  }
-}
-
-function getCleanDeliverySelections(card) {
-  return Array.from(card.querySelectorAll("[data-order-delivery-row]"))
-    .map((row) => ({
-      row,
-      quantity: Number(row.dataset.quantity || 0)
-    }))
-    .filter((entry) => entry.quantity > 0);
-}
-
-function getCleanRewardClaims() {
-  return getDisplayableReferralRewards().map((reward) => ({
-    referralCode: reward.referralCode,
-    rewardId: reward.id
-  })).filter((claim) => claim.referralCode && claim.rewardId);
-}
-
-async function handleCleanCheckout() {
-  if (cleanOrderFlowState.isCreatingOrder) {
-    return;
-  }
-
-  const {
-    checkoutName,
-    checkoutPhone,
-    checkoutEmail,
-    checkoutAddress,
-    checkoutNotes,
-    checkoutButton,
-    cartMessage
-  } = getCleanOrderFlowElements();
-  const cart = loadCart();
-  const phone = checkoutPhone ? checkoutPhone.value.trim() : "";
-  const email = checkoutEmail ? checkoutEmail.value.trim() : "";
-  const address = checkoutAddress ? checkoutAddress.value.trim() : "";
-  const selectedPaymentMethod = getPaymentMethodConfig(getCleanSelectedPaymentMethodKey());
-
-  if (!cart.length) {
-    setCleanMessage(cartMessage, "Your cart is empty. Add at least one item first.", "error");
-    return;
-  }
-
-  if (!phone) {
-    setCleanMessage(cartMessage, "Please enter your contact number before payment.", "error");
-    if (checkoutPhone) {
-      checkoutPhone.focus();
-    }
-    return;
-  }
-
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    setCleanMessage(cartMessage, "Please enter a valid email address for your order confirmation.", "error");
-    if (checkoutEmail) {
-      checkoutEmail.focus();
-    }
-    return;
-  }
-
-  if (!address) {
-    setCleanMessage(cartMessage, "Please enter your delivery address before payment.", "error");
-    if (checkoutAddress) {
-      checkoutAddress.focus();
-    }
-    return;
-  }
-
-  cleanOrderFlowState.isCreatingOrder = true;
-  checkoutButton.disabled = true;
-  checkoutButton.textContent = `Creating ${selectedPaymentMethod.title} Order...`;
-  setCleanMessage(cartMessage, "");
-
-  try {
-    const response = await fetch(PAYMENT_ORDERS_API_PATH, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        items: cart.map((item) => ({
-          productId: item.productId,
-          variantValue: item.variantValue,
-          quantity: item.quantity
-        })),
-        customer: {
-          name: checkoutName ? checkoutName.value.trim() : "",
-          phone,
-          email,
-          address,
-          deliveryNotes: checkoutNotes ? checkoutNotes.value.trim() : ""
-        },
-        paymentMethodKey: selectedPaymentMethod.key,
-        referralCode: getEffectiveReferralCode(),
-        referralRewardClaims: getCleanRewardClaims(),
-        visitorId: getVisitorId(),
-        path: window.location.pathname,
-        pageCategory: getPageCategory()
-      })
-    });
-    const payload = await response.json();
-
-    if (!response.ok || !payload.order || !payload.paymentRequest) {
-      throw new Error(payload.error || "Unable to create payment order.");
-    }
-
-    saveCart([]);
-    savePendingPayment({
-      ...payload.paymentRequest,
-      order: payload.order
-    });
-    markOwnedReferralRewardsAsClaimed(getCleanRewardClaims(), payload.order.id);
-    trackAnalyticsEvent("checkout_started", {
-      metadata: {
-        itemCount: getCartCount(cart)
-      }
-    });
-    await refreshOwnedReferralRewardsIfNeeded(true);
-    renderCleanOrderReferralRewards();
-    renderCleanOrderCart();
-    const { paymentRequest } = getCleanOrderFlowElements();
-    if (paymentRequest) {
-      paymentRequest.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  } catch (error) {
-    setCleanMessage(cartMessage, error && error.message ? error.message : "Unable to create payment order.", "error");
-  } finally {
-    cleanOrderFlowState.isCreatingOrder = false;
-    renderCleanOrderCart();
-  }
-}
-
-async function handleCleanPaymentRequestAction(target) {
-  const { cartMessage } = getCleanOrderFlowElements();
-
-  if (target.matches("[data-clear-payment-request]")) {
-    clearPendingPayment();
-    renderCleanOrderCart();
-    return;
-  }
-
-  if (target.matches("[data-copy-payment-reference]")) {
-    const pendingPayment = loadPendingPayment();
-    if (!pendingPayment || !navigator.clipboard) {
-      return;
-    }
-
-    const paymentMethod = getPaymentMethodConfig(
-      pendingPayment.paymentMethodKey || pendingPayment.paymentMethod || DEFAULT_PAYMENT_METHOD_KEY
-    );
-    const order = pendingPayment.order || {};
-    const customer = order.customer || {};
-    const paymentLines = paymentMethod.supportsQr
-      ? [
-          `Payment method: ${paymentMethod.title}`,
-          `Amount: ${pendingPayment.amountDisplay || ""}`,
-          `Ticket / Order No: ${pendingPayment.reference || ""}`
-        ]
-      : [
-          `PayNow UEN: ${pendingPayment.paynowToUen || ""}`,
-          `Amount: ${pendingPayment.amountDisplay || ""}`,
-          `Ticket / Order No: ${pendingPayment.reference || ""}`
-        ];
-
-    await navigator.clipboard.writeText(
-      `${paymentLines.join("\n")}\nEmail: ${customer.email || ""}\nContact: ${customer.phone || ""}\nAddress: ${customer.address || ""}`
-    );
-    setCleanMessage(cartMessage, "Payment details copied.", "success");
-    return;
-  }
-
-  if (target.matches("[data-mark-payment-paid]")) {
-    const pendingPayment = loadPendingPayment();
-    const orderId = pendingPayment && (pendingPayment.reference || (pendingPayment.order && pendingPayment.order.id));
-
-    if (!pendingPayment || !orderId) {
-      return;
-    }
-
-    target.disabled = true;
-    target.textContent = "Sending...";
-
-    try {
-      const response = await fetch(`${PAYMENT_ORDERS_API_PATH}/${encodeURIComponent(orderId)}/paid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({})
-      });
-      const payload = await response.json();
-
-      if (!response.ok || !payload.order) {
-        throw new Error(payload.error || "Unable to mark payment as paid.");
-      }
-
-      savePendingPayment({
-        ...pendingPayment,
-        order: payload.order,
-        paymentMarkedPaid: true
-      });
-      await refreshOwnedReferralRewardsIfNeeded(true);
-      renderCleanOrderReferralRewards();
-      renderCleanOrderCart();
-      setCleanMessage(cartMessage, "Payment acknowledgement sent. We will verify your transfer shortly.", "success");
-    } catch (error) {
-      setCleanMessage(cartMessage, error && error.message ? error.message : "Unable to mark payment as paid.", "error");
-      target.disabled = false;
-      target.textContent = "I Have Paid";
-    }
-  }
-}
-
-function handleCleanOrderClick(event) {
-  const target = event.target.closest("[data-order-action], [data-order-cart-trigger], [data-order-copy-referral], [data-order-check-referral], [data-copy-payment-reference], [data-clear-payment-request], [data-mark-payment-paid]");
-
-  if (!target) {
-    return;
-  }
-
-  if (target.matches("[data-order-cart-trigger]")) {
-    event.preventDefault();
-    openCleanCartDrawer();
-    return;
-  }
-
-  if (target.matches("[data-order-copy-referral]")) {
-    event.preventDefault();
-    copyCleanOrderReferralLink()
-      .then((copied) => {
-        const { referralMessage } = getCleanOrderFlowElements();
-        if (!copied) {
-          throw new Error("Unable to copy referral link.");
-        }
-        setCleanMessage(referralMessage, "Referral link copied.", "success");
-      })
-      .catch(() => {
-        const { referralMessage } = getCleanOrderFlowElements();
-        setCleanMessage(referralMessage, "Unable to copy automatically. You can still select the link and share it manually.", "error");
-      });
-    return;
-  }
-
-  if (target.matches("[data-order-check-referral]")) {
-    event.preventDefault();
-    handleCleanReferralLookup();
-    return;
-  }
-
-  if (target.matches("[data-copy-payment-reference], [data-clear-payment-request], [data-mark-payment-paid]")) {
-    event.preventDefault();
-    handleCleanPaymentRequestAction(target);
-    return;
-  }
-
-  const action = target.getAttribute("data-order-action");
-  if (!action) {
-    return;
-  }
-
-  event.preventDefault();
-
-  if (action === "close-cart") {
-    closeCleanCartDrawer();
-    return;
-  }
-
-  if (action === "checkout") {
-    handleCleanCheckout();
-    return;
-  }
-
-  if (action === "cart-increase" || action === "cart-decrease" || action === "cart-remove") {
-    const item = target.closest("[data-order-cart-item-key]");
-    if (!item) {
-      return;
-    }
-    const itemKey = item.getAttribute("data-order-cart-item-key");
-    if (action === "cart-increase") {
-      updateCartQuantity(itemKey, 1);
-    } else if (action === "cart-decrease") {
-      updateCartQuantity(itemKey, -1);
-    } else {
-      removeCartItem(itemKey);
-    }
-    renderCleanOrderCart();
-    return;
-  }
-
-  if (action.startsWith("delivery-")) {
-    const row = target.closest("[data-order-delivery-row]");
-    if (!row) {
-      return;
-    }
-    const quantity = Number(row.dataset.quantity || 0);
-    updateCleanDeliveryQuantity(row, action === "delivery-increase" ? quantity + 1 : quantity - 1);
-    return;
-  }
-
-  if (action === "add-delivery") {
-    const card = target.closest("[data-order-delivery-card]");
-    const message = card ? card.querySelector("[data-order-card-message]") : null;
-    if (!card) {
-      return;
-    }
-
-    const selectedRows = getCleanDeliverySelections(card);
-    if (!selectedRows.length) {
-      setCleanMessage(message, "Choose at least one box size before adding to cart.", "error");
-      return;
-    }
-
-    selectedRows.forEach(({ row, quantity }) => {
-      const item = {
-        productId: card.dataset.productId || "",
-        productName: card.dataset.productName || "Durian Package",
-        orderType: card.dataset.orderType || "Online Delivery",
-        variantValue: row.dataset.variantValue || "",
-        variantLabel: row.dataset.variantLabel || "",
-        unitPrice: Number(row.dataset.unitPrice || 0),
-        quantity
-      };
-      addToCart(item);
-      trackAnalyticsEvent("add_to_cart", {
-        metadata: {
-          productId: item.productId,
-          variantValue: item.variantValue,
-          itemCount: item.quantity
-        }
-      });
-    });
-
-    resetCleanDeliveryCard(card);
-    setCleanMessage(message, "Added to cart.", "success");
-    renderCleanOrderCart();
-    return;
-  }
-
-  if (action === "add-party") {
-    const card = target.closest("[data-order-party-card]");
-    const select = card ? card.querySelector("[data-order-party-select]") : null;
-    const message = card ? card.querySelector("[data-order-card-message]") : null;
-    if (!card || !select) {
-      return;
-    }
-
-    const option = select.options[select.selectedIndex];
-    if (!option || !option.value) {
-      setCleanMessage(message, "Choose a party package before adding to cart.", "error");
-      select.focus();
-      return;
-    }
-
-    const item = {
-      productId: card.dataset.productIdBase || "",
-      productName: card.dataset.productName || "Durian Party",
-      orderType: card.dataset.orderType || "Durian Party",
-      variantValue: option.value,
-      variantLabel: option.dataset.label || option.textContent,
-      unitPrice: Number(option.dataset.price || 0),
-      quantity: 1
-    };
-    addToCart(item);
-    trackAnalyticsEvent("add_to_cart", {
-      metadata: {
-        productId: item.productId,
-        variantValue: item.variantValue,
-        itemCount: item.quantity
-      }
-    });
-    select.selectedIndex = 0;
-    setCleanMessage(message, "Added to cart.", "success");
-    renderCleanOrderCart();
-  }
-}
-
-function handleCleanOrderChange(event) {
-  if (event.target.matches("[data-order-checkout-payment-method]")) {
-    syncCleanCheckoutUI();
-    return;
-  }
-
-  if (event.target.matches("[data-order-checkout-referral-code]")) {
-    const normalizedCode = normalizeClientReferralCode(event.target.value);
-    event.target.value = normalizedCode;
-
-    if (normalizedCode) {
-      storeReferralCode(normalizedCode);
-    } else {
-      clearStoredReferralCode();
-    }
-    return;
-  }
-
-  if (event.target.matches("[data-order-referral-lookup-code]")) {
-    event.target.value = normalizeClientReferralCode(event.target.value);
-  }
-}
-
-function bindCleanOrderFlowEvents() {
-  document.addEventListener("click", handleCleanOrderClick);
-  document.addEventListener("change", handleCleanOrderChange);
-  document.addEventListener("submit", (event) => {
-    if (event.target.matches("[data-order-referral-form]")) {
-      handleCleanReferralSubmit(event);
-    }
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && cleanOrderFlowState.isCartOpen) {
-      closeCleanCartDrawer();
-    }
-  });
-}
-
-function initCleanOrderFlow() {
-  const { root, referralCode, referralLink, referralOutput, referralLookupCode } = getCleanOrderFlowElements();
-
-  if (!root) {
-    return;
-  }
-
-  injectCartStyles();
-
-  if (!cleanOrderFlowState.initialized) {
-    cleanOrderFlowState.initialized = true;
-    bindCleanOrderFlowEvents();
-  }
-
-  const existingReferral = getLatestGeneratedReferral(false);
-  if (existingReferral && referralLink && referralOutput) {
-    if (referralCode) {
-      referralCode.textContent = existingReferral.code || "";
-    }
-    referralLink.textContent = buildClientReferralLink(existingReferral.code || "") || existingReferral.link || "";
-    referralOutput.hidden = false;
-    referralOutput.classList.add("is-visible");
-  } else if (referralOutput) {
-    referralOutput.hidden = true;
-    referralOutput.classList.remove("is-visible");
-    if (referralCode) {
-      referralCode.textContent = "";
-    }
-    if (referralLink) {
-      referralLink.textContent = "";
-    }
-  }
-  if (existingReferral && referralLookupCode) {
-    referralLookupCode.value = existingReferral.code || "";
-  } else if (referralLookupCode) {
-    referralLookupCode.value = "";
-  }
-
-  syncCleanCartTriggerCount();
-  syncCleanCheckoutUI();
-  captureReferralCode();
-  syncCleanReferralCodeField();
-  renderCleanOrderReferralRewards();
-  renderCleanOrderCart();
-  refreshOwnedReferralRewardsIfNeeded(true).then(() => {
-    renderCleanOrderReferralRewards();
-    renderCleanOrderCart();
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  initCleanOrderFlow();
-});
-
-window.addEventListener("pageshow", () => {
-  initCleanOrderFlow();
-  renderCleanOrderCart();
-  renderCleanOrderReferralRewards();
 });
