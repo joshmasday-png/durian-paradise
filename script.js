@@ -2481,12 +2481,6 @@ function renderPaymentRequestCard(pendingPayment) {
   const orderLines = buildPaymentRequestOrderSummary(items, breakdown, totalDisplay);
   const checkoutUrl = String(pendingPayment.checkoutUrl || "").trim();
   const qrCodeDataUrl = String(pendingPayment.qrCodeDataUrl || "").trim();
-  const sessionId = String(
-    pendingPayment.sessionId
-    || (pendingPayment.stripe && pendingPayment.stripe.checkoutSessionId)
-    || (order.stripe && order.stripe.checkoutSessionId)
-    || ""
-  ).trim();
 
   return `
     <div class="payment-request-card">
@@ -2528,8 +2522,6 @@ function renderPaymentRequestCard(pendingPayment) {
       ${paymentConfirmed ? `<p><strong>Stripe has confirmed this payment.</strong> Your order is now marked as paid.</p>` : ""}
       <div class="payment-request-actions">
         ${checkoutUrl ? `<a class="btn-email" href="${escapeHtml(checkoutUrl)}" target="_blank" rel="noopener">Open Stripe Checkout</a>` : ""}
-        ${sessionId && !paymentConfirmed ? `<button class="payment-request-copy" type="button" data-refresh-payment-status>Refresh payment status</button>` : ""}
-        <button class="payment-request-copy" type="button" data-copy-payment-reference>${escapeHtml(paymentMethod.copyButtonLabel)}</button>
         <button class="payment-request-clear" type="button" data-clear-payment-request>Clear payment panel</button>
       </div>
     </div>
@@ -2666,75 +2658,10 @@ function bindCartUI() {
   }
 
   if (paymentRequest) {
-    bindDelegatedTap(paymentRequest, "[data-clear-payment-request], [data-refresh-payment-status], [data-copy-payment-reference]", async (_event, target) => {
+    bindDelegatedTap(paymentRequest, "[data-clear-payment-request]", async (_event, target) => {
       if (target.matches("[data-clear-payment-request]")) {
         clearPendingPayment();
         renderCart();
-      }
-
-      if (target.matches("[data-refresh-payment-status]")) {
-        const pendingPayment = loadPendingPayment();
-        const sessionId = String(
-          pendingPayment && (
-            pendingPayment.sessionId
-            || (pendingPayment.stripe && pendingPayment.stripe.checkoutSessionId)
-            || (pendingPayment.order && pendingPayment.order.stripe && pendingPayment.order.stripe.checkoutSessionId)
-            || ""
-          )
-        ).trim();
-
-        if (!pendingPayment || !sessionId) {
-          window.alert("No Stripe checkout session was found for this payment panel.");
-          return;
-        }
-
-        try {
-          const response = await fetch(`/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`);
-          const payload = await response.json();
-
-          if (!response.ok || !payload.order) {
-            throw new Error(payload.error || "Unable to refresh Stripe payment status.");
-          }
-
-          savePendingPayment({
-            ...pendingPayment,
-            order: payload.order,
-            paymentStatus: payload.paymentStatus || payload.order.paymentStatus || pendingPayment.paymentStatus,
-            sessionId,
-            checkoutUrl: (payload.stripe && payload.stripe.checkoutUrl) || pendingPayment.checkoutUrl || "",
-            stripe: payload.stripe || pendingPayment.stripe || {}
-          });
-
-          if (String((payload.order && payload.order.paymentStatus) || payload.paymentStatus || "") === "paid") {
-            saveCart([]);
-          }
-
-          renderCart();
-        } catch (error) {
-          window.alert(error && error.message ? error.message : "Unable to refresh Stripe payment status.");
-        }
-      }
-
-      if (target.matches("[data-copy-payment-reference]")) {
-        const pendingPayment = loadPendingPayment();
-        if (!pendingPayment || !navigator.clipboard) {
-          return;
-        }
-        const paymentMethod = getPaymentMethodConfig(
-          pendingPayment.paymentMethodKey || pendingPayment.paymentMethod || DEFAULT_PAYMENT_METHOD_KEY
-        );
-        const order = pendingPayment.order || {};
-        const customer = order.customer || {};
-        const paymentLines = [
-          `Payment method: ${paymentMethod.title}`,
-          `Amount: ${pendingPayment.amountDisplay || ""}`,
-          `Order No: ${pendingPayment.reference || ""}`,
-          `Stripe Checkout: ${pendingPayment.checkoutUrl || ""}`
-        ];
-
-        navigator.clipboard.writeText(
-          `${paymentLines.join("\n")}\nEmail: ${customer.email || ""}\nContact: ${customer.phone || ""}\nAddress: ${customer.address || ""}`
-        );
       }
     }, { preventDefault: true });
   }
