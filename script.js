@@ -2545,9 +2545,10 @@ function bindCartTrigger() {
     }
 
     trigger.dataset.cartTriggerBound = "true";
-    bindTap(trigger, () => {
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
       openCartDrawer();
-    }, { preventDefault: true });
+    });
   });
 }
 
@@ -2568,19 +2569,28 @@ function bindCartUI() {
   bindCartTrigger();
 
   if (overlay) {
-    bindTap(overlay, () => {
+    overlay.addEventListener("click", (event) => {
+      event.preventDefault();
       closeCartDrawer();
-    }, { preventDefault: true });
+    });
   }
 
   if (close) {
-    bindTap(close, () => {
+    close.addEventListener("click", (event) => {
+      event.preventDefault();
       closeCartDrawer();
-    }, { preventDefault: true });
+    });
   }
 
-  if (body) {
-    bindDelegatedTap(body, "[data-cart-increase], [data-cart-decrease], [data-cart-remove]", (_event, target) => {
+  if (body && body.dataset.cartBodyBound !== "true") {
+    body.dataset.cartBodyBound = "true";
+    body.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-cart-increase], [data-cart-decrease], [data-cart-remove]");
+      if (!target || !body.contains(target)) {
+        return;
+      }
+
+      event.preventDefault();
       const item = target.closest("[data-cart-item-key]");
       if (!item) {
         return;
@@ -2604,16 +2614,23 @@ function bindCartUI() {
         removeCartItem(itemKey);
         renderCart();
       }
-    }, { preventDefault: true });
+    });
   }
 
-  if (paymentRequest) {
-    bindDelegatedTap(paymentRequest, "[data-clear-payment-request]", async (_event, target) => {
+  if (paymentRequest && paymentRequest.dataset.paymentRequestBound !== "true") {
+    paymentRequest.dataset.paymentRequestBound = "true";
+    paymentRequest.addEventListener("click", async (event) => {
+      const target = event.target.closest("[data-clear-payment-request]");
+      if (!target || !paymentRequest.contains(target)) {
+        return;
+      }
+
+      event.preventDefault();
       if (target.matches("[data-clear-payment-request]")) {
         clearPendingPayment();
         renderCart();
       }
-    }, { preventDefault: true });
+    });
   }
 
   paymentMethodInputs.forEach((input) => {
@@ -2621,7 +2638,8 @@ function bindCartUI() {
   });
 
   if (checkout) {
-    bindTap(checkout, async () => {
+    checkout.addEventListener("click", async (event) => {
+      event.preventDefault();
       const cart = loadCart();
       const selectedPaymentMethod = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
       const activeReferralRewards = getDisplayableReferralRewards();
@@ -2747,7 +2765,7 @@ function bindCartUI() {
         checkout.disabled = false;
         syncCheckoutPaymentMethodUI();
       }
-    }, { preventDefault: true });
+    });
   }
 }
 
@@ -2787,27 +2805,31 @@ function bindProductCards() {
 
       if (decrease && decrease.dataset.tapBound !== "true") {
         decrease.dataset.tapBound = "true";
-        bindTap(decrease, () => {
+        decrease.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           updateQty(Number(row.dataset.quantity || 0) - 1);
-        }, { stopPropagation: true });
+        });
       }
 
       if (increase && increase.dataset.tapBound !== "true") {
         increase.dataset.tapBound = "true";
-        bindTap(increase, () => {
+        increase.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           updateQty(Number(row.dataset.quantity || 0) + 1);
-        }, { stopPropagation: true });
+        });
       }
 
       if (row.dataset.tapBound !== "true") {
         row.dataset.tapBound = "true";
-        bindTap(row, (event) => {
+        row.addEventListener("click", (event) => {
           if (event.target.closest("button")) {
             return;
           }
 
           updateQty(Number(row.dataset.quantity || 0) + 1);
-        }, { stopPropagation: true });
+        });
       }
 
       updateQty(Number(row.dataset.quantity || 0));
@@ -2818,7 +2840,8 @@ function bindProductCards() {
 
     if (button.dataset.tapBound !== "true") {
       button.dataset.tapBound = "true";
-      bindTap(button, () => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
         if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
           return;
         }
@@ -2890,7 +2913,8 @@ function bindPartyForms() {
 
     if (button.dataset.tapBound !== "true") {
       button.dataset.tapBound = "true";
-      bindTap(button, () => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
         if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
           return;
         }
@@ -3110,6 +3134,9 @@ function bindReferralForm() {
     if (codeEl) {
       codeEl.textContent = normalizedCode;
     }
+    if (lookupInput) {
+      lookupInput.value = normalizedCode;
+    }
     linkEl.textContent = nextLink;
     output.classList.add("is-visible");
   };
@@ -3181,83 +3208,101 @@ function bindReferralForm() {
     });
   }
 
-  bindTap(submit, async () => {
-    message.textContent = "Creating referral link...";
-    message.className = "referral-message";
-    submit.disabled = true;
+  if (submit.dataset.clickBound !== "true") {
+    submit.dataset.clickBound = "true";
+    submit.addEventListener("click", async (event) => {
+      event.preventDefault();
+      message.textContent = "Creating referral link...";
+      message.className = "referral-message";
+      submit.disabled = true;
 
-    try {
-      const ownedReferral = getLatestOwnedReferral(true, { allowLegacyCode: true });
-      const response = await fetch(REFERRALS_API_PATH, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          ownerToken: ownedReferral ? ownedReferral.ownerToken : ""
-        })
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.referral || !result.referral.link) {
-        throw new Error(result.error || "Unable to create referral link.");
-      }
-
-      storeOwnedReferral(result.referral);
-      setStoredReferralLookupCode(result.referral.code || "");
-      showReferralLink(result.referral);
-      renderReferralStatus(result.referral);
-      if (lookupInput) {
-        lookupInput.value = result.referral.code || "";
-      }
-      output.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      message.textContent = "Referral link ready below.";
-      message.className = "referral-message is-success";
-      refreshOwnedReferralRewardsIfNeeded(true);
-    } catch (error) {
-      message.textContent = error && error.message ? error.message : "Unable to create referral link.";
-      message.className = "referral-message is-error";
-    } finally {
-      submit.disabled = false;
-    }
-  }, { preventDefault: true });
-
-  if (copyButton) {
-    bindTap(copyButton, async () => {
       try {
-        const copied = await copyReferralLink();
+        const ownedReferral = getLatestOwnedReferral(true, { allowLegacyCode: true });
+        const response = await fetch(REFERRALS_API_PATH, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ownerToken: ownedReferral ? ownedReferral.ownerToken : ""
+          })
+        });
+        const result = await response.json();
+        const normalizedCode = normalizeClientReferralCode(
+          result && result.referral && result.referral.code ? result.referral.code : ""
+        );
 
-        if (!copied) {
-          throw new Error("Unable to copy referral link.");
+        if (!response.ok || !result.referral || !isFourDigitClientReferralCode(normalizedCode)) {
+          throw new Error(result.error || "Unable to create referral link.");
         }
 
-        message.textContent = "Referral link copied.";
+        const normalizedReferral = {
+          ...result.referral,
+          code: normalizedCode,
+          link: buildClientReferralLink(normalizedCode)
+        };
+
+        storeOwnedReferral(normalizedReferral);
+        setStoredReferralLookupCode(normalizedCode);
+        showReferralLink(normalizedReferral);
+        renderReferralStatus(normalizedReferral);
+        output.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        message.textContent = "Referral link ready below.";
         message.className = "referral-message is-success";
-      } catch (_error) {
-        message.textContent = "Unable to copy automatically. You can still select the link and share it manually.";
+        refreshOwnedReferralRewardsIfNeeded(true);
+      } catch (error) {
+        message.textContent = error && error.message ? error.message : "Unable to create referral link.";
         message.className = "referral-message is-error";
+      } finally {
+        submit.disabled = false;
       }
-    }, { preventDefault: true });
+    });
+  }
+
+  if (copyButton) {
+    if (copyButton.dataset.clickBound !== "true") {
+      copyButton.dataset.clickBound = "true";
+      copyButton.addEventListener("click", async (event) => {
+        event.preventDefault();
+        try {
+          const copied = await copyReferralLink();
+
+          if (!copied) {
+            throw new Error("Unable to copy referral link.");
+          }
+
+          message.textContent = "Referral link copied.";
+          message.className = "referral-message is-success";
+        } catch (_error) {
+          message.textContent = "Unable to copy automatically. You can still select the link and share it manually.";
+          message.className = "referral-message is-error";
+        }
+      });
+    }
   }
 
   if (lookupButton && lookupInput) {
-    bindTap(lookupButton, async () => {
-      message.textContent = "Checking referral rewards...";
-      message.className = "referral-message";
+    if (lookupButton.dataset.clickBound !== "true") {
+      lookupButton.dataset.clickBound = "true";
+      lookupButton.addEventListener("click", async (event) => {
+        event.preventDefault();
+        message.textContent = "Checking referral rewards...";
+        message.className = "referral-message";
 
-      try {
-        const referral = await fetchReferralStatusByCode(lookupInput.value);
-        lookupInput.value = referral.code || "";
-        setStoredReferralLookupCode(referral.code || "");
-        renderReferralStatus(referral);
-        message.textContent = "Referral rewards loaded.";
-        message.className = "referral-message is-success";
-      } catch (error) {
-        renderReferralStatus(null);
-        message.textContent = error && error.message ? error.message : "Unable to load referral rewards.";
-        message.className = "referral-message is-error";
-      }
-    }, { preventDefault: true });
+        try {
+          const referral = await fetchReferralStatusByCode(lookupInput.value);
+          lookupInput.value = referral.code || "";
+          setStoredReferralLookupCode(referral.code || "");
+          renderReferralStatus(referral);
+          message.textContent = "Referral rewards loaded.";
+          message.className = "referral-message is-success";
+        } catch (error) {
+          renderReferralStatus(null);
+          message.textContent = error && error.message ? error.message : "Unable to load referral rewards.";
+          message.className = "referral-message is-error";
+        }
+      });
+    }
   }
 }
 
