@@ -1047,6 +1047,10 @@
         <a href="contact-us.html">Contact Us</a>
         <a href="#reviews">Reviews</a>
       </nav>
+      <button class="header-cart-trigger" type="button" data-cart-trigger aria-controls="cart-drawer" aria-expanded="false">
+        <span>View Cart</span>
+        <span class="header-cart-badge" data-cart-count>0</span>
+      </button>
     </div>
   </header>
 
@@ -1090,6 +1094,53 @@
           </ul>
         </div>
       </div>
+
+      <section id="referral" class="section referral-section">
+        <div class="container">
+          <div class="referral-card">
+            <span class="order-badge party">Referral Program</span>
+            <h2>Refer A Friend</h2>
+            <p>Generate your 4-digit referral code, send the referral link to a friend, and when your friend places and pays for an order through that code, your referral reward is recorded automatically. The reward cycle repeats every 3 successful referred orders, so the 4th referred order starts again at the $5 reward.</p>
+
+            <div class="referral-rewards">
+              <div class="referral-reward">
+                <strong>1st Referral</strong>
+                <span>You will receive a $5 discount for the 1st referral.</span>
+              </div>
+              <div class="referral-reward">
+                <strong>2nd Referral</strong>
+                <span>You will receive a $10 discount for the 2nd referral.</span>
+              </div>
+              <div class="referral-reward">
+                <strong>3rd Referral</strong>
+                <span>You will receive a free 500g box of Group 1 durians for the 3rd referral.</span>
+              </div>
+            </div>
+
+            <div class="referral-actions">
+              <button class="btn-email" type="button" data-referral-submit>Generate Referral Link</button>
+            </div>
+            <div class="referral-message" data-referral-message></div>
+            <div class="referral-output" data-referral-output>
+              <strong>Your referral code</strong>
+              <code data-referral-code></code>
+              <strong>Your referral link</strong>
+              <code data-referral-link></code>
+              <button class="btn-email" type="button" data-copy-referral-link>Copy Referral Link</button>
+            </div>
+            <div class="referral-form" style="margin-top: 14px;">
+              <div class="referral-field">
+                <label for="referral-lookup-code">Check Rewards By Referral Code</label>
+                <input id="referral-lookup-code" type="text" maxlength="4" inputmode="numeric" placeholder="Enter your 4-digit referral code" data-referral-lookup-code />
+              </div>
+              <div class="referral-actions" style="margin-top: 14px;">
+                <button class="btn-email" type="button" data-check-referral>Check My Rewards</button>
+              </div>
+            </div>
+            <div class="referral-status-panel" data-referral-status hidden></div>
+          </div>
+        </div>
+      </section>
 
       <div class="order-hub">
         <section id="online-delivery" class="order-subsection">
