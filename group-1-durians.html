@@ -76,18 +76,22 @@
     }
 
     .topbar-inner {
+      position: relative;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 22px;
       padding: 18px 0;
+      min-height: 92px;
     }
 
     .site-logo {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
       display: inline-flex;
       align-items: center;
-      justify-content: center;
     }
 
     .site-logo img {
