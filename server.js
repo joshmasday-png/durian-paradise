@@ -170,6 +170,7 @@ app.post("/stripe-webhook", express.raw({ type: "application/json" }), async (re
       const order = orders.find((entry) => entry.stripe && entry.stripe.checkoutSessionId === session.id);
 
       if (order && order.paymentStatus !== "paid") {
+        order.customer = buildCustomerFromStripeSession(session, order.customer);
         order.paymentStatus = "paid";
         order.status = "paid";
         order.paidAt = new Date().toISOString();
@@ -575,6 +576,46 @@ function sanitizeVisitorId(rawVisitorId) {
 
 function sanitizeText(rawValue, maxLength) {
   return String(rawValue || "").trim().slice(0, maxLength);
+}
+
+function formatStripeAddress(address) {
+  if (!address || typeof address !== "object") {
+    return "";
+  }
+
+  const streetLine = [address.line1, address.line2]
+    .map((value) => sanitizeText(value, 120))
+    .filter(Boolean)
+    .join(", ");
+  const localityLine = [address.city, address.state, address.postal_code]
+    .map((value) => sanitizeText(value, 80))
+    .filter(Boolean)
+    .join(" ");
+  const country = sanitizeText(address.country, 32);
+
+  return [streetLine, localityLine, country]
+    .filter(Boolean)
+    .join(", ")
+    .slice(0, 260);
+}
+
+function buildCustomerFromStripeSession(session, existingCustomer) {
+  const current = existingCustomer && typeof existingCustomer === "object" ? existingCustomer : {};
+  const customerDetails = session && session.customer_details && typeof session.customer_details === "object"
+    ? session.customer_details
+    : {};
+  const shippingDetails = session && session.shipping_details && typeof session.shipping_details === "object"
+    ? session.shipping_details
+    : {};
+  const formattedAddress = formatStripeAddress(shippingDetails.address || customerDetails.address);
+
+  return {
+    name: sanitizeText(shippingDetails.name || customerDetails.name || current.name, 80),
+    phone: sanitizePhone(shippingDetails.phone || customerDetails.phone || current.phone),
+    email: sanitizeText(customerDetails.email || current.email, 120),
+    address: sanitizeText(formattedAddress || current.address, 260),
+    deliveryNotes: sanitizeText(current.deliveryNotes, 220)
+  };
 }
 
 function buildReferralRewardMessage(reward) {
@@ -1452,6 +1493,8 @@ function buildOrderEmail(order) {
       "Items:",
       itemLinesText,
       "",
+      `Customer name: ${order.customer.name || "-"}`,
+      `Customer email: ${order.customer.email || "-"}`,
       `Delivery address: ${order.customer.address}`,
       `Contact number: ${order.customer.phone}`
     ].filter(Boolean).join("\n"),
@@ -1479,6 +1522,8 @@ function buildOrderEmail(order) {
             </thead>
             <tbody>${itemRowsHtml}</tbody>
           </table>
+          <p><strong>Customer name:</strong> ${escapeEmailHtml(order.customer.name || "-")}</p>
+          <p><strong>Customer email:</strong> ${escapeEmailHtml(order.customer.email || "-")}</p>
           <p><strong>Delivery address:</strong><br>${escapeEmailHtml(order.customer.address)}</p>
           <p><strong>Contact number:</strong> ${escapeEmailHtml(order.customer.phone)}</p>
         </div>
@@ -2126,6 +2171,7 @@ app.post("/api/checkout-sessions/:sessionId/status", (req, res) => {
   }
 
   return res.json({
+    paymentStatus: order.paymentStatus,
     order: {
       id: order.id,
       status: order.status,
@@ -2145,10 +2191,6 @@ async function handleCreateCheckoutSession(req, res) {
     const items = normalizeCartItems(req.body && req.body.items);
     const orders = readOrders();
     const orderId = makeOrderId(orders);
-    const customer = req.body && req.body.customer ? req.body.customer : {};
-    const customerPhone = String(customer.phone || "").trim();
-    const customerEmail = String(customer.email || "").trim();
-    const customerAddress = String(customer.address || "").trim();
     const referralCode = sanitizeReferralCode(req.body && req.body.referralCode);
     const voucherCode = sanitizeText(req.body && req.body.voucherCode, 80);
     const paymentMethodKey = normalizePaymentMethodKey(req.body && req.body.paymentMethodKey);
@@ -2157,18 +2199,6 @@ async function handleCreateCheckoutSession(req, res) {
     const requestedReferralRewardClaims = normalizeRewardClaims(req.body && req.body.referralRewardClaims);
     const claimedReferralRewards = resolveReferralRewardsForCheckout(requestedReferralRewardClaims);
     const summary = summarizeOrder(items, claimedReferralRewards);
-
-    if (!customerPhone) {
-      throw new Error("Please enter your contact number.");
-    }
-
-    if (!isValidEmail(customerEmail)) {
-      throw new Error("Please enter a valid email address.");
-    }
-
-    if (!customerAddress) {
-      throw new Error("Please enter your delivery address.");
-    }
 
     if (!summary.priceBreakdown.minimumDeliveryBoxesMet) {
       throw new Error("Online Delivery requires a minimum of 3 boxes.");
@@ -2188,11 +2218,11 @@ async function handleCreateCheckoutSession(req, res) {
       items,
       summary,
       customer: {
-        name: String(customer.name || "").trim().slice(0, 80),
-        phone: customerPhone.slice(0, 40),
-        email: customerEmail.slice(0, 120),
-        address: customerAddress.slice(0, 260),
-        deliveryNotes: String(customer.deliveryNotes || "").trim().slice(0, 220)
+        name: "",
+        phone: "",
+        email: "",
+        address: "",
+        deliveryNotes: ""
       },
       referral: referralCode ? {
         code: referralCode,
@@ -2220,7 +2250,6 @@ async function handleCreateCheckoutSession(req, res) {
       order_id: order.id,
       referral_code: referralCode || "",
       voucher_code: voucherCode || "",
-      customer_name: order.customer.name || "Customer",
       selected_durian_option: buildSelectedDurianOptionSummary(order.items)
     };
     let couponId = "";
@@ -2239,6 +2268,12 @@ async function handleCreateCheckoutSession(req, res) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       client_reference_id: order.id,
+      phone_number_collection: {
+        enabled: true
+      },
+      shipping_address_collection: {
+        allowed_countries: ["SG"]
+      },
       line_items: lineItems,
       discounts: couponId ? [{ coupon: couponId }] : [],
       success_url: `${siteUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,

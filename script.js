@@ -431,7 +431,7 @@ function getPaymentMethodConfig(methodKey) {
     key: DEFAULT_PAYMENT_METHOD_KEY,
     title: "Secure Checkout",
     checkoutButtonLabel: "Proceed to Secure Checkout",
-    checkoutNote: "Enter your delivery details here first, then continue to secure checkout. Inside payment, customers can choose from available methods such as Card, PayNow, Apple Pay, and others.",
+    checkoutNote: "Continue to the secure payment page. Inside checkout, customers will enter their name, contact number, email, and delivery address, then choose from available methods such as Card, PayNow, Apple Pay, and others.",
     copyButtonLabel: "Copy Stripe checkout link",
     qrImageLabel: "",
     supportsQr: false
@@ -2105,23 +2105,8 @@ function ensureCartUI() {
         </div>
         <div class="cart-breakdown" data-cart-breakdown></div>
         <div class="checkout-details">
-          <h3>Delivery Details</h3>
-          <div class="checkout-field">
-            <label for="checkout-name">Name</label>
-            <input id="checkout-name" type="text" maxlength="80" autocomplete="name" data-checkout-name />
-          </div>
-          <div class="checkout-field">
-            <label for="checkout-phone">Contact Number</label>
-            <input id="checkout-phone" type="tel" maxlength="40" autocomplete="tel" data-checkout-phone required />
-          </div>
-          <div class="checkout-field">
-            <label for="checkout-email">Email</label>
-            <input id="checkout-email" type="email" maxlength="120" autocomplete="email" data-checkout-email required />
-          </div>
-          <div class="checkout-field">
-            <label for="checkout-address">Delivery Address</label>
-            <textarea id="checkout-address" maxlength="260" autocomplete="street-address" data-checkout-address required></textarea>
-          </div>
+          <h3>Customer Details</h3>
+          <p class="checkout-helper-copy">On the secure payment page, customers will enter their name, contact number, email, and delivery address before paying.</p>
         </div>
         <div class="checkout-payment-methods">
           <h3>Payment Method</h3>
@@ -2431,6 +2416,7 @@ function renderPaymentRequestCard(pendingPayment) {
   const orderLines = buildPaymentRequestOrderSummary(items, breakdown, totalDisplay);
   const checkoutUrl = String(pendingPayment.checkoutUrl || "").trim();
   const qrCodeDataUrl = String(pendingPayment.qrCodeDataUrl || "").trim();
+  const pendingCustomerPlaceholder = "Collected during secure checkout";
 
   return `
     <div class="payment-request-card">
@@ -2456,15 +2442,15 @@ function renderPaymentRequestCard(pendingPayment) {
         </div>
         <div class="payment-detail">
           <span>Email</span>
-          <strong>${escapeHtml(customer.email || "")}</strong>
+          <strong>${escapeHtml(customer.email || pendingCustomerPlaceholder)}</strong>
         </div>
         <div class="payment-detail">
           <span>Contact</span>
-          <strong>${escapeHtml(customer.phone || "")}</strong>
+          <strong>${escapeHtml(customer.phone || pendingCustomerPlaceholder)}</strong>
         </div>
         <div class="payment-detail" style="grid-column: 1 / -1;">
           <span>Delivery Address</span>
-          <strong>${escapeHtml(customer.address || "")}</strong>
+          <strong>${escapeHtml(customer.address || pendingCustomerPlaceholder)}</strong>
         </div>
       </div>
       ${(items.length || breakdown) ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
@@ -2648,14 +2634,6 @@ function bindCartUI() {
         referralCode: reward.referralCode,
         rewardId: reward.id
       })).filter((claim) => claim.referralCode && claim.rewardId);
-      const nameInput = document.querySelector("[data-checkout-name]");
-      const phoneInput = document.querySelector("[data-checkout-phone]");
-      const emailInput = document.querySelector("[data-checkout-email]");
-      const addressInput = document.querySelector("[data-checkout-address]");
-      const notesInput = document.querySelector("[data-checkout-notes]");
-      const phone = phoneInput ? phoneInput.value.trim() : "";
-      const email = emailInput ? emailInput.value.trim() : "";
-      const address = addressInput ? addressInput.value.trim() : "";
 
       if (!cart.length) {
         return;
@@ -2663,30 +2641,6 @@ function bindCartUI() {
 
       if (!pricing.minimumDeliveryBoxesMet) {
         window.alert("Online Delivery requires a minimum of 3 boxes.");
-        return;
-      }
-
-      if (!phone) {
-        window.alert("Please enter your contact number before payment.");
-        if (phoneInput) {
-          phoneInput.focus();
-        }
-        return;
-      }
-
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        window.alert("Please enter a valid email address for your order confirmation.");
-        if (emailInput) {
-          emailInput.focus();
-        }
-        return;
-      }
-
-      if (!address) {
-        window.alert("Please enter your delivery address before payment.");
-        if (addressInput) {
-          addressInput.focus();
-        }
         return;
       }
 
@@ -2713,13 +2667,6 @@ function bindCartUI() {
               variantValue: item.variantValue,
               quantity: item.quantity
             })),
-            customer: {
-              name: nameInput ? nameInput.value.trim() : "",
-              phone,
-              email,
-              address,
-              deliveryNotes: notesInput ? notesInput.value.trim() : ""
-            },
             paymentMethodKey: selectedPaymentMethod.key,
             referralCode: getStoredReferralCode(),
             referralRewardClaims,
