@@ -2812,69 +2812,137 @@ function bindProductCards() {
     }
 
     card.dataset.productCardBound = "true";
-    const select = card.querySelector("[data-variant-select]");
-    const quantityInput = card.querySelector("[data-variant-quantity-input]");
     const button = card.querySelector("[data-add-product]");
+    const details = card.querySelector("[data-multi-option]");
+    const summary = card.querySelector("[data-multi-option-summary]");
+    const rows = Array.from(card.querySelectorAll("[data-variant-row]"));
 
-    if (!select || !quantityInput || !button) {
+    if (!button || !details || !summary || !rows.length) {
       return;
     }
 
-    const syncProductButton = () => {
-      const option = select.options[select.selectedIndex];
-      const isReady = Boolean(option && option.value);
-      setActionButtonState(button, isReady);
+    const syncCardState = () => {
+      const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
+      summary.textContent = selectedRows.length
+        ? selectedRows.map((row) => `${row.dataset.variantValue} x${row.dataset.quantity}`).join(", ")
+        : "Choose 650g or 800g";
+      setActionButtonState(button, selectedRows.length > 0);
     };
 
-    syncProductButton();
-    select.addEventListener("change", syncProductButton);
-    quantityInput.addEventListener("input", () => {
-      const nextQuantity = Math.max(1, Number.parseInt(quantityInput.value, 10) || 1);
-      quantityInput.value = String(nextQuantity);
+    if (summary.dataset.summaryTapBound !== "true") {
+      summary.dataset.summaryTapBound = "true";
+      bindTap(summary, () => {
+        details.open = !details.open;
+      }, { preventDefault: true });
+    }
+
+    rows.forEach((row) => {
+      row.dataset.quantity = row.dataset.quantity || "0";
+      const qtyEl = row.querySelector("[data-variant-quantity]");
+      const decrease = row.querySelector("[data-variant-decrease]");
+      const increase = row.querySelector("[data-variant-increase]");
+
+      const updateQty = (nextQuantity) => {
+        const quantity = Math.max(0, nextQuantity);
+        row.dataset.quantity = String(quantity);
+        if (qtyEl) {
+          qtyEl.textContent = String(quantity);
+        }
+        syncCardState();
+      };
+
+      if (decrease && decrease.dataset.tapBound !== "true") {
+        decrease.dataset.tapBound = "true";
+        bindTap(decrease, () => {
+          updateQty(Number(row.dataset.quantity || 0) - 1);
+        }, { stopPropagation: true });
+      }
+
+      if (increase && increase.dataset.tapBound !== "true") {
+        increase.dataset.tapBound = "true";
+        bindTap(increase, () => {
+          updateQty(Number(row.dataset.quantity || 0) + 1);
+        }, { stopPropagation: true });
+      }
+
+      if (row.dataset.tapBound !== "true") {
+        row.dataset.tapBound = "true";
+        bindTap(row, (event) => {
+          if (event.target.closest("button")) {
+            return;
+          }
+
+          details.open = true;
+          updateQty(Number(row.dataset.quantity || 0) + 1);
+        }, { stopPropagation: true });
+      }
+
+      updateQty(Number(row.dataset.quantity || 0));
     });
+
+    if (!productCardsBound) {
+      productCardsBound = true;
+      document.addEventListener("click", (event) => {
+        document.querySelectorAll("[data-multi-option]").forEach((openDetails) => {
+          if (!openDetails.contains(event.target)) {
+            openDetails.removeAttribute("open");
+          }
+        });
+      });
+    }
+
+    syncCardState();
     button.textContent = "Add to Cart";
 
-    if (button.dataset.clickBound !== "true") {
-      button.dataset.clickBound = "true";
-      button.addEventListener("click", () => {
+    if (button.dataset.tapBound !== "true") {
+      button.dataset.tapBound = "true";
+      bindTap(button, () => {
         if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
           return;
         }
 
-        const option = select.options[select.selectedIndex];
-        const quantity = Math.max(1, Number.parseInt(quantityInput.value, 10) || 1);
+        const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
 
-        if (!option || !option.value) {
-          if (typeof select.focus === "function") {
-            select.focus();
+        if (!selectedRows.length) {
+          details.open = true;
+          if (typeof summary.focus === "function") {
+            summary.focus();
           }
           return;
         }
 
-        const item = {
-          productId: card.dataset.productId || "",
-          productName: card.dataset.productName || "Durian Package",
-          orderType: card.dataset.orderType || "Online Delivery",
-          variantValue: option.value,
-          variantLabel: option.dataset.label || option.textContent,
-          unitPrice: Number(option.dataset.price || 0),
-          quantity
-        };
+        selectedRows.forEach((row) => {
+          const item = {
+            productId: card.dataset.productId || "",
+            productName: card.dataset.productName || "Durian Package",
+            orderType: card.dataset.orderType || "Online Delivery",
+            variantValue: row.dataset.variantValue || "",
+            variantLabel: row.dataset.variantLabel || "",
+            unitPrice: Number(row.dataset.unitPrice || 0),
+            quantity: Number(row.dataset.quantity || 0)
+          };
 
-        addToCart(item);
-        trackAnalyticsEvent("add_to_cart", {
-          metadata: {
-            productId: item.productId,
-            variantValue: item.variantValue,
-            itemCount: item.quantity
-          }
+          addToCart(item);
+          trackAnalyticsEvent("add_to_cart", {
+            metadata: {
+              productId: item.productId,
+              variantValue: item.variantValue,
+              itemCount: item.quantity
+            }
+          });
         });
 
         renderCart();
         flashAddedState(button);
-        select.selectedIndex = 0;
-        quantityInput.value = "1";
-        window.setTimeout(syncProductButton, 900);
+        rows.forEach((row) => {
+          row.dataset.quantity = "0";
+          const qtyEl = row.querySelector("[data-variant-quantity]");
+          if (qtyEl) {
+            qtyEl.textContent = "0";
+          }
+        });
+        details.removeAttribute("open");
+        window.setTimeout(syncCardState, 900);
       });
     }
   });
