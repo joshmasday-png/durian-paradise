@@ -2185,7 +2185,7 @@ function openCartDrawer() {
     }, "", window.location.href);
   }
 
-  refreshOwnedReferralRewardsIfNeeded();
+  refreshOwnedReferralRewardsIfNeeded(true);
 }
 
 function closeCartDrawer(options = {}) {
@@ -3351,6 +3351,11 @@ window.addEventListener("pagehide", () => {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     syncCartDrawerWithHistoryState();
+    return;
+  }
+
+  if (document.visibilityState === "visible") {
+    refreshOwnedReferralRewardsIfNeeded(true);
   }
 });
 
