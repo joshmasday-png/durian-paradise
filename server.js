@@ -1998,7 +1998,7 @@ app.post("/api/payment-orders/:orderId/paid", async (req, res) => {
   order.paymentStatus = "customer_marked_paid";
   order.customerPaymentAcknowledgement = {
     status: "customer_marked_paid",
-    message: "Customer clicked I Have Paid. Business still needs to verify the bank transfer.",
+    message: "Payment Acknowledgement sent. Business still needs to verify the bank transfer.",
     acknowledgedAt: new Date().toISOString()
   };
   order.referral = issueReferralRewardForOrder(order) || order.referral || null;
