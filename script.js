@@ -2074,18 +2074,6 @@ function enhanceVarietyImages() {
 function ensureCartUI() {
   injectCartStyles();
 
-  const topbarInner = document.querySelector(".topbar-inner");
-  if (topbarInner && !topbarInner.querySelector("[data-cart-trigger]")) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "header-cart-trigger";
-    button.setAttribute("data-cart-trigger", "");
-    button.setAttribute("aria-controls", "cart-drawer");
-    button.setAttribute("aria-expanded", "false");
-    button.innerHTML = '<span>View Cart</span><span class="header-cart-badge" data-cart-count>0</span>';
-    topbarInner.appendChild(button);
-  }
-
   if (!document.getElementById("cart-overlay")) {
     const overlay = document.createElement("div");
     overlay.id = "cart-overlay";
