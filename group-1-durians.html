@@ -495,16 +495,20 @@
     }
 
     .related-card {
-      display: block;
+      display: grid;
+      gap: 14px;
+      align-content: start;
     }
 
     .related-card .card-img-wrapper {
       border: 1px solid rgba(120, 100, 76, 0.16);
+      max-width: 220px;
+      margin: 0 auto;
     }
 
     .related-card h5 {
       font-size: 20px;
-      margin: 14px 0 0;
+      margin: 0;
       line-height: 1.18;
       text-align: center;
     }
