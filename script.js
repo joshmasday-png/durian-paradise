@@ -92,6 +92,18 @@ function isFourDigitClientReferralCode(code) {
   return /^\d{4}$/.test(normalizeClientReferralCode(code));
 }
 
+function buildClientReferralLink(code) {
+  const normalizedCode = normalizeClientReferralCode(code);
+
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
+    return "";
+  }
+
+  const url = new URL("/referral.html", window.location.origin);
+  url.searchParams.set("code", normalizedCode);
+  return url.toString();
+}
+
 function injectNavMenuStyles() {
   if (document.getElementById("nav-menu-fix-styles")) {
     return;
@@ -533,7 +545,9 @@ function storeOwnedReferral(referral) {
 
   const ownedReferrals = loadOwnedReferrals();
   const nextEntry = normalizedReferral;
-  const existingIndex = ownedReferrals.findIndex((entry) => entry.code === nextEntry.code);
+  const existingIndex = ownedReferrals.findIndex((entry) =>
+    entry.code === nextEntry.code || (entry.ownerToken && entry.ownerToken === nextEntry.ownerToken)
+  );
 
   if (existingIndex >= 0) {
     ownedReferrals[existingIndex] = {
@@ -550,7 +564,13 @@ function storeOwnedReferral(referral) {
 function getStoredReferralLookupCode() {
   try {
     const storedCode = String(readStorageItem(REFERRAL_LOOKUP_STORAGE_KEY) || "").trim();
-    return isFourDigitClientReferralCode(storedCode) ? normalizeClientReferralCode(storedCode) : "";
+
+    if (!isFourDigitClientReferralCode(storedCode)) {
+      removeStorageItem(REFERRAL_LOOKUP_STORAGE_KEY);
+      return "";
+    }
+
+    return normalizeClientReferralCode(storedCode);
   } catch (_error) {
     return "";
   }
@@ -568,10 +588,14 @@ function setStoredReferralLookupCode(code) {
   return normalizedCode;
 }
 
-function getLatestOwnedReferral(includeExpired = true) {
+function getLatestOwnedReferral(includeExpired = true, { allowLegacyCode = false } = {}) {
   return loadOwnedReferrals()
     .filter((entry) => {
       if (!entry.code || !entry.ownerToken) {
+        return false;
+      }
+
+      if (!allowLegacyCode && !isFourDigitClientReferralCode(entry.code)) {
         return false;
       }
 
@@ -595,6 +619,10 @@ function getReferralRewardMessage(reward) {
 
 function getActiveOwnedReferralRewards() {
   return loadOwnedReferrals().reduce((result, referral) => {
+    if (!isFourDigitClientReferralCode(referral.code)) {
+      return result;
+    }
+
     const rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
 
     rewards.forEach((reward) => {
@@ -700,7 +728,7 @@ async function fetchReferralStatusByCode(code) {
 }
 
 async function refreshOwnedReferralRewards() {
-  const ownedReferrals = loadOwnedReferrals().filter((entry) => entry.code && entry.ownerToken);
+  const ownedReferrals = loadOwnedReferrals().filter((entry) => isFourDigitClientReferralCode(entry.code) && entry.ownerToken);
 
   if (!ownedReferrals.length) {
     renderCart();
@@ -748,13 +776,14 @@ function getStoredReferralCode() {
   try {
     const raw = readStorageItem(REFERRAL_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
+    const normalizedCode = normalizeClientReferralCode(parsed && parsed.code ? parsed.code : "");
 
-    if (!parsed || !parsed.code || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
+    if (!parsed || !isFourDigitClientReferralCode(normalizedCode) || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
       removeStorageItem(REFERRAL_STORAGE_KEY);
       return "";
     }
 
-    return String(parsed.code);
+    return normalizedCode;
   } catch (_error) {
     removeStorageItem(REFERRAL_STORAGE_KEY);
     return "";
@@ -763,9 +792,9 @@ function getStoredReferralCode() {
 
 function captureReferralCode() {
   const params = new URLSearchParams(window.location.search);
-  const code = String(params.get("ref") || "").trim();
+  const code = normalizeClientReferralCode(params.get("ref"));
 
-  if (!code) {
+  if (!isFourDigitClientReferralCode(code)) {
     return;
   }
 
@@ -2783,128 +2812,63 @@ function bindProductCards() {
     }
 
     card.dataset.productCardBound = "true";
+    const select = card.querySelector("[data-variant-select]");
     const button = card.querySelector("[data-add-product]");
-    const details = card.querySelector("[data-multi-option]");
-    const summary = card.querySelector("[data-multi-option-summary]");
-    const rows = Array.from(card.querySelectorAll("[data-variant-row]"));
 
-    if (!button || !details || !summary || !rows.length) {
+    if (!select || !button) {
       return;
     }
 
-    const syncCardState = () => {
-      const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
-      summary.textContent = selectedRows.length
-        ? selectedRows.map((row) => `${row.dataset.variantValue} x${row.dataset.quantity}`).join(", ")
-        : "Choose option(s)";
-      setActionButtonState(button, selectedRows.length > 0);
+    const syncProductButton = () => {
+      const option = select.options[select.selectedIndex];
+      const isReady = Boolean(option && option.value);
+      setActionButtonState(button, isReady);
+      button.hidden = !isReady;
     };
 
-    if (summary && summary.dataset.summaryTapBound !== "true") {
-      summary.dataset.summaryTapBound = "true";
-      bindTap(summary, () => {
-        details.open = !details.open;
-      }, { preventDefault: true });
-    }
-
-    rows.forEach((row) => {
-      row.dataset.quantity = row.dataset.quantity || "0";
-      const qtyEl = row.querySelector("[data-variant-quantity]");
-      const decrease = row.querySelector("[data-variant-decrease]");
-      const increase = row.querySelector("[data-variant-increase]");
-
-      const updateQty = (nextQuantity) => {
-        const quantity = Math.max(0, nextQuantity);
-        row.dataset.quantity = String(quantity);
-        if (qtyEl) {
-          qtyEl.textContent = String(quantity);
-        }
-        syncCardState();
-      };
-
-      if (decrease && decrease.dataset.tapBound !== "true") {
-        decrease.dataset.tapBound = "true";
-        bindTap(decrease, () => {
-          updateQty(Number(row.dataset.quantity || 0) - 1);
-        }, { stopPropagation: true });
-      }
-
-      if (increase && increase.dataset.tapBound !== "true") {
-        increase.dataset.tapBound = "true";
-        bindTap(increase, () => {
-          updateQty(Number(row.dataset.quantity || 0) + 1);
-        }, { stopPropagation: true });
-      }
-
-      if (row.dataset.tapBound !== "true") {
-        row.dataset.tapBound = "true";
-        bindTap(row, (event) => {
-          if (event.target.closest("button")) {
-            return;
-          }
-
-          details.open = true;
-          updateQty(Number(row.dataset.quantity || 0) + 1);
-        }, { stopPropagation: true });
-      }
-
-      updateQty(Number(row.dataset.quantity || 0));
-    });
-
-    if (!productCardsBound) {
-      productCardsBound = true;
-      document.addEventListener("click", (event) => {
-        document.querySelectorAll("[data-multi-option]").forEach((openDetails) => {
-          if (!openDetails.contains(event.target)) {
-            openDetails.removeAttribute("open");
-          }
-        });
-      });
-    }
-
-    syncCardState();
+    syncProductButton();
+    select.addEventListener("change", syncProductButton);
     button.textContent = "Add to Cart";
 
-     if (button.dataset.tapBound !== "true") {
-      button.dataset.tapBound = "true";
-      bindTap(button, () => {
+    if (button.dataset.clickBound !== "true") {
+      button.dataset.clickBound = "true";
+      button.addEventListener("click", () => {
         if (Date.now() < Number(button.dataset.feedbackLockUntil || 0)) {
           return;
         }
 
-        const selectedRows = rows.filter((row) => Number(row.dataset.quantity || 0) > 0);
+        const option = select.options[select.selectedIndex];
 
-        if (!selectedRows.length) {
-          details.open = true;
-          if (typeof summary.focus === "function") {
-            summary.focus();
+        if (!option || !option.value) {
+          if (typeof select.focus === "function") {
+            select.focus();
           }
           return;
         }
 
-        selectedRows.forEach((row) => {
-          const item = {
-            productId: card.dataset.productId || "",
-            productName: card.dataset.productName || "Durian Package",
-            orderType: card.dataset.orderType || "Online Delivery",
-            variantValue: row.dataset.variantValue || "",
-            variantLabel: row.dataset.variantLabel || "",
-            unitPrice: Number(row.dataset.unitPrice || 0),
-            quantity: Number(row.dataset.quantity || 0),
-          };
+        const item = {
+          productId: card.dataset.productId || "",
+          productName: card.dataset.productName || "Durian Package",
+          orderType: card.dataset.orderType || "Online Delivery",
+          variantValue: option.value,
+          variantLabel: option.dataset.label || option.textContent,
+          unitPrice: Number(option.dataset.price || 0),
+          quantity: 1
+        };
 
-          addToCart(item);
-          trackAnalyticsEvent("add_to_cart", {
-            metadata: {
-              productId: item.productId,
-              variantValue: item.variantValue,
-              itemCount: item.quantity
-            }
-          });
+        addToCart(item);
+        trackAnalyticsEvent("add_to_cart", {
+          metadata: {
+            productId: item.productId,
+            variantValue: item.variantValue,
+            itemCount: item.quantity
+          }
         });
 
         renderCart();
         flashAddedState(button);
+        select.selectedIndex = 0;
+        window.setTimeout(syncProductButton, 900);
       });
     }
   });
@@ -3144,14 +3108,18 @@ function bindReferralForm() {
 
   const getReferralLinkText = () => linkEl.textContent.trim();
   const showReferralLink = (referral) => {
-    if (!referral || !referral.link) {
+    const normalizedCode = normalizeClientReferralCode(referral && referral.code ? referral.code : "");
+    const nextLink = buildClientReferralLink(normalizedCode);
+
+    if (!nextLink) {
+      output.classList.remove("is-visible");
       return;
     }
 
     if (codeEl) {
-      codeEl.textContent = referral.code || "";
+      codeEl.textContent = normalizedCode;
     }
-    linkEl.textContent = referral.link;
+    linkEl.textContent = nextLink;
     output.classList.add("is-visible");
   };
 
@@ -3167,7 +3135,6 @@ function bindReferralForm() {
     }
 
     const rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
-    rewardsPanel.hidden = false;
     rewardsPanel.innerHTML = `
       <strong>Successful referrals recorded: ${Number(referral.conversionCount || 0)}</strong>
       ${rewards.length ? `
@@ -3176,6 +3143,7 @@ function bindReferralForm() {
         </ul>
       ` : `<p>No available rewards are attached to this code yet.</p>`}
     `;
+    rewardsPanel.hidden = false;
   };
 
   const copyReferralLink = async () => {
@@ -3205,7 +3173,7 @@ function bindReferralForm() {
 
   const existingReferral = getLatestOwnedReferral(false);
 
-  if (existingReferral && existingReferral.link) {
+  if (existingReferral && isFourDigitClientReferralCode(existingReferral.code)) {
     showReferralLink(existingReferral);
     renderReferralStatus(existingReferral);
     if (lookupInput) {
@@ -3215,13 +3183,20 @@ function bindReferralForm() {
     lookupInput.value = getStoredReferralLookupCode();
   }
 
+  if (lookupInput && lookupInput.dataset.inputBound !== "true") {
+    lookupInput.dataset.inputBound = "true";
+    lookupInput.addEventListener("input", () => {
+      lookupInput.value = normalizeClientReferralCode(lookupInput.value);
+    });
+  }
+
   bindTap(submit, async () => {
     message.textContent = "Creating referral link...";
     message.className = "referral-message";
     submit.disabled = true;
 
     try {
-      const ownedReferral = getLatestOwnedReferral();
+      const ownedReferral = getLatestOwnedReferral(true, { allowLegacyCode: true });
       const response = await fetch(REFERRALS_API_PATH, {
         method: "POST",
         headers: {

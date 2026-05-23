@@ -566,7 +566,8 @@
 
     .referral-reward,
     .referral-form,
-    .referral-output {
+    .referral-output,
+    .referral-status-panel {
       background: rgba(245, 237, 225, 0.94);
       border: 1px solid rgba(170, 156, 138, 0.14);
       border-radius: 20px;
@@ -627,6 +628,10 @@
       border-radius: 12px;
       padding: 12px;
       color: #2d241c;
+    }
+
+    .referral-status-panel {
+      margin-top: 14px;
     }
 
     .referral-message {
@@ -1102,7 +1107,7 @@
           <div class="referral-card">
             <span class="order-badge party">Referral Program</span>
             <h2>Refer A Friend</h2>
-            <p>Generate your referral link, send it to a friend, and when your friend places an order through that link and clicks I Have Paid, your referral reward is recorded automatically. The reward cycle repeats every 3 successful referred orders, so the 4th referred order starts again at the $5 reward.</p>
+            <p>Generate your 4-digit referral code, send the referral link to a friend, and when your friend places and pays for an order through that code, your referral reward is recorded automatically. The reward cycle repeats every 3 successful referred orders, so the 4th referred order starts again at the $5 reward.</p>
 
             <div class="referral-rewards">
               <div class="referral-reward">
@@ -1139,7 +1144,7 @@
                 <button class="btn-email" type="button" data-check-referral>Check My Rewards</button>
               </div>
             </div>
-            <div class="referral-output" data-referral-status hidden></div>
+            <div class="referral-status-panel" data-referral-status hidden></div>
           </div>
         </div>
       </section>
@@ -1165,33 +1170,11 @@
               <div class="party-order-grid">
                 <div class="shop-field">
                   <label>Delivery Option</label>
-                  <details class="multi-option-select" data-multi-option>
-                    <summary data-multi-option-summary>Choose option(s)</summary>
-                    <div class="multi-option-menu">
-                      <div class="multi-option-item" data-variant-row data-variant-value="650g" data-variant-label="650g - $49 / box" data-unit-price="49">
-                        <div class="multi-option-copy">
-                          <strong>650g</strong>
-                          <span>$49 / box</span>
-                        </div>
-                        <div class="multi-option-qty">
-                          <button type="button" data-variant-decrease>-</button>
-                          <span data-variant-quantity>0</span>
-                          <button type="button" data-variant-increase>+</button>
-                        </div>
-                      </div>
-                      <div class="multi-option-item" data-variant-row data-variant-value="800g" data-variant-label="800g - $60 / box" data-unit-price="60">
-                        <div class="multi-option-copy">
-                          <strong>800g</strong>
-                          <span>$60 / box</span>
-                        </div>
-                        <div class="multi-option-qty">
-                          <button type="button" data-variant-decrease>-</button>
-                          <span data-variant-quantity>0</span>
-                          <button type="button" data-variant-increase>+</button>
-                        </div>
-                      </div>
-                    </div>
-                  </details>
+                  <select class="party-select" data-variant-select>
+                    <option value="">Choose 650g or 800g</option>
+                    <option value="650g" data-label="650g - $49 / box" data-price="49">650g - $49 / box</option>
+                    <option value="800g" data-label="800g - $60 / box" data-price="60">800g - $60 / box</option>
+                  </select>
                 </div>
                 <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
@@ -1203,33 +1186,11 @@
               <div class="party-order-grid">
                 <div class="shop-field">
                   <label>Delivery Option</label>
-                  <details class="multi-option-select" data-multi-option>
-                    <summary data-multi-option-summary>Choose option(s)</summary>
-                    <div class="multi-option-menu">
-                      <div class="multi-option-item" data-variant-row data-variant-value="650g" data-variant-label="650g - $60 / box" data-unit-price="60">
-                        <div class="multi-option-copy">
-                          <strong>650g</strong>
-                          <span>$60 / box</span>
-                        </div>
-                        <div class="multi-option-qty">
-                          <button type="button" data-variant-decrease>-</button>
-                          <span data-variant-quantity>0</span>
-                          <button type="button" data-variant-increase>+</button>
-                        </div>
-                      </div>
-                      <div class="multi-option-item" data-variant-row data-variant-value="800g" data-variant-label="800g - $72 / box" data-unit-price="72">
-                        <div class="multi-option-copy">
-                          <strong>800g</strong>
-                          <span>$72 / box</span>
-                        </div>
-                        <div class="multi-option-qty">
-                          <button type="button" data-variant-decrease>-</button>
-                          <span data-variant-quantity>0</span>
-                          <button type="button" data-variant-increase>+</button>
-                        </div>
-                      </div>
-                    </div>
-                  </details>
+                  <select class="party-select" data-variant-select>
+                    <option value="">Choose 650g or 800g</option>
+                    <option value="650g" data-label="650g - $60 / box" data-price="60">650g - $60 / box</option>
+                    <option value="800g" data-label="800g - $72 / box" data-price="72">800g - $72 / box</option>
+                  </select>
                 </div>
                 <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
@@ -1241,33 +1202,11 @@
               <div class="party-order-grid">
                 <div class="shop-field">
                   <label>Delivery Option</label>
-                  <details class="multi-option-select" data-multi-option>
-                    <summary data-multi-option-summary>Choose option(s)</summary>
-                    <div class="multi-option-menu">
-                      <div class="multi-option-item" data-variant-row data-variant-value="650g" data-variant-label="650g - $65 / box" data-unit-price="65">
-                        <div class="multi-option-copy">
-                          <strong>650g</strong>
-                          <span>$65 / box</span>
-                        </div>
-                        <div class="multi-option-qty">
-                          <button type="button" data-variant-decrease>-</button>
-                          <span data-variant-quantity>0</span>
-                          <button type="button" data-variant-increase>+</button>
-                        </div>
-                      </div>
-                      <div class="multi-option-item" data-variant-row data-variant-value="800g" data-variant-label="800g - $75 / box" data-unit-price="75">
-                        <div class="multi-option-copy">
-                          <strong>800g</strong>
-                          <span>$75 / box</span>
-                        </div>
-                        <div class="multi-option-qty">
-                          <button type="button" data-variant-decrease>-</button>
-                          <span data-variant-quantity>0</span>
-                          <button type="button" data-variant-increase>+</button>
-                        </div>
-                      </div>
-                    </div>
-                  </details>
+                  <select class="party-select" data-variant-select>
+                    <option value="">Choose 650g or 800g</option>
+                    <option value="650g" data-label="650g - $65 / box" data-price="65">650g - $65 / box</option>
+                    <option value="800g" data-label="800g - $75 / box" data-price="75">800g - $75 / box</option>
+                  </select>
                 </div>
                 <button class="shop-button" type="button" data-add-product>Add to Cart</button>
               </div>
@@ -1433,7 +1372,7 @@
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
 
-  <script src="script.js?v=20260516-7" defer></script>
+  <script src="script.js?v=20260523-2" defer></script>
 
 </body>
 </html>

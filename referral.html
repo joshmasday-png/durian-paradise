@@ -100,7 +100,7 @@
     <img class="referral-logo" src="images/logo-header.png" alt="Durian Paradise" />
     <div class="badge">Referral Invitation</div>
     <h1 data-referral-title>You have been referred to this website</h1>
-    <p data-referral-copy>Press the button below to visit Durian Paradise. Your 4-digit referral code will be shown below. When you reach checkout, make sure that exact code is filled in under "Referral Code (if any)" before you create the order.</p>
+    <p data-referral-copy>Press the button below to visit Durian Paradise. Your referral code will be shown below. During checkout, make sure that exact code is filled in before creating the order so the referral reward can be recorded correctly.</p>
     <div class="referral-note" data-referral-note>Checking referral link... You can continue to the website immediately if this takes too long.</div>
     <a class="button" href="/" data-referral-continue>Visit Durian Paradise</a>
   </main>
@@ -108,13 +108,13 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const code = String(params.get("code") || "").trim();
+    const isFourDigitCode = /^\d{4}$/.test(code);
     const isExpired = params.get("expired") === "1";
     const isInvalid = params.get("invalid") === "1";
     const title = document.querySelector("[data-referral-title]");
     const copy = document.querySelector("[data-referral-copy]");
     const note = document.querySelector("[data-referral-note]");
     const button = document.querySelector("[data-referral-continue]");
-    const isValidFourDigitCode = /^\d{4}$/.test(code);
 
     function disableReferral(message) {
       title.textContent = "This referral link is not active";
@@ -123,8 +123,8 @@
       button.href = "/";
     }
 
-    if (!code || !isValidFourDigitCode || isInvalid) {
-      disableReferral("This referral link is missing or invalid. Please ask your friend for a fresh 4-digit referral link.");
+    if (!code || !isFourDigitCode || isInvalid) {
+      disableReferral("This referral link is missing, invalid, or still using an old code format. Please ask your friend for a fresh 4-digit referral link.");
     } else if (isExpired) {
       disableReferral("This referral link has expired after 30 days.");
     } else {
@@ -146,7 +146,7 @@
             month: "short",
             day: "numeric"
           });
-          note.textContent = `Referral valid until ${expiry}. Your 4-digit referral code is: ${code}. Press "Visit Durian Paradise", add your durians, then check that this exact code appears in the "Referral Code (if any)" field before creating the order.`;
+          note.textContent = `Referral valid until ${expiry}. Your referral code is: ${code}. If the code does not auto-fill at checkout, enter it manually in the "Referral Code (if any)" field before creating the order.`;
           button.href = `/r/${encodeURIComponent(code)}`;
         })
         .catch(() => {
