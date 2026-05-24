@@ -2185,7 +2185,6 @@ function ensureCartUI() {
         <div class="cart-breakdown" data-cart-breakdown></div>
         <div class="checkout-details">
           <h3>Customer Details</h3>
-          <p class="checkout-helper-copy">On the secure payment page, customers will enter their name, contact number, email, and delivery address before paying.</p>
         </div>
         <div class="checkout-payment-methods">
           <h3>Payment Method</h3>
