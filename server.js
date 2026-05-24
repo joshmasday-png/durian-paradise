@@ -1472,6 +1472,15 @@ function buildOrderEmail(order) {
   const paymentMethod = order.paymentMethod || "Stripe Checkout";
   const referralCode = order.referral && order.referral.code ? String(order.referral.code) : "";
   const voucherCode = order.voucherCode ? String(order.voucherCode) : "";
+  const referralCashDiscount = Number(breakdown.referralCashDiscount || 0);
+  const referralFreeBoxCount = Number(breakdown.referralFreeBoxCount || 0);
+  const referralDiscountSummary = referralCashDiscount > 0
+    ? `Referral reward applied to total: -${formatAmount(referralCashDiscount)}`
+    : referralFreeBoxCount > 0
+      ? `Referral reward attached: ${referralFreeBoxCount} free 500g Group 1 box reward${referralFreeBoxCount === 1 ? "" : "s"}`
+      : referralCode
+        ? "Referral code was used on this order. No referral discount was applied to this checkout total."
+        : "";
   const itemLinesText = order.items
     .map((item) => `- ${item.name} (${item.variantLabel}) x ${item.quantity}: ${formatAmount(item.subtotalAmount)}`)
     .join("\n");
@@ -1498,6 +1507,7 @@ function buildOrderEmail(order) {
       breakdown.freeBoxDiscount ? `Free box reward: -${formatAmount(breakdown.freeBoxDiscount)}` : null,
       breakdown.referralCashDiscount ? `Referral cash reward: -${formatAmount(breakdown.referralCashDiscount)}` : null,
       breakdown.referralFreeBoxCount ? `Referral free box rewards: ${breakdown.referralFreeBoxCount}` : null,
+      referralDiscountSummary ? `Referral status: ${referralDiscountSummary}` : null,
       `Total: ${order.summary.totalDisplay}`,
       "",
       "Items:",
@@ -1525,6 +1535,7 @@ function buildOrderEmail(order) {
           ${breakdown.freeBoxDiscount ? `<p><strong>Free box reward:</strong> -${escapeEmailHtml(formatAmount(breakdown.freeBoxDiscount))}</p>` : ""}
           ${breakdown.referralCashDiscount ? `<p><strong>Referral cash reward:</strong> -${escapeEmailHtml(formatAmount(breakdown.referralCashDiscount))}</p>` : ""}
           ${breakdown.referralFreeBoxCount ? `<p><strong>Referral free box rewards:</strong> ${escapeEmailHtml(String(breakdown.referralFreeBoxCount))}</p>` : ""}
+          ${referralDiscountSummary ? `<p><strong>Referral status:</strong> ${escapeEmailHtml(referralDiscountSummary)}</p>` : ""}
           <p><strong>Total:</strong> ${escapeEmailHtml(order.summary.totalDisplay)}</p>
           <p><strong>Referral code:</strong> ${escapeEmailHtml(referralCode || "-")}</p>
           <p><strong>Voucher code:</strong> ${escapeEmailHtml(voucherCode || "-")}</p>
@@ -1555,6 +1566,17 @@ function buildPaidNotificationEmail(order) {
   const paymentMethod = order.paymentMethod || "Stripe Checkout";
   const stripeSessionId = order.stripe && order.stripe.checkoutSessionId ? String(order.stripe.checkoutSessionId) : "";
   const stripePaymentIntentId = order.stripe && order.stripe.paymentIntentId ? String(order.stripe.paymentIntentId) : "";
+  const breakdown = order.summary.priceBreakdown || {};
+  const referralCode = order.referral && order.referral.code ? String(order.referral.code) : "";
+  const referralCashDiscount = Number(breakdown.referralCashDiscount || 0);
+  const referralFreeBoxCount = Number(breakdown.referralFreeBoxCount || 0);
+  const referralStatus = referralCashDiscount > 0
+    ? `Referral discount applied: -${formatAmount(referralCashDiscount)}`
+    : referralFreeBoxCount > 0
+      ? `Referral free box reward attached: ${referralFreeBoxCount} free 500g Group 1 box reward${referralFreeBoxCount === 1 ? "" : "s"}`
+      : referralCode
+        ? `Referral code used on order: ${referralCode}`
+        : "";
 
   return {
     subject: `Payment received - ${order.id}`,
@@ -1565,6 +1587,7 @@ function buildPaidNotificationEmail(order) {
       `Payment method: ${paymentMethod}`,
       stripeSessionId ? `Stripe session: ${stripeSessionId}` : null,
       stripePaymentIntentId ? `Stripe payment intent: ${stripePaymentIntentId}` : null,
+      referralStatus || null,
       `Total: ${order.summary.totalDisplay}`,
       `Customer: ${order.customer.name || "Not provided"}`,
       `Email: ${order.customer.email}`,
@@ -1585,6 +1608,7 @@ function buildPaidNotificationEmail(order) {
           <p><strong>Payment method:</strong> ${escapeEmailHtml(paymentMethod)}</p>
           ${stripeSessionId ? `<p><strong>Stripe session:</strong> ${escapeEmailHtml(stripeSessionId)}</p>` : ""}
           ${stripePaymentIntentId ? `<p><strong>Stripe payment intent:</strong> ${escapeEmailHtml(stripePaymentIntentId)}</p>` : ""}
+          ${referralStatus ? `<p><strong>Referral status:</strong> ${escapeEmailHtml(referralStatus)}</p>` : ""}
           <p><strong>Customer:</strong> ${escapeEmailHtml(order.customer.name || "Not provided")}</p>
           <p><strong>Email:</strong> ${escapeEmailHtml(order.customer.email)}</p>
           <p><strong>Contact:</strong> ${escapeEmailHtml(order.customer.phone)}</p>
