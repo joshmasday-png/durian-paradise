@@ -164,51 +164,58 @@ app.post("/stripe-webhook", express.raw({ type: "application/json" }), async (re
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
+    const markCheckoutSessionPaid = async (session) => {
       const orders = readOrders();
       const order = orders.find((entry) => entry.stripe && entry.stripe.checkoutSessionId === session.id);
 
-      if (order && order.paymentStatus !== "paid") {
-        order.customer = buildCustomerFromStripeSession(session, order.customer);
-        order.paymentStatus = "paid";
-        order.status = "paid";
-        order.paidAt = new Date().toISOString();
-        order.stripe = {
-          ...(order.stripe || {}),
-          checkoutSessionId: session.id,
-          checkoutUrl: order.stripe && order.stripe.checkoutUrl ? order.stripe.checkoutUrl : "",
-          paymentStatus: "paid",
-          paymentIntentId: String(session.payment_intent || ""),
-          customerId: String(session.customer || ""),
-          completedAt: order.paidAt
-        };
-        order.claimedReferralRewards = dedupeReferralRewards([
-          ...claimReferralRewards(order.requestedReferralRewardClaims, order.id)
-        ]);
-        order.referral = issueReferralRewardForOrder(order) || order.referral || null;
-
-        try {
-          order.businessPaymentNotification = await sendPaidNotificationEmail(order);
-        } catch (error) {
-          order.businessPaymentNotification = {
-            status: "failed",
-            reason: error && error.message ? error.message : "Unable to send business notification email."
-          };
-        }
-
-        writeOrders(orders.slice(0, 500));
-        recordAnalyticsEvent({
-          type: "order_created",
-          orderId: order.id,
-          path: "/stripe-webhook",
-          referralCode: order.referral && order.referral.code ? order.referral.code : "",
-          userAgent: "stripe-webhook",
-          metadata: {
-            itemCount: Array.isArray(order.items) ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0
-          }
-        });
+      if (!order || order.paymentStatus === "paid") {
+        return;
       }
+
+      order.customer = buildCustomerFromStripeSession(session, order.customer);
+      order.paymentStatus = "paid";
+      order.status = "paid";
+      order.paidAt = new Date().toISOString();
+      order.stripe = {
+        ...(order.stripe || {}),
+        checkoutSessionId: session.id,
+        checkoutUrl: order.stripe && order.stripe.checkoutUrl ? order.stripe.checkoutUrl : "",
+        paymentStatus: "paid",
+        paymentIntentId: String(session.payment_intent || ""),
+        customerId: String(session.customer || ""),
+        completedAt: order.paidAt,
+        completedEventType: event.type
+      };
+      order.claimedReferralRewards = dedupeReferralRewards([
+        ...claimReferralRewards(order.requestedReferralRewardClaims, order.id)
+      ]);
+      order.referral = issueReferralRewardForOrder(order) || order.referral || null;
+
+      try {
+        order.businessPaymentNotification = await sendPaidNotificationEmail(order);
+      } catch (error) {
+        order.businessPaymentNotification = {
+          status: "failed",
+          reason: error && error.message ? error.message : "Unable to send business notification email."
+        };
+      }
+
+      writeOrders(orders.slice(0, 500));
+      recordAnalyticsEvent({
+        type: "order_created",
+        orderId: order.id,
+        path: "/stripe-webhook",
+        referralCode: order.referral && order.referral.code ? order.referral.code : "",
+        userAgent: "stripe-webhook",
+        metadata: {
+          itemCount: Array.isArray(order.items) ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0
+        }
+      });
+    };
+
+    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+      const session = event.data.object;
+      await markCheckoutSessionPaid(session);
     }
 
     if (event.type === "checkout.session.expired") {
