@@ -430,9 +430,9 @@ function normalizePaymentMethodKey(value) {
 function getPaymentMethodConfig(methodKey) {
   return {
     key: DEFAULT_PAYMENT_METHOD_KEY,
-    title: "",
-    checkoutButtonLabel: "",
-    checkoutNote: "",
+    title: "Secure Checkout",
+    checkoutButtonLabel: "Proceed to Secure Checkout",
+    checkoutNote: "Customer details and payment will be completed on the secure checkout page.",
     copyButtonLabel: "Copy Stripe checkout link",
     qrImageLabel: "",
     supportsQr: false
@@ -2183,6 +2183,19 @@ function ensureCartUI() {
           <span data-cart-items-label>0 items</span>
         </div>
         <div class="cart-breakdown" data-cart-breakdown></div>
+        <div class="checkout-payment-methods">
+          <h3>Payment Method</h3>
+          <label class="checkout-payment-option">
+            <input type="radio" name="checkout-payment-method" value="stripe_checkout" data-checkout-payment-method checked />
+            <span>
+              <strong>Secure Checkout</strong>
+              <small>Stripe will collect the customer name, email, phone number, and Singapore delivery address during checkout.</small>
+            </span>
+          </label>
+        </div>
+        <p class="checkout-note" data-checkout-payment-note>Customer details and payment will be completed on the secure checkout page.</p>
+        <button class="checkout-button" type="button" data-cart-checkout disabled>Proceed to Secure Checkout</button>
+        <div data-payment-request></div>
       </div>
     `;
     document.body.appendChild(drawer);
@@ -2521,6 +2534,7 @@ function renderCart() {
   const body = document.querySelector("[data-cart-body]");
   const totalEl = document.querySelector("[data-cart-total]");
   const itemsLabel = document.querySelector("[data-cart-items-label]");
+  const checkoutButton = document.querySelector("[data-cart-checkout]");
   const paymentRequest = document.querySelector("[data-payment-request]");
   const breakdownEl = document.querySelector("[data-cart-breakdown]");
   const pendingPayment = loadPendingPayment();
@@ -2530,12 +2544,13 @@ function renderCart() {
     el.textContent = String(getCartCount(cart));
   });
 
-  if (!body || !totalEl || !itemsLabel) {
+  if (!body || !totalEl || !itemsLabel || !checkoutButton) {
     return;
   }
 
   totalEl.textContent = formatCheckoutMoney(pricing.total);
   itemsLabel.textContent = `${getCartCount(cart)} item${getCartCount(cart) === 1 ? "" : "s"}`;
+  checkoutButton.disabled = cart.length === 0 || !pricing.minimumDeliveryBoxesMet;
   if (breakdownEl) {
     breakdownEl.innerHTML = renderCartBreakdown(pricing);
   }

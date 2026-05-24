@@ -27,6 +27,7 @@ const orderEmailReplyTo = process.env.ORDER_EMAIL_REPLY_TO || "durianparadise694
 const orderNotificationEmail = process.env.ORDER_NOTIFICATION_EMAIL || "durianparadise6940@gmail.com";
 const analyticsAuthUser = process.env.ANALYTICS_AUTH_USER || "";
 const analyticsAuthPassword = process.env.ANALYTICS_AUTH_PASSWORD || "";
+const isProductionDeployment = /^https:\/\/(www\.)?durianparadises\.com$/i.test(siteUrl);
 const allowedAnalyticsTypes = new Set([
   "page_view",
   "product_view",
@@ -1469,6 +1470,8 @@ function issueReferralRewardForOrder(order) {
 function buildOrderEmail(order) {
   const breakdown = order.summary.priceBreakdown || {};
   const paymentMethod = order.paymentMethod || "Stripe Checkout";
+  const referralCode = order.referral && order.referral.code ? String(order.referral.code) : "";
+  const voucherCode = order.voucherCode ? String(order.voucherCode) : "";
   const itemLinesText = order.items
     .map((item) => `- ${item.name} (${item.variantLabel}) x ${item.quantity}: ${formatAmount(item.subtotalAmount)}`)
     .join("\n");
@@ -1500,6 +1503,10 @@ function buildOrderEmail(order) {
       "Items:",
       itemLinesText,
       "",
+      `Referral code: ${referralCode || "-"}`,
+      `Voucher code: ${voucherCode || "-"}`,
+      `Order created: ${order.createdAt || "-"}`,
+      `Payment confirmed: ${order.paidAt || "-"}`,
       `Customer name: ${order.customer.name || "-"}`,
       `Customer email: ${order.customer.email || "-"}`,
       `Delivery address: ${order.customer.address}`,
@@ -1519,6 +1526,10 @@ function buildOrderEmail(order) {
           ${breakdown.referralCashDiscount ? `<p><strong>Referral cash reward:</strong> -${escapeEmailHtml(formatAmount(breakdown.referralCashDiscount))}</p>` : ""}
           ${breakdown.referralFreeBoxCount ? `<p><strong>Referral free box rewards:</strong> ${escapeEmailHtml(String(breakdown.referralFreeBoxCount))}</p>` : ""}
           <p><strong>Total:</strong> ${escapeEmailHtml(order.summary.totalDisplay)}</p>
+          <p><strong>Referral code:</strong> ${escapeEmailHtml(referralCode || "-")}</p>
+          <p><strong>Voucher code:</strong> ${escapeEmailHtml(voucherCode || "-")}</p>
+          <p><strong>Order created:</strong> ${escapeEmailHtml(order.createdAt || "-")}</p>
+          <p><strong>Payment confirmed:</strong> ${escapeEmailHtml(order.paidAt || "-")}</p>
           <table style="width:100%;border-collapse:collapse;margin:18px 0;">
             <thead>
               <tr>
@@ -1652,6 +1663,50 @@ async function sendPaidNotificationEmail(order) {
     text: email.text,
     html: email.html
   });
+}
+
+function createMockPaidOrder() {
+  const createdAt = new Date().toISOString();
+  const paidAt = createdAt;
+  const items = [
+    {
+      key: "delivery-group1|650g",
+      productId: "delivery-group1",
+      variantValue: "650g",
+      name: "Group 1 Durians",
+      variantLabel: "650g box",
+      orderType: "Online Delivery",
+      quantity: 3,
+      unitAmount: 4900,
+      subtotalAmount: 14700
+    }
+  ];
+
+  return {
+    id: `TEST-${Date.now()}`,
+    createdAt,
+    paidAt,
+    status: "paid",
+    paymentStatus: "paid",
+    paymentMethod: "Stripe Checkout",
+    items,
+    summary: summarizeOrder(items),
+    customer: {
+      name: "Test Customer",
+      email: "test.customer@example.com",
+      phone: "+65 9123 4567",
+      address: "50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568",
+      deliveryNotes: ""
+    },
+    referral: {
+      code: "4827"
+    },
+    voucherCode: "TESTVOUCHER",
+    stripe: {
+      checkoutSessionId: `cs_test_${Date.now()}`,
+      paymentIntentId: `pi_test_${Date.now()}`
+    }
+  };
 }
 
 function buildPendingPaymentResponse(order, rawPaymentMethodKey) {
@@ -2030,6 +2085,31 @@ app.get("/api/payment-orders/:orderId", (req, res) => {
   return res.json({ order });
 });
 
+app.post("/test/send-order-confirmation", async (_req, res) => {
+  if (isProductionDeployment) {
+    return res.status(404).json({ error: "Test email route is unavailable in production." });
+  }
+
+  try {
+    const mockOrder = createMockPaidOrder();
+    const result = await sendPaidNotificationEmail(mockOrder);
+
+    return res.json({
+      ok: true,
+      email: result,
+      order: {
+        id: mockOrder.id,
+        total: mockOrder.summary.totalDisplay,
+        sessionId: mockOrder.stripe.checkoutSessionId
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: error && error.message ? error.message : "Unable to send test order confirmation email."
+    });
+  }
+});
+
 app.post("/api/payment-orders/:orderId/paid", async (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
   const orders = readOrders();
@@ -2283,8 +2363,8 @@ async function handleCreateCheckoutSession(req, res) {
       },
       line_items: lineItems,
       discounts: couponId ? [{ coupon: couponId }] : [],
-      success_url: `${siteUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/cancel.html`,
+      success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/checkout-cancelled`,
       metadata,
       payment_intent_data: {
         metadata
@@ -2335,6 +2415,14 @@ async function handleCreateCheckoutSession(req, res) {
 
 app.post("/create-checkout-session", handleCreateCheckoutSession);
 app.post("/api/create-checkout-session", handleCreateCheckoutSession);
+
+app.get("/success", (_req, res) => {
+  res.sendFile(path.join(__dirname, "success.html"));
+});
+
+app.get("/checkout-cancelled", (_req, res) => {
+  res.sendFile(path.join(__dirname, "cancel.html"));
+});
 
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
