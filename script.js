@@ -2495,7 +2495,6 @@ function renderPaymentRequestCard(pendingPayment) {
   const orderLines = buildPaymentRequestOrderSummary(items, breakdown, totalDisplay);
   const checkoutUrl = String(pendingPayment.checkoutUrl || "").trim();
   const qrCodeDataUrl = String(pendingPayment.qrCodeDataUrl || "").trim();
-  const pendingCustomerPlaceholder = "Collected during secure checkout";
 
   return `
     <div class="payment-request-card">
@@ -2518,18 +2517,6 @@ function renderPaymentRequestCard(pendingPayment) {
         <div class="payment-detail">
           <span>Order No</span>
           <strong>${escapeHtml(pendingPayment.reference || order.id || "")}</strong>
-        </div>
-        <div class="payment-detail">
-          <span>Email</span>
-          <strong>${escapeHtml(customer.email || pendingCustomerPlaceholder)}</strong>
-        </div>
-        <div class="payment-detail">
-          <span>Contact</span>
-          <strong>${escapeHtml(customer.phone || pendingCustomerPlaceholder)}</strong>
-        </div>
-        <div class="payment-detail" style="grid-column: 1 / -1;">
-          <span>Delivery Address</span>
-          <strong>${escapeHtml(customer.address || pendingCustomerPlaceholder)}</strong>
         </div>
       </div>
       ${(items.length || breakdown) ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
