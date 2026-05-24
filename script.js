@@ -878,6 +878,21 @@ function getStoredReferralCode() {
   }
 }
 
+function setStoredReferralCode(code) {
+  const normalizedCode = normalizeClientReferralCode(code);
+
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
+    removeStorageItem(REFERRAL_STORAGE_KEY);
+    return "";
+  }
+
+  writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
+    code: normalizedCode,
+    expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
+  }));
+  return normalizedCode;
+}
+
 function captureReferralCode() {
   const params = new URLSearchParams(window.location.search);
   const code = normalizeClientReferralCode(params.get("ref"));
@@ -1447,6 +1462,43 @@ function injectCartStyles() {
       color: #5a4a3b;
       font-size: 14px;
       margin-bottom: 14px;
+    }
+
+    .checkout-referral {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(252, 249, 245, 0.72);
+      border: 1px solid rgba(120, 100, 76, 0.12);
+    }
+
+    .checkout-referral label {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1f1a15;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .checkout-referral input {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 14px;
+      border: 1px solid rgba(120, 100, 76, 0.2);
+      background: rgba(255, 255, 255, 0.96);
+      color: #1f1a15;
+      padding: 12px 14px;
+      font-size: 16px;
+      font-family: inherit;
+    }
+
+    .checkout-referral small {
+      color: #6a5845;
+      font-size: 13px;
+      line-height: 1.4;
     }
 
     .checkout-payment-methods {
@@ -2199,6 +2251,11 @@ function ensureCartUI() {
           <span data-cart-items-label>0 items</span>
         </div>
         <div class="cart-breakdown" data-cart-breakdown></div>
+        <div class="checkout-referral">
+          <label for="cart-referral-code">Referral Code (if any)</label>
+          <input id="cart-referral-code" type="text" maxlength="4" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter 4-digit referral code" data-cart-referral-code />
+          <small>If a friend shared a referral code with you, enter it here before payment so the referral reward can be recorded.</small>
+        </div>
         <div class="checkout-payment-methods">
           <h3>Payment Method</h3>
           <label class="checkout-payment-option">
@@ -2553,6 +2610,7 @@ function renderCart() {
   const checkoutButton = document.querySelector("[data-cart-checkout]");
   const paymentRequest = document.querySelector("[data-payment-request]");
   const breakdownEl = document.querySelector("[data-cart-breakdown]");
+  const referralInput = document.querySelector("[data-cart-referral-code]");
   const pendingPayment = loadPendingPayment();
   const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
   syncCartTriggerState(cart, pendingPayment);
@@ -2560,6 +2618,10 @@ function renderCart() {
   countEls.forEach((el) => {
     el.textContent = String(getCartCount(cart));
   });
+
+  if (referralInput && document.activeElement !== referralInput) {
+    referralInput.value = getStoredReferralCode();
+  }
 
   if (!body || !totalEl || !itemsLabel || !checkoutButton) {
     return;
@@ -2631,6 +2693,7 @@ function bindCartUI() {
   const checkout = document.querySelector("[data-cart-checkout]");
   const paymentRequest = document.querySelector("[data-payment-request]");
   const paymentMethodInputs = document.querySelectorAll("[data-checkout-payment-method]");
+  const referralInput = document.querySelector("[data-cart-referral-code]");
 
   bindCartTrigger();
 
@@ -2703,6 +2766,24 @@ function bindCartUI() {
     input.addEventListener("change", syncCheckoutPaymentMethodUI);
   });
 
+  if (referralInput && referralInput.dataset.inputBound !== "true") {
+    referralInput.dataset.inputBound = "true";
+    referralInput.addEventListener("input", () => {
+      referralInput.value = normalizeClientReferralCode(referralInput.value);
+    });
+    referralInput.addEventListener("change", () => {
+      const normalizedCode = normalizeClientReferralCode(referralInput.value);
+      referralInput.value = normalizedCode;
+
+      if (!normalizedCode) {
+        clearStoredReferralCode();
+        return;
+      }
+
+      setStoredReferralCode(normalizedCode);
+    });
+  }
+
   if (checkout) {
     checkout.addEventListener("click", async (event) => {
       event.preventDefault();
@@ -2710,6 +2791,8 @@ function bindCartUI() {
       const selectedPaymentMethod = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
       const activeReferralRewards = getDisplayableReferralRewards();
       const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
+      const referralCodeInputValue = referralInput ? normalizeClientReferralCode(referralInput.value) : "";
+      const effectiveReferralCode = referralCodeInputValue || getStoredReferralCode();
       const referralRewardClaims = activeReferralRewards.map((reward) => ({
         referralCode: reward.referralCode,
         rewardId: reward.id
@@ -2722,6 +2805,18 @@ function bindCartUI() {
       if (!pricing.minimumDeliveryBoxesMet) {
         window.alert("Online Delivery requires a minimum of 3 boxes.");
         return;
+      }
+
+      if (referralInput && referralInput.value && !isFourDigitClientReferralCode(referralCodeInputValue)) {
+        window.alert("Please enter a valid 4-digit referral code.");
+        referralInput.focus();
+        return;
+      }
+
+      if (effectiveReferralCode) {
+        setStoredReferralCode(effectiveReferralCode);
+      } else {
+        clearStoredReferralCode();
       }
 
       trackAnalyticsEvent("checkout_started", {
@@ -2748,7 +2843,7 @@ function bindCartUI() {
               quantity: item.quantity
             })),
             paymentMethodKey: selectedPaymentMethod.key,
-            referralCode: getStoredReferralCode(),
+            referralCode: effectiveReferralCode,
             referralRewardClaims,
             totalAmount: Math.round(Number(pricing.total || 0) * 100),
             visitorId: getVisitorId(),
