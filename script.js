@@ -947,10 +947,17 @@ function getCartCount(cart) {
   return cart.reduce((sum, item) => sum + item.quantity, 0);
 }
 
-function syncCartTriggerCount() {
-  const count = getCartCount(loadCart());
+function syncCartTriggerState(cart = loadCart(), pendingPayment = loadPendingPayment()) {
+  const count = getCartCount(cart);
+  const shouldShowTrigger = count > 0 || Boolean(pendingPayment && pendingPayment.sessionId);
+
   document.querySelectorAll("[data-cart-count]").forEach((el) => {
     el.textContent = String(count);
+  });
+
+  document.querySelectorAll("[data-cart-trigger]").forEach((trigger) => {
+    trigger.hidden = !shouldShowTrigger;
+    trigger.setAttribute("aria-hidden", shouldShowTrigger ? "false" : "true");
   });
 }
 
@@ -2539,6 +2546,7 @@ function renderCart() {
   const breakdownEl = document.querySelector("[data-cart-breakdown]");
   const pendingPayment = loadPendingPayment();
   const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
+  syncCartTriggerState(cart, pendingPayment);
 
   countEls.forEach((el) => {
     el.textContent = String(getCartCount(cart));
@@ -3321,7 +3329,7 @@ function rebindInteractiveSections() {
   bindProductCards();
   bindPartyForms();
   bindCartTrigger();
-  syncCartTriggerCount();
+  syncCartTriggerState();
 
   if (cartUiPrepared) {
     bindCartUI();
@@ -3336,7 +3344,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindNavMenus();
   bindPrimaryCtas();
   bindReferralForm();
-  syncCartTriggerCount();
+  syncCartTriggerState();
   revealPageWhenCriticalImagesReady();
   bindProductCards();
   bindPartyForms();
