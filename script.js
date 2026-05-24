@@ -34,6 +34,7 @@ let productCardsBound = false;
 let partyFormsBound = false;
 let reviewFormBound = false;
 let referralFormBound = false;
+let pendingPaymentStatusRefreshPromise = null;
 const memoryStorage = new Map();
 
 function normalizeOwnedReferralReward(reward) {
@@ -491,6 +492,84 @@ function savePendingPayment(payment) {
 
 function clearPendingPayment() {
   removeStorageItem(PENDING_PAYMENT_STORAGE_KEY);
+}
+
+async function refreshPendingPaymentStatusIfNeeded(force = false) {
+  const pendingPayment = loadPendingPayment();
+  const sessionId = pendingPayment && pendingPayment.sessionId
+    ? String(pendingPayment.sessionId).trim()
+    : "";
+
+  if (!sessionId) {
+    return null;
+  }
+
+  const currentStatus = String(
+    (pendingPayment.order && pendingPayment.order.paymentStatus)
+      || pendingPayment.paymentStatus
+      || ""
+  ).trim().toLowerCase();
+
+  if (currentStatus === "paid") {
+    saveCart([]);
+    clearPendingPayment();
+    return null;
+  }
+
+  if (!force && currentStatus && currentStatus !== "checkout_pending") {
+    return pendingPayment;
+  }
+
+  if (pendingPaymentStatusRefreshPromise) {
+    return pendingPaymentStatusRefreshPromise;
+  }
+
+  pendingPaymentStatusRefreshPromise = (async () => {
+    try {
+      const response = await fetch(`/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`);
+      const payload = await response.json();
+
+      if (!response.ok) {
+        return pendingPayment;
+      }
+
+      const nextStatus = String(
+        payload.paymentStatus
+          || (payload.order && payload.order.paymentStatus)
+          || currentStatus
+      ).trim().toLowerCase();
+
+      if (nextStatus === "paid") {
+        saveCart([]);
+        clearPendingPayment();
+        renderCart();
+        return null;
+      }
+
+      const nextPendingPayment = {
+        ...pendingPayment,
+        order: {
+          ...(pendingPayment.order || {}),
+          ...((payload && payload.order) || {})
+        },
+        paymentStatus: nextStatus || pendingPayment.paymentStatus || ""
+      };
+
+      savePendingPayment(nextPendingPayment);
+
+      if (force) {
+        renderCart();
+      }
+
+      return nextPendingPayment;
+    } catch (_error) {
+      return pendingPayment;
+    } finally {
+      pendingPaymentStatusRefreshPromise = null;
+    }
+  })();
+
+  return pendingPaymentStatusRefreshPromise;
 }
 
 function createBrowserId() {
@@ -2175,6 +2254,7 @@ function openCartDrawer() {
   }
 
   refreshOwnedReferralRewardsIfNeeded(true);
+  void refreshPendingPaymentStatusIfNeeded(true);
 }
 
 function closeCartDrawer(options = {}) {
@@ -2457,7 +2537,7 @@ function renderPaymentRequestCard(pendingPayment) {
       <p>${escapeHtml(pendingPayment.message || "")}</p>
       ${paymentConfirmed ? `<p><strong>Payment has been confirmed.</strong> Your order is now marked as paid.</p>` : ""}
       <div class="payment-request-actions">
-        ${checkoutUrl ? `<a class="btn-email" href="${escapeHtml(checkoutUrl)}" target="_blank" rel="noopener">Open Payment Page</a>` : ""}
+        ${!paymentConfirmed && checkoutUrl ? `<a class="btn-email" href="${escapeHtml(checkoutUrl)}" target="_blank" rel="noopener">Open Payment Page</a>` : ""}
         <button class="payment-request-clear" type="button" data-clear-payment-request>Clear payment panel</button>
       </div>
     </div>
@@ -3311,12 +3391,17 @@ document.addEventListener("DOMContentLoaded", () => {
   runNonCriticalTask(() => {
     enhanceVarietyImages();
   }, 1400);
+
+  runNonCriticalTask(() => {
+    refreshPendingPaymentStatusIfNeeded(false);
+  }, 1200);
 });
 
 window.addEventListener("pageshow", () => {
   syncCartDrawerWithHistoryState();
   rebindInteractiveSections();
   refreshOwnedReferralRewardsIfNeeded(true);
+  void refreshPendingPaymentStatusIfNeeded(true);
 });
 
 window.addEventListener("pagehide", () => {
@@ -3331,6 +3416,7 @@ document.addEventListener("visibilitychange", () => {
 
   if (document.visibilityState === "visible") {
     refreshOwnedReferralRewardsIfNeeded(true);
+    void refreshPendingPaymentStatusIfNeeded(true);
   }
 });
 
