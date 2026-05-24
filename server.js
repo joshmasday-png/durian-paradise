@@ -2259,7 +2259,7 @@ async function handleCreateCheckoutSession(req, res) {
         amount_off: totalDiscountAmount,
         currency: "sgd",
         duration: "once",
-        name: `Durian Paradise order ${order.id} adjustments`,
+        name: `Order ${order.id} adjustment`.slice(0, 40),
         metadata
       });
       couponId = coupon.id;
