@@ -494,6 +494,14 @@ function clearPendingPayment() {
   removeStorageItem(PENDING_PAYMENT_STORAGE_KEY);
 }
 
+function isCartRelatedStorageKey(key) {
+  const normalizedKey = String(key || "");
+  return normalizedKey === CART_STORAGE_KEY
+    || normalizedKey === PENDING_PAYMENT_STORAGE_KEY
+    || normalizedKey.startsWith("durianParadiseCart")
+    || normalizedKey.startsWith("durianParadisePendingPayment");
+}
+
 async function refreshPendingPaymentStatusIfNeeded(force = false) {
   const pendingPayment = loadPendingPayment();
   const sessionId = pendingPayment && pendingPayment.sessionId
@@ -513,6 +521,7 @@ async function refreshPendingPaymentStatusIfNeeded(force = false) {
   if (currentStatus === "paid") {
     saveCart([]);
     clearPendingPayment();
+    renderCart();
     return null;
   }
 
@@ -3397,6 +3406,14 @@ window.addEventListener("pageshow", () => {
 
 window.addEventListener("pagehide", () => {
   syncCartDrawerWithHistoryState();
+});
+
+window.addEventListener("storage", (event) => {
+  if (!isCartRelatedStorageKey(event.key)) {
+    return;
+  }
+
+  renderCart();
 });
 
 document.addEventListener("visibilitychange", () => {
