@@ -1,3 +1,225 @@
 {
-  "events": []
+  "events": [
+    {
+      "id": "evt-mpl0nx0p-vb51pq2e",
+      "type": "page_view",
+      "visitorId": "4284fa54-6776-4d3d-ae8a-4c5f3b5ca240",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:41:14.089Z"
+    },
+    {
+      "id": "evt-mpl0p89c-debrb649",
+      "type": "page_view",
+      "visitorId": "03338a74-1b5a-446b-bf43-22675f897135",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:42:15.312Z"
+    },
+    {
+      "id": "evt-mpl0pa8w-n76fu0g0",
+      "type": "page_view",
+      "visitorId": "466aacbf-87d7-4e14-9a20-baec1c3be168",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:42:17.888Z"
+    },
+    {
+      "id": "evt-mpl0pc8z-asl8yfxw",
+      "type": "page_view",
+      "visitorId": "62827c81-a614-4bea-9135-bde38206ecce",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:42:20.483Z"
+    },
+    {
+      "id": "evt-mpl0tuqq-nwlpti79",
+      "type": "page_view",
+      "visitorId": "4a43dc51-3341-4242-b5e5-c634bbef66be",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:45:51.074Z"
+    },
+    {
+      "id": "evt-mpl0u2k3-tiqfo4k3",
+      "type": "page_view",
+      "visitorId": "993fdf44-4d38-41f1-83f0-5dc37f5a3944",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:46:01.203Z"
+    },
+    {
+      "id": "evt-mpl0u452-d7j34iuo",
+      "type": "page_view",
+      "visitorId": "991d8b5e-19b7-4bf5-8ef2-e064e0df931b",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:46:03.254Z"
+    },
+    {
+      "id": "evt-mpl0u5q4-t0bprsfu",
+      "type": "page_view",
+      "visitorId": "7f5d981f-56e1-4bf0-8fbd-7c114b763d1c",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:46:05.308Z"
+    },
+    {
+      "id": "evt-mpl11r7z-hp0a49tm",
+      "type": "page_view",
+      "visitorId": "55af8e0b-f45f-4b2a-8b9c-11b9338e7d2d",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:51:59.759Z"
+    },
+    {
+      "id": "evt-mpl11st3-q5i412tc",
+      "type": "page_view",
+      "visitorId": "1f55e7c2-8e21-4971-a72c-b8cd4a6e20c2",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:52:01.815Z"
+    },
+    {
+      "id": "evt-mpl11ud9-h2olujb8",
+      "type": "page_view",
+      "visitorId": "f9f01c47-aecc-451a-8953-7da6ccc21871",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:52:03.837Z"
+    },
+    {
+      "id": "evt-mpl11vya-f9it6qj9",
+      "type": "page_view",
+      "visitorId": "e34f6d96-7297-40eb-9518-795df9c7f9e4",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:52:05.890Z"
+    },
+    {
+      "id": "evt-mpl170j7-ghj3nmfk",
+      "type": "page_view",
+      "visitorId": "8717826e-5104-424a-a941-99e844695826",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T09:56:05.107Z"
+    }
+  ]
 }

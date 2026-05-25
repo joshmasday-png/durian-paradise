@@ -1852,6 +1852,7 @@ app.post("/api/referrals", (req, res) => {
 
       existingActiveReferral.code = nextCode;
       existingActiveReferral.link = buildReferralLink(req, nextCode);
+      existingActiveReferral.expiresAt = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString();
       updatedExistingReferral = true;
     }
 

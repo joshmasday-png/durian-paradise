@@ -63,3 +63,38 @@ Two modes controlled by `PAYMENT_PROVIDER`:
 Deployed on Render (see `render.yaml`). Auto-deploys on push to `main`. Node 24. Logs split into `server.out.log` (stdout) and `server.err.log` (stderr) — these files are blocked from public access.
 
 Sensitive files are blocked from static serving: `orders.json`, `analytics.json`, `referrals.json`, `server.js`, etc.
+
+## Rules for Claude Code
+
+Before editing any file:
+- First explain what you are going to inspect.
+- Do not make large rewrites unless explicitly asked.
+- Do not change payment, order, email, cart, or environment variable logic unless the task is specifically about that system.
+- Never expose secret values from environment variables.
+- Preserve existing working behavior.
+- Prefer small, testable fixes.
+- Do not create unnecessary new files or dependencies.
+- Do not rename environment variables unless absolutely necessary.
+- If touching Stripe, order confirmation emails, cart clearing, or Render deployment, explain the full test plan.
+
+After editing:
+- Summarize every file changed.
+- Explain exactly what changed and why.
+- Give local testing steps.
+- Give Render deployment testing steps if relevant.
+- Tell me how to roll back if something breaks.
+
+## Autonomy Rules
+
+Claude should not ask for confirmation after every analysis.
+
+Claude may proceed with code inspection, bug fixing, refactoring, formatting, and test/build runs without asking, as long as the change is safe and reversible.
+
+Claude must ask before:
+- deleting major files
+- removing features
+- changing payment/security-critical flows
+- changing environment variable requirements
+- making irreversible architecture changes
+
+Default behavior: proceed, implement, test, then summarize.
