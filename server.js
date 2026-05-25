@@ -2019,7 +2019,7 @@ app.post("/api/referrals", (req, res) => {
   };
 
   referrals.unshift(referral);
-  writeReferrals(referrals.slice(0, 1000));
+  writeReferrals(referrals);
 
   return res.status(201).json({
     referral: {
