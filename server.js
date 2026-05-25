@@ -22,9 +22,9 @@ const paymentProviderName = process.env.PAYMENT_PROVIDER_NAME || "Stripe Checkou
 const defaultPaymentMethodKey = "stripe_checkout";
 const enableTestHelpers = process.env.ENABLE_TEST_HELPERS === "1";
 const resendApiKey = process.env.RESEND_API_KEY || "";
-const orderEmailFrom = process.env.ORDER_EMAIL_FROM || "Durian Paradise <orders@durianparadises.com>";
-const orderEmailReplyTo = process.env.ORDER_EMAIL_REPLY_TO || "durianparadise6940@gmail.com";
-const orderNotificationEmail = process.env.ORDER_NOTIFICATION_EMAIL || "durianparadise6940@gmail.com";
+const orderEmailFrom = process.env.ORDER_EMAIL_FROM || "";
+const orderEmailReplyTo = process.env.ORDER_EMAIL_REPLY_TO || "";
+const orderNotificationEmail = process.env.ORDER_NOTIFICATION_EMAIL || "";
 const analyticsAuthUser = process.env.ANALYTICS_AUTH_USER || "";
 const analyticsAuthPassword = process.env.ANALYTICS_AUTH_PASSWORD || "";
 const isProductionDeployment = /^https:\/\/(www\.)?durianparadises\.com$/i.test(siteUrl);
@@ -51,6 +51,38 @@ const blockedStaticPaths = new Set([
   "/.gitignore"
 ]);
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
+
+function logStartupWarning(message) {
+  console.warn(`[Durian Paradise startup] ${message}`);
+}
+
+if (!stripeSecretKey) {
+  logStartupWarning("STRIPE_SECRET_KEY is missing. Stripe Checkout session creation is disabled.");
+}
+
+if (!stripeWebhookSecret) {
+  logStartupWarning("STRIPE_WEBHOOK_SECRET is missing. Paid webhook confirmation cannot be verified.");
+}
+
+if (!resendApiKey) {
+  logStartupWarning("RESEND_API_KEY is missing. Owner payment notification emails will be skipped.");
+}
+
+if (!orderNotificationEmail) {
+  logStartupWarning("ORDER_NOTIFICATION_EMAIL is missing. Paid order emails have no destination inbox.");
+}
+
+if (!orderEmailFrom) {
+  logStartupWarning("ORDER_EMAIL_FROM is missing. Resend owner email sending will be skipped.");
+}
+
+if (!orderEmailReplyTo) {
+  logStartupWarning("ORDER_EMAIL_REPLY_TO is missing. Resend owner email sending will be skipped.");
+}
+
+if (paymentProvider !== "stripe_checkout" || paymentProviderName !== "Stripe Checkout") {
+  logStartupWarning(`Legacy payment provider envs are still set (${paymentProvider} / ${paymentProviderName}). The active checkout flow is Stripe Checkout.`);
+}
 
 function isReferralActive(referral) {
   return Boolean(referral && sanitizeReferralCode(referral.code));
@@ -1647,6 +1679,31 @@ async function sendEmail({ to, subject, text, html }) {
     };
   }
 
+  if (!orderEmailFrom) {
+    return {
+      status: "skipped",
+      reason: "ORDER_EMAIL_FROM is not configured."
+    };
+  }
+
+  if (!orderEmailReplyTo) {
+    return {
+      status: "skipped",
+      reason: "ORDER_EMAIL_REPLY_TO is not configured."
+    };
+  }
+
+  const recipients = (Array.isArray(to) ? to : [to])
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  if (!recipients.length) {
+    return {
+      status: "skipped",
+      reason: "No destination email address was provided."
+    };
+  }
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -1655,7 +1712,7 @@ async function sendEmail({ to, subject, text, html }) {
     },
     body: JSON.stringify({
       from: orderEmailFrom,
-      to: Array.isArray(to) ? to : [to],
+      to: recipients,
       reply_to: orderEmailReplyTo,
       subject,
       text,
@@ -1690,6 +1747,13 @@ async function sendOrderConfirmationEmail(order) {
 }
 
 async function sendPaidNotificationEmail(order) {
+  if (!orderNotificationEmail) {
+    return {
+      status: "skipped",
+      reason: "ORDER_NOTIFICATION_EMAIL is not configured."
+    };
+  }
+
   const email = buildPaidNotificationEmail(order);
   return sendEmail({
     to: orderNotificationEmail,

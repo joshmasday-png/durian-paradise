@@ -11,7 +11,6 @@ const LEGACY_STORAGE_KEYS = [
 const STORAGE_MIGRATION_KEY = `durianParadiseStorageMigration:${STORAGE_VERSION}`;
 const CART_STORAGE_KEY = `durianParadiseCart:${STORAGE_VERSION}`;
 const REVIEWS_API_PATH = "/api/reviews";
-const PAYMENT_ORDERS_API_PATH = "/api/payment-orders";
 const STRIPE_CHECKOUT_SESSION_API_PATH = "/create-checkout-session";
 const REFERRALS_API_PATH = "/api/referrals";
 const ANALYTICS_EVENTS_API_PATH = "/api/analytics/events";
@@ -22,9 +21,6 @@ const REFERRAL_LOOKUP_STORAGE_KEY = `durianParadiseReferralLookup:${STORAGE_VERS
 const VISITOR_STORAGE_KEY = `durianParadiseVisitorId:${STORAGE_VERSION}`;
 const DEFAULT_PAYMENT_METHOD_KEY = "stripe_checkout";
 const CART_HISTORY_STATE_KEY = "__durianParadiseCartOpen";
-const PAYNOW_QR_ASSET_VERSION = "20260430-qr2";
-const PAYNOW_QR_IMAGE_PATH = `images/paynow-qr.jpeg?v=${PAYNOW_QR_ASSET_VERSION}`;
-const PAYNOW_QR_PLACEHOLDER_PATH = `images/paynow-qr-placeholder.svg?v=${PAYNOW_QR_ASSET_VERSION}`;
 let reviewsLoadPromise = null;
 let lastOwnedReferralRefreshAt = 0;
 let navMenusBound = false;
@@ -513,6 +509,15 @@ function isCartRelatedStorageKey(key) {
     || normalizedKey.startsWith("durianParadisePendingPayment");
 }
 
+function isReferralRelatedStorageKey(key) {
+  const normalizedKey = String(key || "");
+  return normalizedKey === REFERRAL_STORAGE_KEY
+    || normalizedKey === OWNED_REFERRALS_STORAGE_KEY
+    || normalizedKey === REFERRAL_LOOKUP_STORAGE_KEY
+    || normalizedKey.startsWith("durianParadiseReferral")
+    || normalizedKey.startsWith("durianParadiseOwnedReferrals");
+}
+
 async function refreshPendingPaymentStatusIfNeeded(force = false) {
   const pendingPayment = loadPendingPayment();
   const sessionId = pendingPayment && pendingPayment.sessionId
@@ -717,6 +722,90 @@ function getLatestOwnedReferral(includeExpired = true, { allowLegacyCode = false
     .sort((left, right) => getIsoTimestamp(right.createdAt || right.expiresAt) - getIsoTimestamp(left.createdAt || left.expiresAt))[0] || null;
 }
 
+function getReferralUiElements() {
+  return {
+    output: document.querySelector("[data-referral-output]"),
+    codeEl: document.querySelector("[data-referral-code]"),
+    linkEl: document.querySelector("[data-referral-link]"),
+    lookupInput: document.querySelector("[data-referral-lookup-code]"),
+    rewardsPanel: document.querySelector("[data-referral-status]")
+  };
+}
+
+function showHomepageReferralLink(referral) {
+  const { output, codeEl, linkEl, lookupInput } = getReferralUiElements();
+  const normalizedCode = normalizeClientReferralCode(referral && referral.code ? referral.code : "");
+  const nextLink = buildClientReferralLink(normalizedCode);
+
+  if (!output || !linkEl) {
+    return;
+  }
+
+  if (!nextLink) {
+    output.classList.remove("is-visible");
+    if (codeEl) {
+      codeEl.textContent = "";
+    }
+    linkEl.textContent = "";
+    return;
+  }
+
+  if (codeEl) {
+    codeEl.textContent = normalizedCode;
+  }
+
+  if (lookupInput) {
+    lookupInput.value = normalizedCode;
+  }
+
+  linkEl.textContent = nextLink;
+  output.classList.add("is-visible");
+}
+
+function renderHomepageReferralStatus(referral) {
+  const { rewardsPanel } = getReferralUiElements();
+
+  if (!rewardsPanel) {
+    return;
+  }
+
+  if (!referral || !referral.code) {
+    rewardsPanel.hidden = true;
+    rewardsPanel.innerHTML = "";
+    return;
+  }
+
+  const rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
+  rewardsPanel.innerHTML = `
+    <strong>Successful referrals recorded: ${Number(referral.conversionCount || 0)}</strong>
+    ${rewards.length ? `
+      <ul class="feature-list">
+        ${rewards.map((reward) => `<li>${escapeHtml(getReferralRewardMessage(reward))}</li>`).join("")}
+      </ul>
+    ` : `<p>No available rewards are attached to this code yet.</p>`}
+  `;
+  rewardsPanel.hidden = false;
+}
+
+function syncHomepageReferralUi() {
+  const { lookupInput } = getReferralUiElements();
+  const existingReferral = getLatestOwnedReferral(false);
+
+  if (existingReferral && isFourDigitClientReferralCode(existingReferral.code)) {
+    showHomepageReferralLink(existingReferral);
+    renderHomepageReferralStatus(existingReferral);
+    return existingReferral;
+  }
+
+  renderHomepageReferralStatus(null);
+
+  if (lookupInput) {
+    lookupInput.value = getStoredReferralLookupCode();
+  }
+
+  return null;
+}
+
 function getReferralRewardMessage(reward) {
   if (reward && reward.message && !isLegacyReferralRewardMessage(reward.message)) {
     return String(reward.message);
@@ -839,6 +928,7 @@ async function refreshOwnedReferralRewards() {
   const ownedReferrals = loadOwnedReferrals().filter((entry) => isFourDigitClientReferralCode(entry.code) && entry.ownerToken);
 
   if (!ownedReferrals.length) {
+    syncHomepageReferralUi();
     renderCart();
     return;
   }
@@ -866,6 +956,7 @@ async function refreshOwnedReferralRewards() {
   }));
 
   saveOwnedReferrals(updatedReferrals);
+  syncHomepageReferralUi();
   renderCart();
 }
 
@@ -3262,47 +3353,6 @@ function bindReferralForm() {
   referralFormBound = true;
 
   const getReferralLinkText = () => linkEl.textContent.trim();
-  const showReferralLink = (referral) => {
-    const normalizedCode = normalizeClientReferralCode(referral && referral.code ? referral.code : "");
-    const nextLink = buildClientReferralLink(normalizedCode);
-
-    if (!nextLink) {
-      output.classList.remove("is-visible");
-      return;
-    }
-
-    if (codeEl) {
-      codeEl.textContent = normalizedCode;
-    }
-    if (lookupInput) {
-      lookupInput.value = normalizedCode;
-    }
-    linkEl.textContent = nextLink;
-    output.classList.add("is-visible");
-  };
-
-  const renderReferralStatus = (referral) => {
-    if (!rewardsPanel) {
-      return;
-    }
-
-    if (!referral || !referral.code) {
-      rewardsPanel.hidden = true;
-      rewardsPanel.innerHTML = "";
-      return;
-    }
-
-    const rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
-    rewardsPanel.innerHTML = `
-      <strong>Successful referrals recorded: ${Number(referral.conversionCount || 0)}</strong>
-      ${rewards.length ? `
-        <ul class="feature-list">
-          ${rewards.map((reward) => `<li>${escapeHtml(getReferralRewardMessage(reward))}</li>`).join("")}
-        </ul>
-      ` : `<p>No available rewards are attached to this code yet.</p>`}
-    `;
-    rewardsPanel.hidden = false;
-  };
 
   const copyReferralLink = async () => {
     const link = getReferralLinkText();
@@ -3329,17 +3379,7 @@ function bindReferralForm() {
     }
   };
 
-  const existingReferral = getLatestOwnedReferral(false);
-
-  if (existingReferral && isFourDigitClientReferralCode(existingReferral.code)) {
-    showReferralLink(existingReferral);
-    renderReferralStatus(existingReferral);
-    if (lookupInput) {
-      lookupInput.value = existingReferral.code || "";
-    }
-  } else if (lookupInput) {
-    lookupInput.value = getStoredReferralLookupCode();
-  }
+  syncHomepageReferralUi();
 
   if (lookupInput && lookupInput.dataset.inputBound !== "true") {
     lookupInput.dataset.inputBound = "true";
@@ -3384,8 +3424,7 @@ function bindReferralForm() {
 
         storeOwnedReferral(normalizedReferral);
         setStoredReferralLookupCode(normalizedCode);
-        showReferralLink(normalizedReferral);
-        renderReferralStatus(normalizedReferral);
+        syncHomepageReferralUi();
         output.scrollIntoView({ behavior: "smooth", block: "nearest" });
         message.textContent = "Referral link ready below.";
         message.className = "referral-message is-success";
@@ -3433,11 +3472,11 @@ function bindReferralForm() {
           const referral = await fetchReferralStatusByCode(lookupInput.value);
           lookupInput.value = referral.code || "";
           setStoredReferralLookupCode(referral.code || "");
-          renderReferralStatus(referral);
+          renderHomepageReferralStatus(referral);
           message.textContent = "Referral rewards loaded.";
           message.className = "referral-message is-success";
         } catch (error) {
-          renderReferralStatus(null);
+          renderHomepageReferralStatus(null);
           message.textContent = error && error.message ? error.message : "Unable to load referral rewards.";
           message.className = "referral-message is-error";
         }
@@ -3522,11 +3561,13 @@ window.addEventListener("pagehide", () => {
 });
 
 window.addEventListener("storage", (event) => {
-  if (!isCartRelatedStorageKey(event.key)) {
-    return;
+  if (isCartRelatedStorageKey(event.key)) {
+    renderCart();
   }
 
-  renderCart();
+  if (isReferralRelatedStorageKey(event.key)) {
+    syncHomepageReferralUi();
+  }
 });
 
 document.addEventListener("visibilitychange", () => {
