@@ -161,200 +161,6 @@ function injectNavMenuStyles() {
   document.head.appendChild(style);
 }
 
-function injectResponsiveStabilityStyles() {
-  if (document.getElementById("responsive-stability-styles")) {
-    return;
-  }
-
-  const style = document.createElement("style");
-  style.id = "responsive-stability-styles";
-  style.textContent = `
-    @media (max-width: 820px) {
-      .topbar-inner {
-        display: grid !important;
-        grid-template-columns: 1fr !important;
-        justify-items: center !important;
-        align-items: center !important;
-        gap: 10px !important;
-        padding-top: 14px !important;
-        padding-right: 0 !important;
-        padding-bottom: 14px !important;
-        min-height: auto !important;
-      }
-
-      .site-logo {
-        grid-column: auto !important;
-        position: static !important;
-        transform: none !important;
-        justify-self: center !important;
-        align-self: center !important;
-        justify-content: center !important;
-      }
-
-      .site-logo img {
-        width: 80px !important;
-        height: 70px !important;
-        max-height: 70px !important;
-        object-fit: contain !important;
-      }
-
-      .nav,
-      .nav.has-open-menu {
-        width: 100% !important;
-        flex: 0 0 auto !important;
-        flex-wrap: nowrap !important;
-        justify-content: flex-start !important;
-        overflow-x: auto !important;
-        overflow-y: visible !important;
-        padding: 0 2px !important;
-        margin: 0 !important;
-        gap: 16px !important;
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-
-      .nav::-webkit-scrollbar {
-        display: none !important;
-      }
-
-      .nav a,
-      .nav-toggle {
-        white-space: nowrap !important;
-        text-align: left !important;
-        min-width: auto !important;
-        max-width: none !important;
-        font-size: 14px !important;
-        padding: 6px 0 !important;
-        line-height: 1.1 !important;
-        flex: 0 0 auto !important;
-      }
-
-      .nav-group {
-        position: relative !important;
-        padding-bottom: 0 !important;
-        margin-bottom: 0 !important;
-        flex: 0 0 auto !important;
-      }
-
-      .nav-group.is-open .nav-menu {
-        position: absolute !important;
-        top: calc(100% + 8px) !important;
-        left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important;
-        width: min(300px, calc(100vw - 32px)) !important;
-        max-width: 100% !important;
-        z-index: 1105 !important;
-      }
-
-      .header-cart-trigger {
-        position: static !important;
-        top: auto !important;
-        right: auto !important;
-        justify-self: end !important;
-        align-self: center !important;
-        margin-top: 4px !important;
-        margin-left: auto !important;
-      }
-    }
-
-    .product-layout .category-row {
-      display: none !important;
-    }
-
-    .main-image-wrap {
-      width: 100% !important;
-      max-width: 520px !important;
-      aspect-ratio: 4 / 3 !important;
-      max-height: none !important;
-      overflow: hidden !important;
-      border-radius: 18px !important;
-      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
-    }
-
-    .main-image,
-    .main-image.is-contained {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      background: transparent !important;
-    }
-
-    .thumb,
-    .thumb img,
-    .related-card .card-img-wrapper img {
-      background: transparent !important;
-    }
-
-    .variety-gallery {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
-      gap: 0 !important;
-      width: min(100%, 640px) !important;
-      max-width: 100% !important;
-      overflow: hidden !important;
-      border-radius: 18px !important;
-      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
-    }
-
-    .variety-gallery.solid-black-gallery {
-      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
-    }
-
-    .variety-gallery .smart-image-frame,
-    .variety-gallery > img {
-      width: 100% !important;
-      max-width: 100% !important;
-      height: 240px !important;
-      min-height: 240px !important;
-      border-right: none !important;
-      border-bottom: 1px solid rgba(120, 100, 76, 0.16) !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      display: block !important;
-      background: transparent !important;
-    }
-
-    .variety-gallery .smart-image-frame:last-child,
-    .variety-gallery > img:last-child {
-      border-bottom: none !important;
-    }
-
-    .related-card .card-img-wrapper {
-      border-radius: 18px !important;
-      overflow: hidden !important;
-      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
-    }
-
-    .related-card .card-img-wrapper img {
-      width: 100% !important;
-      height: 220px !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      padding: 12px !important;
-    }
-
-    @media (max-width: 640px) {
-      .variety-gallery {
-        grid-template-columns: 1fr !important;
-      }
-
-      .variety-gallery .smart-image-frame,
-      .variety-gallery > img {
-        height: 220px !important;
-        min-height: 220px !important;
-      }
-
-      .related-card .card-img-wrapper img {
-        height: 200px !important;
-      }
-    }
-  `;
-
-  document.head.appendChild(style);
-}
-
 function readStorageItem(key) {
   try {
     return localStorage.getItem(key);
@@ -2489,9 +2295,7 @@ function bindNavMenus() {
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-haspopup", "true");
 
-    toggle.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
+    bindTap(toggle, () => {
       const isOpen = group.classList.contains("is-open");
       const nav = group.closest(".nav");
       closeAllNavMenus();
@@ -2503,7 +2307,7 @@ function bindNavMenus() {
           nav.classList.add("has-open-menu");
         }
       }
-    });
+    }, { preventDefault: true, stopPropagation: true });
   });
 
   document.addEventListener("click", (event) => {
@@ -3696,7 +3500,6 @@ function rebindInteractiveSections() {
 
 document.addEventListener("DOMContentLoaded", () => {
   injectNavMenuStyles();
-  injectResponsiveStabilityStyles();
   clearLegacyStorageIfNeeded();
   captureReferralCode();
   bindNavMenus();
