@@ -220,6 +220,108 @@
         "itemCount": 0
       },
       "createdAt": "2026-05-25T09:56:05.107Z"
+    },
+    {
+      "id": "evt-mpl2pofa-jqd4odvh",
+      "type": "page_view",
+      "visitorId": "56a2b65f-c662-47e1-894a-d4d95b025f8b",
+      "path": "/",
+      "pageCategory": "homepage",
+      "referrer": "",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.121.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T10:38:35.494Z"
+    },
+    {
+      "id": "evt-mpl2prez-vtte3det",
+      "type": "page_view",
+      "visitorId": "56a2b65f-c662-47e1-894a-d4d95b025f8b",
+      "path": "/group-1-durians.html",
+      "pageCategory": "group_1",
+      "referrer": "http://localhost:3000/",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.121.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T10:38:39.371Z"
+    },
+    {
+      "id": "evt-mpl2prf1-iojluzz6",
+      "type": "product_view",
+      "visitorId": "56a2b65f-c662-47e1-894a-d4d95b025f8b",
+      "path": "/group-1-durians.html",
+      "pageCategory": "group_1",
+      "referrer": "http://localhost:3000/",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.121.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "group_1",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T10:38:39.373Z"
+    },
+    {
+      "id": "evt-mpl2pt54-bmc4qhmh",
+      "type": "page_view",
+      "visitorId": "56a2b65f-c662-47e1-894a-d4d95b025f8b",
+      "path": "/index.html",
+      "pageCategory": "homepage",
+      "referrer": "http://localhost:3000/group-1-durians.html",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.121.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T10:38:41.608Z"
+    },
+    {
+      "id": "evt-mpl2pwiv-b1jgm67p",
+      "type": "page_view",
+      "visitorId": "56a2b65f-c662-47e1-894a-d4d95b025f8b",
+      "path": "/group-1-durians.html",
+      "pageCategory": "group_1",
+      "referrer": "http://localhost:3000/index.html",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.121.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T10:38:45.991Z"
+    },
+    {
+      "id": "evt-mpl2pwiw-oeqlteel",
+      "type": "product_view",
+      "visitorId": "56a2b65f-c662-47e1-894a-d4d95b025f8b",
+      "path": "/group-1-durians.html",
+      "pageCategory": "group_1",
+      "referrer": "http://localhost:3000/index.html",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.121.0 Chrome/142.0.7444.265 Electron/39.8.8 Safari/537.36",
+      "orderId": "",
+      "referralCode": "",
+      "metadata": {
+        "productId": "group_1",
+        "variantValue": "",
+        "itemCount": 0
+      },
+      "createdAt": "2026-05-25T10:38:45.992Z"
     }
   ]
 }

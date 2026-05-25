@@ -169,14 +169,15 @@ app.post("/stripe-webhook", express.raw({ type: "application/json" }), async (re
       const orders = readOrders();
       const order = orders.find((entry) => entry.stripe && entry.stripe.checkoutSessionId === session.id);
 
-      if (!order || order.paymentStatus === "paid") {
+      if (!order) {
         return;
       }
 
+      const wasAlreadyPaid = order.paymentStatus === "paid";
       order.customer = buildCustomerFromStripeSession(session, order.customer);
       order.paymentStatus = "paid";
       order.status = "paid";
-      order.paidAt = new Date().toISOString();
+      order.paidAt = order.paidAt || new Date().toISOString();
       order.stripe = {
         ...(order.stripe || {}),
         checkoutSessionId: session.id,
@@ -184,34 +185,29 @@ app.post("/stripe-webhook", express.raw({ type: "application/json" }), async (re
         paymentStatus: "paid",
         paymentIntentId: String(session.payment_intent || ""),
         customerId: String(session.customer || ""),
-        completedAt: order.paidAt,
+        completedAt: order.stripe && order.stripe.completedAt ? order.stripe.completedAt : order.paidAt,
         completedEventType: event.type
       };
       order.claimedReferralRewards = dedupeReferralRewards([
+        ...(Array.isArray(order.claimedReferralRewards) ? order.claimedReferralRewards : []),
         ...claimReferralRewards(order.requestedReferralRewardClaims, order.id)
       ]);
       order.referral = issueReferralRewardForOrder(order) || order.referral || null;
-
-      try {
-        order.businessPaymentNotification = await sendPaidNotificationEmail(order);
-      } catch (error) {
-        order.businessPaymentNotification = {
-          status: "failed",
-          reason: error && error.message ? error.message : "Unable to send business notification email."
-        };
-      }
+      await sendPostPaymentEmails(order);
 
       writeOrders(orders.slice(0, 500));
-      recordAnalyticsEvent({
-        type: "order_created",
-        orderId: order.id,
-        path: "/stripe-webhook",
-        referralCode: order.referral && order.referral.code ? order.referral.code : "",
-        userAgent: "stripe-webhook",
-        metadata: {
-          itemCount: Array.isArray(order.items) ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0
-        }
-      });
+      if (!wasAlreadyPaid) {
+        recordAnalyticsEvent({
+          type: "order_created",
+          orderId: order.id,
+          path: "/stripe-webhook",
+          referralCode: order.referral && order.referral.code ? order.referral.code : "",
+          userAgent: "stripe-webhook",
+          metadata: {
+            itemCount: Array.isArray(order.items) ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0
+          }
+        });
+      }
     };
 
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
@@ -1325,6 +1321,7 @@ function buildStripeLineItems(order) {
   }));
   const breakdown = order.summary && order.summary.priceBreakdown ? order.summary.priceBreakdown : {};
   const deliveryFee = Number(breakdown.deliveryFee || 0);
+  const referralFreeBoxCount = Number(breakdown.referralFreeBoxCount || 0);
 
   if (deliveryFee > 0) {
     lineItems.push({
@@ -1335,6 +1332,20 @@ function buildStripeLineItems(order) {
         product_data: {
           name: "Delivery Fee",
           description: "Applied to 3-box online delivery orders"
+        }
+      }
+    });
+  }
+
+  if (referralFreeBoxCount > 0) {
+    lineItems.push({
+      quantity: referralFreeBoxCount,
+      price_data: {
+        currency: "sgd",
+        unit_amount: 0,
+        product_data: {
+          name: "Referral Reward",
+          description: "Free 500g Group 1 durian box attached to this order"
         }
       }
     });
@@ -1475,6 +1486,9 @@ function buildOrderEmail(order) {
   const breakdown = order.summary.priceBreakdown || {};
   const paymentMethod = order.paymentMethod || "Stripe Checkout";
   const referralCode = order.referral && order.referral.code ? String(order.referral.code) : "";
+  const earnedReferralReward = order.referral && order.referral.reward
+    ? buildReferralRewardMessage(order.referral.reward)
+    : "";
   const voucherCode = order.voucherCode ? String(order.voucherCode) : "";
   const referralCashDiscount = Number(breakdown.referralCashDiscount || 0);
   const referralFreeBoxCount = Number(breakdown.referralFreeBoxCount || 0);
@@ -1512,6 +1526,7 @@ function buildOrderEmail(order) {
       breakdown.referralCashDiscount ? `Referral cash reward: -${formatAmount(breakdown.referralCashDiscount)}` : null,
       breakdown.referralFreeBoxCount ? `Referral free box rewards: ${breakdown.referralFreeBoxCount}` : null,
       referralDiscountSummary ? `Referral status: ${referralDiscountSummary}` : null,
+      earnedReferralReward ? `Referral reward earned from this order: ${earnedReferralReward}` : null,
       `Total: ${order.summary.totalDisplay}`,
       "",
       "Items:",
@@ -1540,6 +1555,7 @@ function buildOrderEmail(order) {
           ${breakdown.referralCashDiscount ? `<p><strong>Referral cash reward:</strong> -${escapeEmailHtml(formatAmount(breakdown.referralCashDiscount))}</p>` : ""}
           ${breakdown.referralFreeBoxCount ? `<p><strong>Referral free box rewards:</strong> ${escapeEmailHtml(String(breakdown.referralFreeBoxCount))}</p>` : ""}
           ${referralDiscountSummary ? `<p><strong>Referral status:</strong> ${escapeEmailHtml(referralDiscountSummary)}</p>` : ""}
+          ${earnedReferralReward ? `<p><strong>Referral reward earned from this order:</strong> ${escapeEmailHtml(earnedReferralReward)}</p>` : ""}
           <p><strong>Total:</strong> ${escapeEmailHtml(order.summary.totalDisplay)}</p>
           <p><strong>Referral code:</strong> ${escapeEmailHtml(referralCode || "-")}</p>
           <p><strong>Voucher code:</strong> ${escapeEmailHtml(voucherCode || "-")}</p>
@@ -1691,6 +1707,39 @@ async function sendPaidNotificationEmail(order) {
     text: email.text,
     html: email.html
   });
+}
+
+async function sendPostPaymentEmails(order) {
+  const customerEmail = String(order && order.customer && order.customer.email ? order.customer.email : "").trim();
+  const shouldSendCustomerEmail = customerEmail && (!order.emailConfirmation || order.emailConfirmation.status !== "sent");
+  const shouldSendBusinessEmail = !order.businessPaymentNotification || order.businessPaymentNotification.status !== "sent";
+
+  if (shouldSendCustomerEmail) {
+    try {
+      order.emailConfirmation = await sendOrderConfirmationEmail(order);
+    } catch (error) {
+      order.emailConfirmation = {
+        status: "failed",
+        reason: error && error.message ? error.message : "Unable to send customer order confirmation email."
+      };
+    }
+  } else if (!customerEmail) {
+    order.emailConfirmation = order.emailConfirmation || {
+      status: "skipped",
+      reason: "Customer email is unavailable."
+    };
+  }
+
+  if (shouldSendBusinessEmail) {
+    try {
+      order.businessPaymentNotification = await sendPaidNotificationEmail(order);
+    } catch (error) {
+      order.businessPaymentNotification = {
+        status: "failed",
+        reason: error && error.message ? error.message : "Unable to send business notification email."
+      };
+    }
+  }
 }
 
 function createMockPaidOrder() {
@@ -2176,16 +2225,9 @@ app.post("/api/payment-orders/:orderId/paid", async (req, res) => {
     message: "Payment Acknowledgement sent. Business still needs to verify the bank transfer.",
     acknowledgedAt: new Date().toISOString()
   };
+  order.claimedReferralRewards = claimReferralRewards(order.pendingReferralRewardClaims, orderId);
   order.referral = issueReferralRewardForOrder(order) || order.referral || null;
-
-  try {
-    order.businessPaymentNotification = await sendPaidNotificationEmail(order);
-  } catch (error) {
-    order.businessPaymentNotification = {
-      status: "failed",
-      reason: error && error.message ? error.message : "Unable to send business notification email."
-    };
-  }
+  await sendPostPaymentEmails(order);
 
   writeOrders(orders.slice(0, 500));
   recordAnalyticsEvent({
@@ -2231,9 +2273,8 @@ app.post("/api/payment-orders", async (req, res) => {
       throw new Error("Online Delivery requires a minimum of 3 boxes.");
     }
 
-    const claimedReferralRewards = dedupeReferralRewards([
-      ...claimReferralRewards(req.body && req.body.referralRewardClaims, orderId)
-    ]);
+    const pendingReferralRewardClaims = normalizeRewardClaims(req.body && req.body.referralRewardClaims);
+    const claimedReferralRewards = resolveReferralRewardsForCheckout(pendingReferralRewardClaims);
     const summary = summarizeOrder(items, claimedReferralRewards);
 
     const paymentNonce = `nonce-${Math.random().toString(36).slice(2, 14)}-${Date.now().toString(36)}`;
@@ -2261,7 +2302,8 @@ app.post("/api/payment-orders", async (req, res) => {
         reward: null,
         conversionRecordedAt: ""
       } : null,
-      claimedReferralRewards,
+      pendingReferralRewardClaims,
+      claimedReferralRewards: [],
       paymentRequest: buildPendingPaymentResponse({ summary, id: orderId }, paymentMethod.key),
       emailConfirmation: {
         status: "disabled",

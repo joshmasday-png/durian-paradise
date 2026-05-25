@@ -65,8 +65,9 @@
     const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
     (async () => {
+      clearPrefixedStorage();
+
       if (!sessionId) {
-        clearPrefixedStorage();
         return;
       }
 
@@ -76,7 +77,6 @@
           const payload = await response.json();
 
           if (response.ok && payload && payload.paymentStatus === "paid") {
-            clearPrefixedStorage();
             statusMessage.textContent = "Your payment has been confirmed and your durian order is locked in.";
             return;
           }
