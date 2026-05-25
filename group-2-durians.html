@@ -21,6 +21,9 @@
     .topbar-inner { display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; gap: 22px; padding: 18px 0; min-height: 92px; }
     .site-logo { display: inline-flex; align-items: center; grid-column: 1; justify-self: start; }
     .site-logo img { width: 88px; height: 78px; max-height: 78px; object-fit: fill; }
+    .header-cart-trigger { display: inline-flex; align-items: center; justify-self: end; grid-column: 3; gap: 10px; border: 1px solid rgba(120, 100, 76, 0.2); background: rgba(252, 249, 245, 0.92); color: #2d241c; border-radius: 999px; padding: 11px 16px; font-family: "Inter", sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 10px 20px rgba(88, 66, 38, 0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; z-index: 2; touch-action: manipulation; }
+    .header-cart-trigger:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(88, 66, 38, 0.12); }
+    .header-cart-badge { min-width: 26px; height: 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #6f5330 0%, #9d7741 100%); color: #fffaf1; font-size: 13px; padding: 0 8px; }
     .nav { display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; }
     .nav a, .nav-toggle { font-size: 18px; font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
     .nav a:hover, .nav-toggle:hover { text-decoration: underline; }
@@ -83,13 +86,15 @@
     footer { background: rgba(234, 222, 206, 0.9); border-top: 1px solid rgba(120, 100, 76, 0.14); margin-top: 50px; padding: 28px 0; font-size: 17px; color: #333; text-align: center; }
     @media (max-width: 1100px) { .product-layout { grid-template-columns: 1fr; } .main-image-wrap { max-width: 520px; } }
     @media (max-width: 820px) {
-      .nav { width: 100%; flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; padding: 0 2px; gap: 16px; -ms-overflow-style: none; scrollbar-width: none; }
-      .nav a,
-      .nav-toggle { white-space: nowrap; text-align: left; min-width: auto; max-width: none; font-size: 14px; padding: 6px 0; line-height: 1.1; flex: 0 0 auto; }
-      .nav::-webkit-scrollbar { display: none; }
-      .topbar-inner { flex-direction: column; align-items: center; justify-content: center; flex-wrap: nowrap; padding-top: 14px; padding-bottom: 14px; min-height: 88px; gap: 10px; }
-      .site-logo { position: static; transform: none; justify-content: center; flex: 0 0 auto; }
-      .site-logo img { width: 80px; height: 70px; }
+      .topbar-inner { display: grid; grid-template-columns: 1fr; justify-items: center; align-items: center; gap: 10px; padding-top: 14px; padding-bottom: 14px; min-height: auto; }
+      .site-logo { position: static; transform: none; display: inline-flex; justify-content: center; align-items: center; grid-column: auto; }
+      .site-logo img { width: 80px; height: 70px; max-height: 70px; object-fit: contain; }
+      .header-cart-trigger { position: static; top: auto; right: auto; align-self: center; margin: 0; padding: 9px 12px; font-size: 13px; gap: 8px; }
+      .nav { width: 100%; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 12px; overflow: visible; margin: 0; padding: 0; }
+      .nav a, .nav-toggle { flex: 0 0 auto; white-space: normal; text-align: center; min-width: auto; max-width: none; font-size: 14px; line-height: 1.2; padding: 8px 10px; border-radius: 12px; }
+      .nav-group { position: relative; padding-bottom: 0; margin-bottom: 0; flex: 0 0 auto; }
+      .nav-menu { min-width: 220px; max-width: calc(100vw - 32px); }
+      .nav-group.is-open .nav-menu { display: grid; gap: 8px; position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); width: min(280px, calc(100vw - 32px)); z-index: 1105; }
       .page-header h1, .product-title { font-size: 34px; }
       .subline { font-size: 24px; }
       .tab-panel h2 { font-size: 38px; }
@@ -111,7 +116,7 @@
   </style>
 </head>
 <body class="page-loading">
-  <header class="topbar"><div class="container topbar-inner"><a class="site-logo" href="index.html" aria-label="DurianParadises.com home"><img src="images/logo-header.png" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" /></a><nav class="nav"><a href="index.html">Home</a><a href="index.html#online-delivery">Order Now</a><div class="nav-group"><button class="nav-toggle" type="button">Types of Durian</button><div class="nav-menu"><a href="group-1-durians.html#group1">Group 1</a><a href="#group2-header">Group 2</a><a href="group-3-durians.html#group3-header">Group 3</a></div></div><a href="contact-us.html">Contact Us</a><a href="index.html#reviews">Reviews</a><a href="#group2-description">Variants</a></nav></div></header>
+  <header class="topbar"><div class="container topbar-inner"><a class="site-logo" href="index.html" aria-label="DurianParadises.com home"><img src="images/logo-header.png" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" /></a><nav class="nav"><a href="index.html">Home</a><a href="index.html#online-delivery">Order Now</a><div class="nav-group"><button class="nav-toggle" type="button">Types of Durian</button><div class="nav-menu"><a href="group-1-durians.html#group1">Group 1</a><a href="#group2-header">Group 2</a><a href="group-3-durians.html#group3-header">Group 3</a></div></div><a href="contact-us.html">Contact Us</a><a href="index.html#reviews">Reviews</a><a href="#group2-description">Variants</a></nav><button class="header-cart-trigger" type="button" data-cart-trigger aria-controls="cart-drawer" aria-expanded="false"><span>View Cart</span><span class="header-cart-badge" data-cart-count>0</span></button></div></header>
   <div class="container">
     <section id="group2-header" class="product-layout section">
       <div>
