@@ -142,12 +142,6 @@ const productCatalog = {
     variantLabel: "18 pax - 27kg (est 16 to 19 durians) at $16/kg",
     unitAmount: 43200,
     orderType: "Durian Party"
-  },
-  "party-test|qa-10": {
-    name: "Referral QA Test Order",
-    variantLabel: "Temporary $10 referral test order",
-    unitAmount: 1000,
-    orderType: "Referral QA Test"
   }
 };
 
