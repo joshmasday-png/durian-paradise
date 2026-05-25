@@ -52,10 +52,6 @@ const blockedStaticPaths = new Set([
 ]);
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
-function isReferralActive(referral) {
-  return Boolean(referral && sanitizeReferralCode(referral.code));
-}
-
 const productCatalog = {
   "delivery-group1|650g": {
     name: "Group 1 Durians",
@@ -1374,7 +1370,7 @@ function issueReferralRewardForOrder(order) {
   const referrals = readReferrals();
   const referral = referrals.find((entry) => entry.code === referralCode);
 
-  if (!referral) {
+  if (!referral || new Date(referral.expiresAt).getTime() < Date.now()) {
     return {
       ...order.referral,
       code: referralCode,
@@ -1841,6 +1837,11 @@ app.post("/api/referrals", (req, res) => {
   const existingActiveReferral = referrals
     .filter((entry) => {
       normalizeReferralEntry(entry);
+
+      if (new Date(entry.expiresAt).getTime() < Date.now()) {
+        return false;
+      }
+
       return isReferralOwnerMatch(entry, ownerToken, ownerPhone);
     })
     .sort((left, right) => getIsoTimestamp(right.createdAt) - getIsoTimestamp(left.createdAt))[0];
@@ -1900,6 +1901,7 @@ app.post("/api/referrals", (req, res) => {
   }
 
   const createdAt = new Date();
+  const expiresAt = new Date(createdAt.getTime() + (30 * 24 * 60 * 60 * 1000));
   const referral = {
     code,
     link: buildReferralLink(req, code),
@@ -1915,7 +1917,7 @@ app.post("/api/referrals", (req, res) => {
     conversions: [],
     rewards: [],
     createdAt: createdAt.toISOString(),
-    expiresAt: ""
+    expiresAt: expiresAt.toISOString()
   };
 
   referrals.unshift(referral);
@@ -1953,7 +1955,7 @@ app.get("/api/referrals/:code", (req, res) => {
       clicks: referral.clicks || 0,
       conversionCount: familyConversionCount,
       expiresAt: referral.expiresAt,
-      isActive: isReferralActive(referral),
+      isActive: new Date(referral.expiresAt).getTime() >= Date.now(),
       rewards: referral.rewards
     }
   });
@@ -1984,7 +1986,7 @@ app.get("/api/referrals/:code/owner-status", (req, res) => {
       code: referral.code,
       link: buildReferralLink(req, referral.code),
       expiresAt: referral.expiresAt,
-      isActive: isReferralActive(referral),
+      isActive: new Date(referral.expiresAt).getTime() >= Date.now(),
       ownerPhone: referral.referrer && referral.referrer.phone ? referral.referrer.phone : "",
       conversionCount: familyConversionCount,
       rewards: referral.rewards
@@ -2065,6 +2067,10 @@ app.get("/r/:code", (req, res) => {
 
   if (!referral) {
     return res.redirect("/referral.html?invalid=1");
+  }
+
+  if (new Date(referral.expiresAt).getTime() < Date.now()) {
+    return res.redirect(`/referral.html?code=${code}&expired=1`);
   }
 
   if (referral) {
