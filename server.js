@@ -494,6 +494,72 @@ function ensurePinnedReferralCode(code) {
   console.log(`Created pinned referral code ${normalizedCode}.`);
 }
 
+function ensurePinnedReferralRewardState(code, expectedConversionCount) {
+  const normalizedCode = sanitizeReferralCode(code);
+  const targetCount = Number(expectedConversionCount || 0);
+
+  if (!normalizedCode || targetCount <= 0) {
+    return;
+  }
+
+  const referrals = readReferrals();
+  const referral = referrals.find((entry) => sanitizeReferralCode(entry && entry.code) === normalizedCode);
+
+  if (!referral) {
+    return;
+  }
+
+  normalizeReferralEntry(referral);
+  const familyConversions = listReferralFamilyConversions(referrals, referral);
+  const currentRewards = Array.isArray(referral.rewards) ? referral.rewards : [];
+
+  if (familyConversions.length >= targetCount && currentRewards.some((reward) => Number(reward && reward.referralCount) >= targetCount)) {
+    return;
+  }
+
+  const rewardTemplate = getReferralReward(targetCount);
+
+  if (!rewardTemplate) {
+    return;
+  }
+
+  const restoredAt = new Date().toISOString();
+  referral.conversions = Array.isArray(referral.conversions) ? referral.conversions : [];
+
+  while (referral.conversions.length < targetCount) {
+    const nextIndex = referral.conversions.length + 1;
+    referral.conversions.push({
+      orderId: `RESTORED-${normalizedCode}-${nextIndex}`,
+      orderTotal: "",
+      customerPhone: "",
+      createdAt: restoredAt
+    });
+  }
+
+  referral.rewards = currentRewards;
+
+  if (!referral.rewards.some((reward) => Number(reward && reward.referralCount) === targetCount)) {
+    referral.rewards.push({
+      id: makeRecordId("reward"),
+      type: rewardTemplate.type,
+      label: rewardTemplate.label,
+      discountAmount: rewardTemplate.discountAmount,
+      message: rewardTemplate.message,
+      referralCount: targetCount,
+      referralCycle: Math.floor((targetCount - 1) / 3) + 1,
+      orderId: `RESTORED-${normalizedCode}-${targetCount}`,
+      status: "issued_for_next_purchase",
+      createdAt: restoredAt,
+      claimedAt: "",
+      claimedOrderId: ""
+    });
+  }
+
+  referral.lastConvertedAt = restoredAt;
+  writeReferrals(referrals);
+  console.log(`Restored pinned referral reward state for code ${normalizedCode} at count ${targetCount}.`);
+}
+
 function readAnalytics() {
   return loadJsonFile(
     analyticsPath,
@@ -2613,6 +2679,7 @@ app.get("*", (_req, res) => {
 });
 
 ensurePinnedReferralCode("3004");
+ensurePinnedReferralRewardState("3004", 1);
 
 app.listen(port, () => {
   console.log(`Durian Paradise server running on ${siteUrl}`);
