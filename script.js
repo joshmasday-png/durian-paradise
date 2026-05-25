@@ -202,7 +202,9 @@ function bindHeaderDuriansMenus() {
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-haspopup", "true");
 
-    bindTap(toggle, () => {
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       const isOpen = group.classList.contains("is-open");
       closeAllMenus();
 
@@ -210,7 +212,7 @@ function bindHeaderDuriansMenus() {
         group.classList.add("is-open");
         toggle.setAttribute("aria-expanded", "true");
       }
-    }, { preventDefault: true, stopPropagation: true });
+    });
 
     group.querySelectorAll(".topbar-nav__menu a").forEach((link) => {
       if (link.dataset.menuLinkBound === "true") {

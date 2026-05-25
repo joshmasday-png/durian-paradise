@@ -24,7 +24,7 @@
     .topbar { background: rgba(244, 234, 218, 0.92); border-bottom: 1px solid rgba(120, 100, 76, 0.18); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000; }
     .topbar-inner { display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; gap: 22px; padding: 18px 0; min-height: 92px; }
     .site-logo { display: inline-flex; align-items: center; grid-column: 1; justify-self: start; }
-    .site-logo img { width: 88px; height: 78px; max-height: 78px; object-fit: fill; }
+    .site-logo img { width: 96px; height: auto; max-height: none; object-fit: contain; }
     .topbar-actions { display: contents; }
     .topbar-nav { display: flex; align-items: center; justify-content: center; gap: 22px; min-width: 0; flex-wrap: wrap; }
     .topbar-nav a { display: inline-flex; align-items: center; font-size: 17px; font-weight: 500; letter-spacing: 0.02em; white-space: nowrap; }
@@ -50,8 +50,7 @@
       .site-logo { position: static; transform: none; justify-self: center; }
       .site-logo img { width: 118px; height: auto; }
       .topbar-actions { display: grid; grid-template-columns: 1fr; justify-items: stretch; gap: 10px; width: 100%; padding-top: 4px; }
-      .topbar-nav { grid-column: auto; gap: 12px; width: 100%; flex-wrap: nowrap; justify-content: center; align-items: center; overflow-x: auto; overflow-y: visible; padding: 2px 0; -ms-overflow-style: none; scrollbar-width: none; }
-      .topbar-nav::-webkit-scrollbar { display: none; }
+      .topbar-nav { grid-column: auto; gap: 12px; width: 100%; flex-wrap: nowrap; justify-content: center; align-items: center; overflow: visible; padding: 2px 0; }
       .topbar-nav a { flex: 0 0 auto; font-size: 12px; }
       .topbar-nav__toggle { flex: 0 0 auto; font-size: 12px; line-height: 1.15; }
       .topbar-nav__menu { top: calc(100% + 10px); width: min(220px, calc(100vw - 32px)); }

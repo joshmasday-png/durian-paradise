@@ -84,10 +84,10 @@
     }
 
     .site-logo img {
-      width: 88px;
-      height: 78px;
-      max-height: 78px;
-      object-fit: fill;
+      width: 96px;
+      height: auto;
+      max-height: none;
+      object-fit: contain;
     }
 
     .topbar-actions {
@@ -974,15 +974,8 @@
     flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
-    overflow-x: auto;
-    overflow-y: visible;
+    overflow: visible;
     padding: 2px 0;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .topbar-nav::-webkit-scrollbar {
-    display: none;
   }
 
   .topbar-nav a {
