@@ -13,8 +13,6 @@ services:
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
       - key: REVIEWS_FILE_PATH
         value: /var/data/reviews.json
       - key: ORDERS_FILE_PATH
@@ -26,17 +24,17 @@ services:
       - key: BUSINESS_UEN
         value: 53490378M
       - key: PAYMENT_PROVIDER
-        value: stripe_checkout
+        value: pending_dynamic_sgqr
       - key: PAYMENT_PROVIDER_NAME
-        value: Stripe Checkout
+        value: PayNow / SGQR
       - key: RESEND_API_KEY
         sync: false
       - key: ORDER_EMAIL_FROM
-        sync: false
+        value: Durian Paradise <orders@durianparadises.com>
       - key: ORDER_EMAIL_REPLY_TO
-        sync: false
+        value: durianparadise6940@gmail.com
       - key: ORDER_NOTIFICATION_EMAIL
-        sync: false
+        value: durianparadise6940@gmail.com
       - key: ANALYTICS_AUTH_USER
         sync: false
       - key: ANALYTICS_AUTH_PASSWORD
