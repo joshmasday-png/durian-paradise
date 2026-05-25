@@ -741,6 +741,16 @@
       }
     }
   </style>
+  <style>
+    @media (max-width: 820px) {
+      .topbar-inner { display: grid !important; grid-template-columns: 1fr !important; justify-items: center; align-items: center; gap: 10px; padding-top: 14px; padding-bottom: 14px; min-height: auto; }
+      .site-logo { grid-column: auto !important; justify-self: center !important; display: inline-flex; justify-content: center; align-items: center; }
+      .site-logo img { width: 80px; height: 70px; }
+      .header-cart-trigger { grid-column: auto !important; justify-self: end !important; margin: 0; }
+      .nav { width: 100%; display: flex !important; flex-wrap: wrap !important; justify-content: center; gap: 8px 12px; overflow: visible; }
+      .nav a, .nav-toggle { white-space: normal; font-size: 14px; padding: 8px 10px; border-radius: 12px; }
+    }
+  </style>
 </head>
 <body class="page-loading">
   <header class="topbar">
