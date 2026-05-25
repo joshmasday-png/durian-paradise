@@ -125,25 +125,35 @@ function injectNavMenuStyles() {
       gap: 8px;
     }
 
-    .nav-group.is-open {
-      z-index: 1104;
-    }
-
     .nav-toggle {
       touch-action: manipulation;
     }
 
-    @media (max-width: 760px) {
-      .nav-group.is-open .nav-menu {
+    @media (max-width: 820px) {
+      .nav.has-open-menu {
+        overflow: visible !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+      }
+
+      .nav.has-open-menu .nav-group {
+        position: relative !important;
+        padding-bottom: 12px !important;
+        margin-bottom: -12px !important;
+        flex: 0 0 auto;
+        display: block;
+      }
+
+      .nav.has-open-menu .nav-group.is-open .nav-menu {
         position: absolute !important;
-        top: calc(100% + 10px) !important;
+        top: calc(100% + 8px) !important;
         left: 50% !important;
         right: auto !important;
         transform: translateX(-50%) !important;
-        width: min(280px, calc(100vw - 32px)) !important;
-        max-width: calc(100vw - 32px) !important;
+        width: min(320px, calc(100vw - 32px));
+        max-width: 100%;
         margin: 0;
-        z-index: 1105 !important;
+        z-index: 1105;
       }
     }
   `;
@@ -159,11 +169,7 @@ function injectResponsiveStabilityStyles() {
   const style = document.createElement("style");
   style.id = "responsive-stability-styles";
   style.textContent = `
-    @media (max-width: 760px) {
-      .topbar {
-        overflow: visible !important;
-      }
-
+    @media (max-width: 820px) {
       .topbar-inner {
         display: grid !important;
         grid-template-columns: 1fr !important;
@@ -177,14 +183,12 @@ function injectResponsiveStabilityStyles() {
       }
 
       .site-logo {
+        grid-column: auto !important;
         position: static !important;
         transform: none !important;
-        display: inline-flex !important;
         justify-self: center !important;
         align-self: center !important;
         justify-content: center !important;
-        grid-column: auto !important;
-        order: 0 !important;
       }
 
       .site-logo img {
@@ -194,32 +198,35 @@ function injectResponsiveStabilityStyles() {
         object-fit: contain !important;
       }
 
-      .topbar-inner > .nav {
-        order: 1 !important;
-      }
-
       .nav,
       .nav.has-open-menu {
         width: 100% !important;
-        display: flex !important;
-        flex-wrap: wrap !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: visible !important;
-        padding: 0 !important;
+        flex: 0 0 auto !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        padding: 0 2px !important;
         margin: 0 !important;
-        gap: 8px 12px !important;
+        gap: 16px !important;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .nav::-webkit-scrollbar {
+        display: none !important;
       }
 
       .nav a,
       .nav-toggle {
-        flex: 0 0 auto !important;
-        white-space: normal !important;
-        text-align: center !important;
+        white-space: nowrap !important;
+        text-align: left !important;
+        min-width: auto !important;
+        max-width: none !important;
         font-size: 14px !important;
-        line-height: 1.2 !important;
-        padding: 8px 10px !important;
-        border-radius: 12px !important;
+        padding: 6px 0 !important;
+        line-height: 1.1 !important;
+        flex: 0 0 auto !important;
       }
 
       .nav-group {
@@ -229,31 +236,25 @@ function injectResponsiveStabilityStyles() {
         flex: 0 0 auto !important;
       }
 
-      .nav-menu {
-        max-width: calc(100vw - 32px) !important;
+      .nav-group.is-open .nav-menu {
+        position: absolute !important;
+        top: calc(100% + 8px) !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        width: min(300px, calc(100vw - 32px)) !important;
+        max-width: 100% !important;
+        z-index: 1105 !important;
       }
 
       .header-cart-trigger {
         position: static !important;
         top: auto !important;
         right: auto !important;
-        order: 2 !important;
-        justify-self: center !important;
+        justify-self: end !important;
         align-self: center !important;
-        margin: 0 !important;
-      }
-    }
-
-    @media (max-width: 420px) {
-      .nav,
-      .nav.has-open-menu {
-        gap: 8px 10px !important;
-      }
-
-      .nav a,
-      .nav-toggle {
-        font-size: 13px !important;
-        padding: 7px 9px !important;
+        margin-top: 4px !important;
+        margin-left: auto !important;
       }
     }
 
@@ -268,15 +269,13 @@ function injectResponsiveStabilityStyles() {
       max-height: none !important;
       overflow: hidden !important;
       border-radius: 18px !important;
-      background: radial-gradient(circle at center, rgba(255, 250, 243, 0.98) 0%, rgba(244, 235, 222, 0.98) 68%, rgba(234, 222, 204, 0.98) 100%) !important;
+      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
     }
 
     .main-image,
     .main-image.is-contained {
       width: 100% !important;
       height: 100% !important;
-      box-sizing: border-box !important;
-      padding: 14px !important;
       object-fit: contain !important;
       object-position: center !important;
       background: transparent !important;
@@ -296,11 +295,11 @@ function injectResponsiveStabilityStyles() {
       max-width: 100% !important;
       overflow: hidden !important;
       border-radius: 18px !important;
-      background: radial-gradient(circle at center, rgba(255, 250, 243, 0.98) 0%, rgba(244, 235, 222, 0.98) 68%, rgba(234, 222, 204, 0.98) 100%) !important;
+      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
     }
 
     .variety-gallery.solid-black-gallery {
-      background: radial-gradient(circle at center, rgba(255, 250, 243, 0.98) 0%, rgba(244, 235, 222, 0.98) 68%, rgba(234, 222, 204, 0.98) 100%) !important;
+      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
     }
 
     .variety-gallery .smart-image-frame,
@@ -317,21 +316,6 @@ function injectResponsiveStabilityStyles() {
       background: transparent !important;
     }
 
-    .variety-gallery .smart-image-frame img {
-      width: 100% !important;
-      height: 100% !important;
-      box-sizing: border-box !important;
-      padding: 12px !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      background: transparent !important;
-    }
-
-    .variety-gallery > img {
-      box-sizing: border-box !important;
-      padding: 12px !important;
-    }
-
     .variety-gallery .smart-image-frame:last-child,
     .variety-gallery > img:last-child {
       border-bottom: none !important;
@@ -340,13 +324,12 @@ function injectResponsiveStabilityStyles() {
     .related-card .card-img-wrapper {
       border-radius: 18px !important;
       overflow: hidden !important;
-      background: radial-gradient(circle at center, rgba(255, 250, 243, 0.98) 0%, rgba(244, 235, 222, 0.98) 68%, rgba(234, 222, 204, 0.98) 100%) !important;
+      background: linear-gradient(180deg, rgba(249, 243, 234, 0.98) 0%, rgba(239, 226, 207, 0.98) 100%) !important;
     }
 
     .related-card .card-img-wrapper img {
       width: 100% !important;
       height: 220px !important;
-      box-sizing: border-box !important;
       object-fit: contain !important;
       object-position: center !important;
       padding: 12px !important;
