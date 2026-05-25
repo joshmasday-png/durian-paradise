@@ -90,6 +90,10 @@
       object-fit: fill;
     }
 
+    .topbar-actions {
+      display: contents;
+    }
+
     .header-cart-trigger {
       display: inline-flex;
       align-items: center;
@@ -853,13 +857,12 @@
     overflow: visible;
   }
 
-  /* Row 1: logo centered, Row 2: nav full-width, Row 3: cart right-aligned */
   .topbar-inner {
     display: grid;
     grid-template-columns: 1fr;
     align-items: center;
-    gap: 6px;
-    padding: 10px 0 8px;
+    gap: 10px;
+    padding: 10px 0 12px;
     min-height: auto;
   }
 
@@ -879,14 +882,32 @@
     object-fit: contain;
   }
 
-  /* Single horizontal row, no wrapping, evenly distributed */
+  .topbar-actions {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid rgba(120, 100, 76, 0.18);
+  }
+
+  .header-cart-trigger {
+    grid-column: auto;
+    justify-self: end;
+    position: static;
+    top: auto;
+    right: auto;
+    margin: 0;
+    padding: 8px 11px;
+    font-size: 12px;
+    gap: 7px;
+  }
+
   .nav {
     width: 100%;
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 6px;
     overflow: visible;
     margin: 0;
     padding: 0;
@@ -894,20 +915,31 @@
 
   .nav a,
   .nav-toggle {
-    flex: 0 0 auto;
-    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 2.6em;
+    white-space: normal;
     text-align: center;
-    font-size: 10px;
-    line-height: 1.2;
-    padding: 4px 0;
+    font-size: 11px;
+    line-height: 1.15;
+    padding: 4px 2px;
     border-radius: 8px;
   }
 
   .nav-group {
+    display: flex;
     position: relative;
     padding-bottom: 0;
     margin-bottom: 0;
-    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .nav-toggle {
+    flex: 1 1 auto;
+    height: 100%;
   }
 
   .nav-menu {
@@ -924,19 +956,6 @@
     transform: translateX(-50%);
     width: min(260px, calc(100vw - 32px));
     z-index: 1105;
-  }
-
-  /* Cart sits in its own row, pushed to the right */
-  .header-cart-trigger {
-    grid-column: auto;
-    justify-self: end;
-    position: static;
-    top: auto;
-    right: auto;
-    margin: 0;
-    padding: 8px 11px;
-    font-size: 12px;
-    gap: 7px;
   }
 
   .hero h1 {
@@ -957,7 +976,7 @@
       }
 
       .nav {
-        gap: 0;
+        gap: 4px;
       }
 
       .section h2,
@@ -986,9 +1005,19 @@
         height: 52px;
       }
 
+      .topbar-actions {
+        gap: 6px;
+      }
+
+      .nav a,
+      .nav-toggle {
+        font-size: 10px;
+        min-height: 2.8em;
+      }
+
       .header-cart-trigger {
         padding: 8px 11px;
-        font-size: 12px;
+        font-size: 11px;
         margin-top: 0;
       }
 
@@ -1048,25 +1077,27 @@
         <a class="site-logo" href="index.html" aria-label="DurianParadises.com home">
           <img src="images/logo-header-fast.jpg" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" />
         </a>
-        <nav class="nav">
-        <a href="#top">Home</a>
-        <a href="#online-delivery-heading" data-scroll-target="#online-delivery-heading">Order Now</a>
-        <div class="nav-group">
-          <button class="nav-toggle" type="button">Types of Durian</button>
-          <div class="nav-menu">
-            <a href="group-1-durians.html#group1">Group 1</a>
-            <a href="group-2-durians.html#group2-header">Group 2</a>
-            <a href="group-3-durians.html#group3-header">Group 3</a>
-          </div>
+        <div class="topbar-actions">
+          <button class="header-cart-trigger" type="button" data-cart-trigger aria-controls="cart-drawer" aria-expanded="false">
+            <span>View Cart</span>
+            <span class="header-cart-badge" data-cart-count>0</span>
+          </button>
+          <nav class="nav">
+            <a href="#top">Home</a>
+            <a href="#online-delivery-heading" data-scroll-target="#online-delivery-heading">Order Now</a>
+            <div class="nav-group">
+              <button class="nav-toggle" type="button">Types of Durian</button>
+              <div class="nav-menu">
+                <a href="group-1-durians.html#group1">Group 1</a>
+                <a href="group-2-durians.html#group2-header">Group 2</a>
+                <a href="group-3-durians.html#group3-header">Group 3</a>
+              </div>
+            </div>
+            <a href="contact-us.html">Contact Us</a>
+            <a href="#reviews">Reviews</a>
+          </nav>
         </div>
-        <a href="contact-us.html">Contact Us</a>
-        <a href="#reviews">Reviews</a>
-      </nav>
-      <button class="header-cart-trigger" type="button" data-cart-trigger aria-controls="cart-drawer" aria-expanded="false">
-        <span>View Cart</span>
-        <span class="header-cart-badge" data-cart-count>0</span>
-      </button>
-    </div>
+      </div>
   </header>
 
   <section class="hero-media">

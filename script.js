@@ -125,16 +125,11 @@ function injectNavMenuStyles() {
     @media (max-width: 820px) {
       .nav.has-open-menu {
         overflow: visible !important;
-        flex-wrap: nowrap !important;
-        justify-content: flex-start !important;
       }
 
       .nav.has-open-menu .nav-group {
         position: relative !important;
-        padding-bottom: 12px !important;
-        margin-bottom: -12px !important;
-        flex: 0 0 auto;
-        display: block;
+        z-index: 2;
       }
 
       .nav.has-open-menu .nav-group.is-open .nav-menu {
@@ -813,6 +808,61 @@ async function fetchReferralStatusByCode(code) {
     ...payload.referral,
     code: normalizedCode
   };
+}
+
+async function fetchOwnedReferralStatusByCode(code) {
+  const normalizedCode = normalizeClientReferralCode(code);
+  const ownedReferral = loadOwnedReferrals().find((entry) =>
+    entry.code === normalizedCode && entry.ownerToken
+  );
+
+  if (!ownedReferral) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}/owner-status?ownerToken=${encodeURIComponent(ownedReferral.ownerToken)}`,
+    {
+      headers: {
+        Accept: "application/json"
+      }
+    }
+  );
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || !payload.referral) {
+    throw new Error(payload.error || "Unable to load referral owner status.");
+  }
+
+  const mergedReferral = normalizeOwnedReferralEntry({
+    ...ownedReferral,
+    ...payload.referral,
+    code: normalizedCode
+  }) || ownedReferral;
+
+  storeOwnedReferral(mergedReferral);
+  return mergedReferral;
+}
+
+async function fetchReferralStatusForLookup(code) {
+  const normalizedCode = normalizeClientReferralCode(code);
+
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
+    throw new Error("Enter a valid 4-digit referral code.");
+  }
+
+  try {
+    const ownedReferral = await fetchOwnedReferralStatusByCode(normalizedCode);
+
+    if (ownedReferral) {
+      return ownedReferral;
+    }
+  } catch (_error) {
+    // Fall back to the public status endpoint so the referral section still works
+    // even if the browser no longer has the owner token.
+  }
+
+  return fetchReferralStatusByCode(normalizedCode);
 }
 
 async function refreshOwnedReferralRewards() {
@@ -3263,6 +3313,24 @@ function bindReferralForm() {
     output.classList.add("is-visible");
   };
 
+  const formatReferralExpiry = (value) => {
+    const timestamp = getIsoTimestamp(value);
+
+    if (!timestamp) {
+      return "";
+    }
+
+    try {
+      return new Intl.DateTimeFormat("en-SG", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      }).format(new Date(timestamp));
+    } catch (_error) {
+      return "";
+    }
+  };
+
   const renderReferralStatus = (referral) => {
     if (!rewardsPanel) {
       return;
@@ -3275,8 +3343,13 @@ function bindReferralForm() {
     }
 
     const rewards = Array.isArray(referral.rewards) ? referral.rewards : [];
+    const isActive = referral.isActive !== false;
+    const expiryLabel = formatReferralExpiry(referral.expiresAt);
     rewardsPanel.innerHTML = `
       <strong>Successful referrals recorded: ${Number(referral.conversionCount || 0)}</strong>
+      <p>${isActive
+        ? `Referral code is active${expiryLabel ? ` until ${escapeHtml(expiryLabel)}` : ""}.`
+        : `Referral code has expired${expiryLabel ? ` as of ${escapeHtml(expiryLabel)}` : "."}`}</p>
       ${rewards.length ? `
         <ul class="feature-list">
           ${rewards.map((reward) => `<li>${escapeHtml(getReferralRewardMessage(reward))}</li>`).join("")}
@@ -3320,7 +3393,20 @@ function bindReferralForm() {
       lookupInput.value = existingReferral.code || "";
     }
   } else if (lookupInput) {
-    lookupInput.value = getStoredReferralLookupCode();
+    const storedLookupCode = getStoredReferralLookupCode();
+    lookupInput.value = storedLookupCode;
+
+    if (isFourDigitClientReferralCode(storedLookupCode)) {
+      showReferralLink({ code: storedLookupCode });
+      fetchReferralStatusForLookup(storedLookupCode)
+        .then((referral) => {
+          showReferralLink(referral);
+          renderReferralStatus(referral);
+        })
+        .catch(() => {
+          // Keep the saved code visible even if the status check fails.
+        });
+    }
   }
 
   if (lookupInput && lookupInput.dataset.inputBound !== "true") {
@@ -3412,14 +3498,14 @@ function bindReferralForm() {
         message.className = "referral-message";
 
         try {
-          const referral = await fetchReferralStatusByCode(lookupInput.value);
+          const referral = await fetchReferralStatusForLookup(lookupInput.value);
           lookupInput.value = referral.code || "";
           setStoredReferralLookupCode(referral.code || "");
+          showReferralLink(referral);
           renderReferralStatus(referral);
           message.textContent = "Referral rewards loaded.";
           message.className = "referral-message is-success";
         } catch (error) {
-          renderReferralStatus(null);
           message.textContent = error && error.message ? error.message : "Unable to load referral rewards.";
           message.className = "referral-message is-error";
         }
