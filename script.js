@@ -126,7 +126,7 @@ function injectNavMenuStyles() {
       .nav.has-open-menu {
         overflow: visible !important;
         flex-wrap: nowrap !important;
-        justify-content: flex-start !important;
+        justify-content: center !important;
       }
 
       .nav.has-open-menu .nav-group {
@@ -2007,6 +2007,33 @@ function injectCartStyles() {
       object-fit: contain;
       background: transparent !important;
     }
+
+    .image-blend-surface {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .image-blend-surface::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: var(--image-src);
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      filter: blur(20px);
+      transform: scale(1.16);
+      opacity: 0.9;
+      z-index: 0;
+    }
+
+    .image-blend-surface > img {
+      position: relative;
+      z-index: 1;
+      background: transparent !important;
+      object-fit: contain !important;
+    }
   `;
 
   document.head.appendChild(style);
@@ -2186,7 +2213,14 @@ function bindNavMenus() {
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-haspopup", "true");
 
-    bindTap(toggle, () => {
+    if (toggle.dataset.navToggleBound === "true") {
+      return;
+    }
+
+    toggle.dataset.navToggleBound = "true";
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       const isOpen = group.classList.contains("is-open");
       const nav = group.closest(".nav");
       closeAllNavMenus();
@@ -2198,7 +2232,7 @@ function bindNavMenus() {
           nav.classList.add("has-open-menu");
         }
       }
-    }, { preventDefault: true, stopPropagation: true });
+    });
   });
 
   document.addEventListener("click", (event) => {
@@ -2215,7 +2249,52 @@ function bindNavMenus() {
 }
 
 function enhanceVarietyImages() {
-  return;
+  const galleryImages = Array.from(document.querySelectorAll(".variety-gallery > img:not(.smart-image-fg)"));
+  galleryImages.forEach((img) => {
+    if (!(img instanceof HTMLImageElement) || img.closest(".smart-image-frame")) {
+      return;
+    }
+
+    const frame = document.createElement("div");
+    frame.className = "smart-image-frame";
+    frame.style.setProperty("--image-src", `url("${img.currentSrc || img.src}")`);
+    img.classList.add("smart-image-fg");
+    img.parentNode.insertBefore(frame, img);
+    frame.appendChild(img);
+
+    const refreshFrame = () => {
+      frame.style.setProperty("--image-src", `url("${img.currentSrc || img.src}")`);
+    };
+
+    if (!img.complete) {
+      img.addEventListener("load", refreshFrame, { once: true });
+    }
+  });
+
+  const blendedContainers = Array.from(document.querySelectorAll([
+    ".main-image-wrap",
+    ".thumb",
+    ".related-card .card-img-wrapper"
+  ].join(",")));
+
+  blendedContainers.forEach((container) => {
+    const img = container.querySelector("img");
+    if (!(img instanceof HTMLImageElement)) {
+      return;
+    }
+
+    container.classList.add("image-blend-surface");
+
+    const refreshFrame = () => {
+      container.style.setProperty("--image-src", `url("${img.currentSrc || img.src}")`);
+    };
+
+    refreshFrame();
+
+    if (!img.complete) {
+      img.addEventListener("load", refreshFrame, { once: true });
+    }
+  });
 }
 
 function ensureCartUI() {
