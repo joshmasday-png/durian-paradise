@@ -71,7 +71,7 @@
       display: grid;
       grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
       align-items: center;
-      gap: 22px;
+      gap: 18px;
       padding: 18px 0;
       min-height: 92px;
     }
@@ -88,6 +88,8 @@
       height: auto;
       max-height: none;
       object-fit: contain;
+      mix-blend-mode: multiply;
+      opacity: 0.96;
     }
 
     .topbar-actions {
@@ -98,17 +100,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 22px;
+      gap: 18px;
       min-width: 0;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
     .topbar-nav a {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 17px;
-      font-weight: 500;
+      font-size: 18px;
+      font-weight: 600;
       letter-spacing: 0.02em;
       line-height: 1;
       white-space: nowrap;
@@ -126,8 +128,8 @@
 
     .topbar-nav__toggle {
       font: inherit;
-      font-size: 17px;
-      font-weight: 500;
+      font-size: 18px;
+      font-weight: 600;
       letter-spacing: 0.02em;
       color: inherit;
       background: none;
@@ -960,6 +962,8 @@
     height: auto;
     max-height: none;
     object-fit: contain;
+    mix-blend-mode: multiply;
+    opacity: 0.96;
   }
 
   .topbar-actions {
