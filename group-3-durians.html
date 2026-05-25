@@ -15,7 +15,7 @@
     @keyframes page-auto-reveal { to { opacity: 1; } }
     a { color: inherit; text-decoration: none; }
     img { max-width: 100%; display: block; }
-    :root { --main-image-ratio: 4 / 3; --main-image-max-width: 520px; --main-image-max-height: 420px; --thumb-size-desktop: 96px; --thumb-size-mobile: 80px; --gallery-width-desktop: 300px; --gallery-height-desktop: 225px; --gallery-height-mobile: 220px; }
+    :root { --main-image-ratio: 4 / 3; --main-image-max-width: 520px; --main-image-max-height: 420px; --thumb-size-desktop: 96px; --thumb-size-mobile: 80px; --gallery-width-desktop: 300px; --gallery-height-desktop: 225px; --gallery-height-mobile: 220px; --durian-frame-bg: linear-gradient(180deg, #f1d98a 0%, #d4a84f 100%); }
     .container { width: min(1260px, 92%); margin: 0 auto; }
     .topbar { background: rgba(244, 234, 218, 0.92); border-bottom: 1px solid rgba(120, 100, 76, 0.18); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000; }
     .topbar-inner { display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; gap: 22px; padding: 18px 0; min-height: 92px; }
@@ -31,14 +31,14 @@
     .nav-menu a:hover { background: rgba(230, 215, 192, 0.72); text-decoration: none; }
     .section { padding: 34px 0; }
     .product-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 26px; align-items: start; scroll-margin-top: 96px; }
-    .main-image-wrap { background: rgba(246, 239, 228, 0.92); overflow: hidden; border: 1px solid rgba(120, 100, 76, 0.16); max-width: var(--main-image-max-width); aspect-ratio: var(--main-image-ratio); max-height: var(--main-image-max-height); }
-    .main-image { width: 100%; height: 100%; object-fit: cover; }
-    .main-image.is-contained { object-fit: contain; background: #111; }
+    .main-image-wrap { background: var(--durian-frame-bg); overflow: hidden; border: 1px solid rgba(120, 100, 76, 0.16); max-width: var(--main-image-max-width); aspect-ratio: var(--main-image-ratio); max-height: var(--main-image-max-height); }
+    .main-image { width: 100%; height: 100%; object-fit: contain; background: var(--durian-frame-bg); }
+    .main-image.is-contained { object-fit: contain; background: var(--durian-frame-bg); }
     .thumb-row { display: flex; gap: 12px; margin-top: 12px; overflow-x: auto; padding-bottom: 6px; }
-    .thumb { width: var(--thumb-size-desktop); min-width: var(--thumb-size-desktop); height: var(--thumb-size-desktop); border: 2px solid transparent; background: #ffffff; cursor: pointer; overflow: hidden; padding: 0; }
+    .thumb { width: var(--thumb-size-desktop); min-width: var(--thumb-size-desktop); height: var(--thumb-size-desktop); border: 2px solid transparent; background: var(--durian-frame-bg); cursor: pointer; overflow: hidden; padding: 0; }
     .thumb.active { border-color: #111; }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .thumb[data-fit="contain"] img { object-fit: contain; background: #111; }
+    .thumb img { width: 100%; height: 100%; object-fit: contain; background: var(--durian-frame-bg); }
+    .thumb[data-fit="contain"] img { object-fit: contain; background: var(--durian-frame-bg); }
     .product-title { font-size: clamp(28px, 3vw, 42px); line-height: 1.08; margin: 0 0 18px; font-weight: 700; }
     .subline { font-size: 26px; margin: 0 0 24px; color: #222; } .pricing-note { font-size: 14px; color: #5a4a3b; margin: -10px 0 24px; }
     .short-desc { font-size: 18px; color: #222; margin-bottom: 28px; }
@@ -61,9 +61,9 @@
     .chip { padding: 10px 16px; border: 1px solid rgba(120, 100, 76, 0.2); background: rgba(246, 239, 228, 0.92); border-radius: 999px; font-size: 16px; }
     .variety-block { margin-bottom: 64px; scroll-margin-top: 110px; }
     .variety-block h3 { font-size: 34px; margin: 0 0 22px; line-height: 1.08; }
-.variety-gallery { display: flex; gap: 0; flex-wrap: wrap; margin-bottom: 22px; background: #ffffff; width: fit-content; max-width: 100%; border: 1px solid rgba(120, 100, 76, 0.16); }
+.variety-gallery { display: flex; gap: 0; flex-wrap: wrap; margin-bottom: 22px; background: var(--durian-frame-bg); width: fit-content; max-width: 100%; border: 1px solid rgba(120, 100, 76, 0.16); }
     .variety-gallery .smart-image-frame { width: var(--gallery-width-desktop); max-width: 100%; height: var(--gallery-height-desktop); border-right: 1px solid rgba(120, 100, 76, 0.16); }
-    .variety-gallery > img { width: var(--gallery-width-desktop); max-width: 100%; height: var(--gallery-height-desktop); object-fit: contain; display: block; background: #111; border-right: 1px solid rgba(120, 100, 76, 0.16); }
+    .variety-gallery > img { width: var(--gallery-width-desktop); max-width: 100%; height: var(--gallery-height-desktop); object-fit: contain; display: block; background: var(--durian-frame-bg); border-right: 1px solid rgba(120, 100, 76, 0.16); }
 .variety-gallery .smart-image-frame:last-child { border-right: none; }
 .variety-gallery > img:last-child { border-right: none; }
     .variety-block p { font-size: 18px; margin: 0 0 18px; }
@@ -80,7 +80,8 @@
     .related-products h4 { font-size: 20px; margin: 0 0 20px; }
     .related-grid { display: grid; grid-template-columns: repeat(2, minmax(180px, 240px)); gap: 24px; }
     .related-card { display: block; }
-    .related-card .card-img-wrapper { border: 1px solid rgba(120, 100, 76, 0.16); }
+    .related-card .card-img-wrapper { border: 1px solid rgba(120, 100, 76, 0.16); background: var(--durian-frame-bg); }
+    .related-card .card-img-wrapper img { object-fit: contain; padding: 12px; background: var(--durian-frame-bg); }
     .related-card h5 { font-size: 20px; margin: 14px 0 0; line-height: 1.18; text-align: center; }
     footer { background: rgba(234, 222, 206, 0.9); border-top: 1px solid rgba(120, 100, 76, 0.14); margin-top: 50px; padding: 28px 0; font-size: 17px; color: #333; text-align: center; }
     @media (max-width: 1100px) { .product-layout { grid-template-columns: 1fr; } .main-image-wrap { max-width: 520px; } }
@@ -102,7 +103,7 @@
       .option-grid { grid-template-columns: 1fr; }
       .option-label { font-size: 24px; }
   .variety-gallery .smart-image-frame { width: 100%; height: var(--gallery-height-mobile); border-right: none; border-bottom: 1px solid rgba(120, 100, 76, 0.16); }
-  .variety-gallery > img { width: 100%; height: var(--gallery-height-mobile); object-fit: contain; display: block; background: #111; border-right: none; border-bottom: 1px solid rgba(120, 100, 76, 0.16); }
+  .variety-gallery > img { width: 100%; height: var(--gallery-height-mobile); object-fit: contain; display: block; background: var(--durian-frame-bg); border-right: none; border-bottom: 1px solid rgba(120, 100, 76, 0.16); }
   .variety-gallery .smart-image-frame:last-child { border-bottom: none; }
   .variety-gallery > img:last-child { border-bottom: none; }
   .thumb { width: var(--thumb-size-mobile); min-width: var(--thumb-size-mobile); height: var(--thumb-size-mobile); }
@@ -113,7 +114,7 @@
   </style>
 </head>
 <body class="page-loading">
-  <header class="topbar"><div class="container topbar-inner"><a class="site-logo" href="index.html" aria-label="DurianParadises.com home"><img src="images/logo-header.png" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" /></a><nav class="nav"><a href="index.html">Home</a><a href="index.html#online-delivery">Order Now</a><div class="nav-group"><button class="nav-toggle" type="button">Types of Durian</button><div class="nav-menu"><a href="group-1-durians.html#group1">Group 1</a><a href="group-2-durians.html#group2-header">Group 2</a><a href="#group3-header">Group 3</a></div></div><a href="contact-us.html">Contact Us</a><a href="index.html#reviews">Reviews</a><a href="#group3-description">Variants</a></nav></div></header>
+  <header class="topbar"><div class="container topbar-inner"><a class="site-logo" href="index.html" aria-label="DurianParadises.com home"><img src="images/logo-header.png" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" /></a><nav class="nav"><a href="index.html">Home</a><a href="index.html#online-delivery">Order Now</a><div class="nav-group"><button class="nav-toggle" type="button">Types of Durian</button><div class="nav-menu"><a href="group-1-durians.html#group1">Group 1</a><a href="group-2-durians.html#group2-header">Group 2</a><a href="#group3-header">Group 3</a></div></div><a href="contact-us.html">Contact Us</a><a href="index.html#reviews">Reviews</a></nav></div></header>
   <div class="container">
     <section id="group3-header" class="product-layout section">
       <div>
