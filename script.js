@@ -123,7 +123,21 @@ function injectNavMenuStyles() {
     }
 
     @media (max-width: 820px) {
-      .nav-group.is-open .nav-menu {
+      .nav.has-open-menu {
+        overflow: visible !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+      }
+
+      .nav.has-open-menu .nav-group {
+        position: relative !important;
+        padding-bottom: 12px !important;
+        margin-bottom: -12px !important;
+        flex: 0 0 auto;
+        display: block;
+      }
+
+      .nav.has-open-menu .nav-group.is-open .nav-menu {
         position: absolute !important;
         top: calc(100% + 8px) !important;
         left: 50% !important;
@@ -2153,8 +2167,12 @@ function bindNavMenus() {
     navGroups.forEach((group) => {
       group.classList.remove("is-open");
       const toggle = group.querySelector(".nav-toggle");
+      const nav = group.closest(".nav");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
+      }
+      if (nav) {
+        nav.classList.remove("has-open-menu");
       }
     });
   };
@@ -2170,11 +2188,15 @@ function bindNavMenus() {
 
     bindTap(toggle, () => {
       const isOpen = group.classList.contains("is-open");
+      const nav = group.closest(".nav");
       closeAllNavMenus();
 
       if (!isOpen) {
         group.classList.add("is-open");
         toggle.setAttribute("aria-expanded", "true");
+        if (nav) {
+          nav.classList.add("has-open-menu");
+        }
       }
     }, { preventDefault: true, stopPropagation: true });
   });
