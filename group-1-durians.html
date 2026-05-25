@@ -59,7 +59,6 @@
       --gallery-width-desktop: 300px;
       --gallery-height-desktop: 225px;
       --gallery-height-mobile: 220px;
-      --durian-frame-bg: linear-gradient(180deg, #f1d98a 0%, #d4a84f 100%);
     }
 
     .container {
@@ -194,7 +193,7 @@
     }
 
     .main-image-wrap {
-      background: var(--durian-frame-bg);
+      background: rgba(246, 239, 228, 0.92);
       overflow: hidden;
       border: 1px solid rgba(120, 100, 76, 0.16);
       max-width: var(--main-image-max-width);
@@ -205,8 +204,7 @@
     .main-image {
       width: 100%;
       height: 100%;
-      object-fit: contain;
-      background: var(--durian-frame-bg);
+      object-fit: cover;
     }
 
     .thumb-row {
@@ -222,7 +220,7 @@
       min-width: var(--thumb-size-desktop);
       height: var(--thumb-size-desktop);
       border: 2px solid transparent;
-      background: var(--durian-frame-bg);
+      background: #111;
       cursor: pointer;
       overflow: hidden;
       padding: 0;
@@ -235,8 +233,7 @@
     .thumb img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
-      background: var(--durian-frame-bg);
+      object-fit: cover;
     }
 
     .product-title {
@@ -378,7 +375,7 @@
       gap: 0;
       flex-wrap: wrap;
       margin-bottom: 22px;
-      background: var(--durian-frame-bg);
+      background: #111;
       width: fit-content;
       max-width: 100%;
       border: 1px solid rgba(120, 100, 76, 0.16);
@@ -397,7 +394,7 @@
       height: var(--gallery-height-desktop);
       object-fit: contain;
       display: block;
-      background: var(--durian-frame-bg);
+      background: #111;
       border-right: 1px solid rgba(120, 100, 76, 0.16);
     }
 
@@ -410,11 +407,11 @@
     }
 
     .variety-gallery.solid-black-gallery {
-      background: var(--durian-frame-bg);
+      background: #111;
     }
 
     .variety-gallery.solid-black-gallery .smart-image-frame {
-      background: var(--durian-frame-bg);
+      background: #111;
     }
 
     .variety-gallery.solid-black-gallery .smart-image-frame::before {
@@ -422,7 +419,7 @@
     }
 
     .variety-gallery.solid-black-gallery > img {
-      background: var(--durian-frame-bg);
+      background: #111;
     }
 
     .variety-block p {
@@ -504,13 +501,6 @@
       border: 1px solid rgba(120, 100, 76, 0.16);
       max-width: 220px;
       margin: 0 auto;
-      background: var(--durian-frame-bg);
-    }
-
-    .related-card .card-img-wrapper img {
-      object-fit: contain;
-      padding: 12px;
-      background: var(--durian-frame-bg);
     }
 
     .related-card h5 {
@@ -696,6 +686,7 @@
         </div>
         <a href="contact-us.html">Contact Us</a>
         <a href="index.html#reviews">Reviews</a>
+        <a href="#variants">Variants</a>
       </nav>
     </div>
   </header>
