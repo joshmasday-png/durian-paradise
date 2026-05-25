@@ -36,17 +36,6 @@ let reviewFormBound = false;
 let referralFormBound = false;
 let pendingPaymentStatusRefreshPromise = null;
 const memoryStorage = new Map();
-const paymentStatusUtils = window.DurianPaymentStatus || null;
-
-function clearCheckoutClientState() {
-  if (paymentStatusUtils && typeof paymentStatusUtils.clearCheckoutState === "function") {
-    paymentStatusUtils.clearCheckoutState();
-    return;
-  }
-
-  saveCart([]);
-  clearPendingPayment();
-}
 
 function normalizeOwnedReferralReward(reward) {
   if (!reward || typeof reward !== "object") {
@@ -530,7 +519,8 @@ async function refreshPendingPaymentStatusIfNeeded(force = false) {
   ).trim().toLowerCase();
 
   if (currentStatus === "paid") {
-    clearCheckoutClientState();
+    saveCart([]);
+    clearPendingPayment();
     renderCart();
     return null;
   }
@@ -545,38 +535,22 @@ async function refreshPendingPaymentStatusIfNeeded(force = false) {
 
   pendingPaymentStatusRefreshPromise = (async () => {
     try {
-      const statusResult = paymentStatusUtils
-        ? await paymentStatusUtils.fetchCheckoutSessionStatus(sessionId)
-        : await (async () => {
-          const response = await fetch(`/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`, {
-            method: "GET",
-            headers: {
-              Accept: "application/json"
-            },
-            cache: "no-store"
-          });
-          const payload = await response.json().catch(() => ({}));
-          return {
-            ok: response.ok,
-            payload,
-            paymentStatus: String(
-              payload && (payload.paymentStatus || (payload.order && payload.order.paymentStatus) || "")
-            ).trim().toLowerCase()
-          };
-        })();
+      const response = await fetch(`/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`);
+      const payload = await response.json();
 
-      if (!statusResult.ok) {
+      if (!response.ok) {
         return pendingPayment;
       }
 
       const nextStatus = String(
-        statusResult.paymentStatus
-          || (statusResult.payload.order && statusResult.payload.order.paymentStatus)
+        payload.paymentStatus
+          || (payload.order && payload.order.paymentStatus)
           || currentStatus
       ).trim().toLowerCase();
 
       if (nextStatus === "paid") {
-        clearCheckoutClientState();
+        saveCart([]);
+        clearPendingPayment();
         renderCart();
         return null;
       }
@@ -585,7 +559,7 @@ async function refreshPendingPaymentStatusIfNeeded(force = false) {
         ...pendingPayment,
         order: {
           ...(pendingPayment.order || {}),
-          ...((statusResult && statusResult.payload && statusResult.payload.order) || {})
+          ...((payload && payload.order) || {})
         },
         paymentStatus: nextStatus || pendingPayment.paymentStatus || ""
       };
