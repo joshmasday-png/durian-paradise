@@ -448,6 +448,52 @@ function writeReferrals(referrals) {
   writeJsonFile(referralsPath, normalizedReferrals);
 }
 
+function buildConfiguredReferralLink(code) {
+  const configuredUrl = String(siteUrl || "").trim().replace(/\/$/, "") || "https://www.durianparadises.com";
+  return `${configuredUrl}/referral.html?code=${encodeURIComponent(String(code || "").trim())}`;
+}
+
+function ensurePinnedReferralCode(code) {
+  const normalizedCode = sanitizeReferralCode(code);
+
+  if (!normalizedCode) {
+    return;
+  }
+
+  const referrals = readReferrals();
+  const existingReferral = referrals.find((entry) => sanitizeReferralCode(entry && entry.code) === normalizedCode);
+  const refreshedExpiry = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString();
+
+  if (existingReferral) {
+    normalizeReferralEntry(existingReferral);
+
+    if (new Date(existingReferral.expiresAt).getTime() < Date.now()) {
+      existingReferral.expiresAt = refreshedExpiry;
+      existingReferral.link = buildConfiguredReferralLink(normalizedCode);
+      writeReferrals(referrals);
+      console.log(`Restored expired pinned referral code ${normalizedCode}.`);
+    }
+
+    return;
+  }
+
+  const createdAt = new Date().toISOString();
+  referrals.unshift({
+    code: normalizedCode,
+    link: buildConfiguredReferralLink(normalizedCode),
+    ownerToken: makeOwnerToken(),
+    referrer: null,
+    clicks: 0,
+    visitors: [],
+    conversions: [],
+    rewards: [],
+    createdAt,
+    expiresAt: refreshedExpiry
+  });
+  writeReferrals(referrals);
+  console.log(`Created pinned referral code ${normalizedCode}.`);
+}
+
 function readAnalytics() {
   return loadJsonFile(
     analyticsPath,
@@ -2565,6 +2611,8 @@ app.get("/checkout-cancelled", (_req, res) => {
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
+
+ensurePinnedReferralCode("3004");
 
 app.listen(port, () => {
   console.log(`Durian Paradise server running on ${siteUrl}`);
