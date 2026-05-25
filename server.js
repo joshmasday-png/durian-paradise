@@ -317,6 +317,7 @@ app.use(express.static(__dirname, {
 }));
 
 function ensureJsonFile(filePath, defaultValue) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
   if (!fs.existsSync(filePath)) {
     fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2) + "\n", "utf8");
   }
@@ -334,8 +335,50 @@ function cloneJsonValue(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function getJsonBackupPath(filePath) {
+  return `${filePath}.bak`;
+}
+
 function writeJsonFile(filePath, value) {
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2) + "\n", "utf8");
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const serialized = JSON.stringify(value, null, 2) + "\n";
+  const tempPath = `${filePath}.${process.pid}.tmp`;
+  const backupPath = getJsonBackupPath(filePath);
+
+  fs.writeFileSync(tempPath, serialized, "utf8");
+  fs.renameSync(tempPath, filePath);
+
+  try {
+    fs.writeFileSync(backupPath, serialized, "utf8");
+  } catch (_error) {
+    // Keep the primary write successful even if the backup cannot be refreshed.
+  }
+}
+
+function tryLoadJsonBackup(filePath, validate, normalize) {
+  const backupPath = getJsonBackupPath(filePath);
+
+  if (!fs.existsSync(backupPath)) {
+    return null;
+  }
+
+  try {
+    const rawBackup = fs.readFileSync(backupPath, "utf8");
+
+    if (!rawBackup.trim()) {
+      return null;
+    }
+
+    const parsedBackup = JSON.parse(rawBackup);
+
+    if (typeof validate === "function" && !validate(parsedBackup)) {
+      return null;
+    }
+
+    return normalize(parsedBackup);
+  } catch (_error) {
+    return null;
+  }
 }
 
 function loadJsonFile(filePath, defaultValue, validate, normalize = (value) => value) {
@@ -365,6 +408,13 @@ function loadJsonFile(filePath, defaultValue, validate, normalize = (value) => v
 
     return normalized;
   } catch (_error) {
+    const restoredBackup = tryLoadJsonBackup(filePath, validate, normalize);
+
+    if (restoredBackup !== null) {
+      writeJsonFile(filePath, restoredBackup);
+      return cloneJsonValue(restoredBackup);
+    }
+
     writeJsonFile(filePath, fallbackValue);
     return cloneJsonValue(fallbackValue);
   }
