@@ -1277,6 +1277,10 @@ function claimReferralRewards(rewardClaims, orderId) {
 
     normalizeReferralEntry(referral);
 
+    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
+      return;
+    }
+
     const reward = referral.rewards.find((entry) => entry.id === claim.rewardId);
 
     if (!reward || reward.status === "claimed") {
@@ -1974,7 +1978,6 @@ app.get("/api/referrals/:code/owner-status", (req, res) => {
   }
 
   const familyConversionCount = listReferralFamilyConversions(referrals, referral).length;
-  writeReferrals(referrals);
 
   return res.json({
     referral: {
@@ -2107,12 +2110,22 @@ app.get("/api/payment-orders/:orderId", (req, res) => {
     return res.status(404).json({ error: "Order not found." });
   }
 
-  return res.json({ order });
+  return res.json({
+    order: {
+      id: order.id,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      createdAt: order.createdAt,
+      summary: order.summary && order.summary.totalDisplay
+        ? { totalDisplay: order.summary.totalDisplay }
+        : {}
+    }
+  });
 });
 
 app.post("/test/send-order-confirmation", async (_req, res) => {
-  if (isProductionDeployment) {
-    return res.status(404).json({ error: "Test email route is unavailable in production." });
+  if (!enableTestHelpers) {
+    return res.status(404).json({ error: "Test email route is unavailable." });
   }
 
   try {
@@ -2137,11 +2150,16 @@ app.post("/test/send-order-confirmation", async (_req, res) => {
 
 app.post("/api/payment-orders/:orderId/paid", async (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
+  const paymentNonce = String(req.body && req.body.paymentNonce || "").trim();
   const orders = readOrders();
   const order = orders.find((entry) => entry.id === orderId);
 
   if (!order) {
     return res.status(404).json({ error: "Order not found." });
+  }
+
+  if (!paymentNonce || !order.paymentNonce || paymentNonce !== order.paymentNonce) {
+    return res.status(403).json({ error: "Invalid payment nonce." });
   }
 
   if (order.customerPaymentAcknowledgement) {
@@ -2218,6 +2236,8 @@ app.post("/api/payment-orders", async (req, res) => {
     ]);
     const summary = summarizeOrder(items, claimedReferralRewards);
 
+    const paymentNonce = `nonce-${Math.random().toString(36).slice(2, 14)}-${Date.now().toString(36)}`;
+
     const order = {
       id: orderId,
       createdAt: new Date().toISOString(),
@@ -2225,6 +2245,7 @@ app.post("/api/payment-orders", async (req, res) => {
       paymentStatus: "awaiting_provider_setup",
       paymentMethod: paymentMethod.label,
       businessUen,
+      paymentNonce,
       items,
       summary,
       customer: {
