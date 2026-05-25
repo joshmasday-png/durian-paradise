@@ -2273,14 +2273,15 @@ app.post("/api/payment-orders", async (req, res) => {
   }
 });
 
-app.post("/api/checkout-sessions/:sessionId/status", (req, res) => {
-  const sessionId = String(req.params.sessionId || "").trim();
+app.get("/api/checkout-sessions/:sessionId/status", (_req, res) => {
+  const sessionId = String(_req.params.sessionId || "").trim();
   const order = readOrders().find((entry) => entry.stripe && entry.stripe.checkoutSessionId === sessionId);
 
   if (!order) {
     return res.status(404).json({ error: "Checkout session not found." });
   }
 
+  res.set("Cache-Control", "no-store");
   return res.json({
     paymentStatus: order.paymentStatus,
     order: {

@@ -48,45 +48,31 @@
     <p id="status-message">We’ve received your payment. We’re confirming the order now and will contact you if we need any follow-up details.</p>
     <a href="/">Return to Homepage</a>
   </main>
+  <script src="payment-status.js?v=20260525-3"></script>
   <script>
     const statusMessage = document.getElementById("status-message");
     const sessionId = new URLSearchParams(window.location.search).get("session_id") || "";
-    const clearPrefixedStorage = () => {
-      Object.keys(localStorage).forEach((key) => {
-        if (
-          key.startsWith("durianParadiseCart")
-          || key.startsWith("durianParadisePendingPayment")
-        ) {
-          localStorage.removeItem(key);
-        }
-      });
-    };
-
-    const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    const paymentStatusUtils = window.DurianPaymentStatus;
 
     (async () => {
       if (!sessionId) {
-        clearPrefixedStorage();
+        if (paymentStatusUtils) {
+          paymentStatusUtils.clearCheckoutState();
+        }
         return;
       }
 
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        try {
-          const response = await fetch(`/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`);
-          const payload = await response.json();
+      const confirmation = paymentStatusUtils
+        ? await paymentStatusUtils.waitForPaidCheckoutSession(sessionId, {
+          attempts: 8,
+          intervalMs: 1200
+        })
+        : { paid: false };
 
-          if (response.ok && payload && payload.paymentStatus === "paid") {
-            clearPrefixedStorage();
-            statusMessage.textContent = "Your payment has been confirmed and your durian order is locked in.";
-            return;
-          }
-        } catch (_error) {
-          // Keep the page calm and let the next retry handle it.
-        }
-
-        if (attempt < 7) {
-          await sleep(1200);
-        }
+      if (confirmation.paid) {
+        paymentStatusUtils.clearCheckoutState();
+        statusMessage.textContent = "Your payment has been confirmed and your durian order is locked in.";
+        return;
       }
 
       statusMessage.textContent = "Your payment was accepted. We’re still waiting for final confirmation, so your order panel will stay available until processing finishes.";
