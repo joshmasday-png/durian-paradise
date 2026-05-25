@@ -1325,6 +1325,30 @@
           </div>
         </section>
 
+        <section id="qa-test-order" class="order-subsection" hidden>
+          <div class="order-label-row">
+            <span class="order-badge party">QA Test Order</span>
+            <span class="order-type-caption">Temporary hidden order for referral testing only.</span>
+          </div>
+          <h3>Referral QA Test Order</h3>
+          <p>This hidden $10 order is only for testing referral and payment flow before launch.</p>
+          <div class="shop-grid">
+            <div class="party-order-card" data-party-form data-product-id-base="party-test" data-product-name="Referral QA Test Order" data-order-type="Referral QA Test">
+              <h3>Temporary $10 Test Order</h3>
+              <p>Use this only for referral and payment testing. Remove after launch prep is complete.</p>
+              <div class="party-order-grid">
+                <div class="shop-field">
+                  <label for="qa-test-order-select">Test Order</label>
+                  <select id="qa-test-order-select" class="party-select" data-party-select>
+                    <option value="qa-10" data-label="Temporary $10 referral test order" data-price="10">Temporary $10 referral test order</option>
+                  </select>
+                </div>
+                <button class="shop-button" type="button" data-add-party>Add to Cart</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
   </section>
@@ -1421,6 +1445,20 @@
   <footer>
     &copy; DurianParadises 2026 &middot; 50 Ubi Crescent, #01-08, Ubi Tech Park, Singapore 408568 &middot; UEN 53490378M
   </footer>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("qa_test_order") !== "1") {
+        return;
+      }
+
+      const section = document.getElementById("qa-test-order");
+      if (section) {
+        section.hidden = false;
+      }
+    })();
+  </script>
 
   <script src="script.js?v=20260524-6" defer></script>
 
