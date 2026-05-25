@@ -109,7 +109,6 @@
     const params = new URLSearchParams(window.location.search);
     const code = String(params.get("code") || "").trim();
     const isFourDigitCode = /^\d{4}$/.test(code);
-    const isExpired = params.get("expired") === "1";
     const isInvalid = params.get("invalid") === "1";
     const title = document.querySelector("[data-referral-title]");
     const copy = document.querySelector("[data-referral-copy]");
@@ -125,8 +124,6 @@
 
     if (!code || !isFourDigitCode || isInvalid) {
       disableReferral("This referral link is missing, invalid, or still using an old code format. Please ask your friend for a fresh 4-digit referral link.");
-    } else if (isExpired) {
-      disableReferral("This referral link has expired after 30 days.");
     } else {
       fetch(`/api/referrals/${encodeURIComponent(code)}`)
         .then((response) => response.json().then((payload) => ({ response, payload })))
@@ -137,16 +134,11 @@
           }
 
           if (!payload.referral.isActive) {
-            disableReferral("This referral link has expired after 30 days.");
+            disableReferral("This referral link is not active.");
             return;
           }
 
-          const expiry = new Date(payload.referral.expiresAt).toLocaleDateString("en-SG", {
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-          });
-          note.textContent = `Referral valid until ${expiry}. Your referral code is: ${code}. If the code does not auto-fill at checkout, enter it manually in the "Referral Code (if any)" field before creating the order.`;
+          note.textContent = `Your referral code is: ${code}. If the code does not auto-fill at checkout, enter it manually in the "Referral Code (if any)" field before creating the order.`;
           button.href = `/r/${encodeURIComponent(code)}`;
         })
         .catch(() => {

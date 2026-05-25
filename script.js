@@ -686,13 +686,7 @@ function getLatestOwnedReferral(includeExpired = true, { allowLegacyCode = false
       if (!allowLegacyCode && !isFourDigitClientReferralCode(entry.code)) {
         return false;
       }
-
-      if (includeExpired) {
-        return true;
-      }
-
-      const expiresAt = getIsoTimestamp(entry.expiresAt);
-      return !expiresAt || expiresAt >= Date.now();
+      return true;
     })
     .sort((left, right) => getIsoTimestamp(right.createdAt || right.expiresAt) - getIsoTimestamp(left.createdAt || left.expiresAt))[0] || null;
 }
@@ -866,7 +860,7 @@ function getStoredReferralCode() {
     const parsed = raw ? JSON.parse(raw) : null;
     const normalizedCode = normalizeClientReferralCode(parsed && parsed.code ? parsed.code : "");
 
-    if (!parsed || !isFourDigitClientReferralCode(normalizedCode) || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
+    if (!parsed || !isFourDigitClientReferralCode(normalizedCode)) {
       removeStorageItem(REFERRAL_STORAGE_KEY);
       return "";
     }
@@ -887,8 +881,7 @@ function setStoredReferralCode(code) {
   }
 
   writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
-    code: normalizedCode,
-    expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
+    code: normalizedCode
   }));
   return normalizedCode;
 }
@@ -902,8 +895,7 @@ function captureReferralCode() {
   }
 
   writeStorageItem(REFERRAL_STORAGE_KEY, JSON.stringify({
-    code,
-    expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000)
+    code
   }));
 }
 
