@@ -112,6 +112,8 @@
     }
 
     .topbar-nav a {
+      display: inline-flex;
+      align-items: center;
       font-size: 17px;
       font-weight: 500;
       letter-spacing: 0.02em;
@@ -138,6 +140,8 @@
       color: inherit;
       cursor: pointer;
       padding: 0;
+      display: inline-flex;
+      align-items: center;
     }
 
     .topbar-nav__toggle:hover {
@@ -616,21 +620,39 @@
 
       .topbar-actions {
         display: grid;
-        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
         width: 100%;
+        padding-top: 2px;
       }
 
       .topbar-nav {
-        gap: 14px;
+        grid-column: 1;
+        gap: 8px;
         width: 100%;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        align-items: center;
+        overflow-x: auto;
+        overflow-y: visible;
+        padding: 2px 4px 2px 0;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .topbar-nav::-webkit-scrollbar {
+        display: none;
       }
 
       .topbar-nav a {
-        font-size: 12px;
+        flex: 0 0 auto;
+        font-size: 10px;
       }
 
       .topbar-nav__toggle {
-        font-size: 12px;
+        flex: 0 0 auto;
+        font-size: 10px;
         line-height: 1.15;
       }
 
@@ -644,10 +666,12 @@
       }
 
       .header-cart-trigger {
+        grid-column: 2;
         justify-self: end;
-        padding: 8px 11px;
-        font-size: 12px;
-        gap: 7px;
+        padding: 8px 10px;
+        font-size: 10px;
+        gap: 6px;
+        white-space: nowrap;
       }
 
       .product-title {

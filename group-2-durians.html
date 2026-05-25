@@ -23,10 +23,10 @@
     .site-logo img { width: 88px; height: 78px; max-height: 78px; object-fit: fill; }
     .topbar-actions { display: contents; }
     .topbar-nav { display: flex; align-items: center; justify-content: center; gap: 22px; min-width: 0; flex-wrap: wrap; }
-    .topbar-nav a { font-size: 17px; font-weight: 500; letter-spacing: 0.02em; white-space: nowrap; }
+    .topbar-nav a { display: inline-flex; align-items: center; font-size: 17px; font-weight: 500; letter-spacing: 0.02em; white-space: nowrap; }
     .topbar-nav a:hover { text-decoration: underline; }
     .topbar-nav .nav-group { position: relative; }
-    .topbar-nav__toggle { font: inherit; font-size: 17px; font-weight: 500; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; border: none; background: transparent; color: inherit; cursor: pointer; padding: 0; }
+    .topbar-nav__toggle { font: inherit; font-size: 17px; font-weight: 500; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; border: none; background: transparent; color: inherit; cursor: pointer; padding: 0; display: inline-flex; align-items: center; }
     .topbar-nav__toggle:hover { text-decoration: underline; }
     .topbar-nav__menu { position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%); display: none; min-width: 170px; padding: 10px 0; border: 1px solid rgba(120, 100, 76, 0.18); background: rgba(252, 249, 245, 0.98); box-shadow: 0 18px 32px rgba(88, 66, 38, 0.12); z-index: 20; }
     .topbar-nav .nav-group.is-open .topbar-nav__menu, .topbar-nav .nav-group:focus-within .topbar-nav__menu { display: block; }
@@ -91,13 +91,14 @@
       .topbar-inner { grid-template-columns: 1fr; align-items: center; padding-top: 14px; padding-bottom: 14px; min-height: 88px; gap: 8px; }
       .site-logo { position: static; transform: none; justify-self: center; }
       .site-logo img { width: 80px; height: 70px; }
-      .topbar-actions { display: grid; gap: 8px; width: 100%; }
-      .topbar-nav { gap: 14px; width: 100%; }
-      .topbar-nav a { font-size: 12px; }
-      .topbar-nav__toggle { font-size: 12px; line-height: 1.15; }
+      .topbar-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding-top: 2px; }
+      .topbar-nav { grid-column: 1; gap: 8px; width: 100%; flex-wrap: nowrap; justify-content: flex-start; align-items: center; overflow-x: auto; overflow-y: visible; padding: 2px 4px 2px 0; -ms-overflow-style: none; scrollbar-width: none; }
+      .topbar-nav::-webkit-scrollbar { display: none; }
+      .topbar-nav a { flex: 0 0 auto; font-size: 10px; }
+      .topbar-nav__toggle { flex: 0 0 auto; font-size: 10px; line-height: 1.15; }
       .topbar-nav__menu { top: calc(100% + 10px); width: min(220px, calc(100vw - 32px)); }
       .topbar-nav__menu a { font-size: 14px; }
-      .header-cart-trigger { justify-self: end; padding: 8px 11px; font-size: 12px; gap: 7px; }
+      .header-cart-trigger { grid-column: 2; justify-self: end; padding: 8px 10px; font-size: 10px; gap: 6px; white-space: nowrap; }
       .page-header h1, .product-title { font-size: 34px; }
       .subline { font-size: 24px; }
       .tab-panel h2 { font-size: 38px; }

@@ -104,6 +104,8 @@
     }
 
     .topbar-nav a {
+      display: inline-flex;
+      align-items: center;
       font-size: 17px;
       font-weight: 500;
       letter-spacing: 0.02em;
@@ -129,6 +131,8 @@
       padding: 0;
       cursor: pointer;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
     }
 
     .topbar-nav__toggle:hover {
@@ -956,26 +960,40 @@
 
   .topbar-actions {
     display: grid;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    padding-top: 10px;
-    border-top: 1px solid rgba(120, 100, 76, 0.18);
-  }
-
-  .topbar-nav {
-    gap: 14px;
-    width: 100%;
-    justify-content: center;
     padding-top: 2px;
   }
 
+  .topbar-nav {
+    grid-column: 1;
+    gap: 8px;
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 2px 4px 2px 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .topbar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
   .topbar-nav a {
-    font-size: 12px;
+    flex: 0 0 auto;
+    font-size: 10px;
     line-height: 1.15;
   }
 
   .topbar-nav__toggle {
-    font-size: 12px;
+    flex: 0 0 auto;
+    font-size: 10px;
     line-height: 1.15;
   }
 
@@ -989,15 +1007,16 @@
   }
 
   .header-cart-trigger {
-    grid-column: auto;
+    grid-column: 2;
     justify-self: end;
     position: static;
     top: auto;
     right: auto;
     margin: 0;
-    padding: 8px 11px;
-    font-size: 12px;
-    gap: 7px;
+    padding: 8px 10px;
+    font-size: 10px;
+    gap: 6px;
+    white-space: nowrap;
   }
 
   .hero h1 {
@@ -1044,24 +1063,24 @@
       }
 
       .topbar-actions {
-        gap: 6px;
+        gap: 8px;
       }
 
       .topbar-nav {
-        gap: 10px 12px;
+        gap: 6px;
       }
 
       .topbar-nav a {
-        font-size: 11px;
+        font-size: 10px;
       }
 
       .topbar-nav__toggle {
-        font-size: 11px;
+        font-size: 10px;
       }
 
       .header-cart-trigger {
-        padding: 8px 11px;
-        font-size: 11px;
+        padding: 7px 9px;
+        font-size: 10px;
         margin-top: 0;
       }
 
