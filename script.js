@@ -889,7 +889,7 @@ function buildClientReferralLink(code) {
   }
 }
 
-async function fetchReferralStatusForLookup(code, ownerPhone = "") {
+async function fetchReferralStatusForLookup(code) {
   const normalizedCode = normalizeClientReferralCode(code);
 
   if (!isFourDigitClientReferralCode(normalizedCode)) {
@@ -897,16 +897,11 @@ async function fetchReferralStatusForLookup(code, ownerPhone = "") {
   }
 
   const ownedReferral = loadOwnedReferrals().find((entry) => entry.code === normalizedCode) || null;
-  const normalizedOwnerPhone = String(ownerPhone || (ownedReferral && ownedReferral.ownerPhone) || "").trim();
 
   if (ownedReferral && ownedReferral.ownerToken) {
     try {
       const ownerStatusUrl = new URL(`${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}/owner-status`, window.location.origin);
       ownerStatusUrl.searchParams.set("ownerToken", ownedReferral.ownerToken);
-
-      if (normalizedOwnerPhone) {
-        ownerStatusUrl.searchParams.set("ownerPhone", normalizedOwnerPhone);
-      }
 
       const response = await fetch(ownerStatusUrl.toString(), {
         headers: {
@@ -918,8 +913,7 @@ async function fetchReferralStatusForLookup(code, ownerPhone = "") {
       if (response.ok && payload.referral) {
         const nextReferral = normalizeOwnedReferralEntry({
           ...ownedReferral,
-          ...payload.referral,
-          ownerPhone: payload.referral.ownerPhone || normalizedOwnerPhone || ownedReferral.ownerPhone || ""
+          ...payload.referral
         }) || ownedReferral;
 
         storeOwnedReferral(nextReferral);
@@ -945,8 +939,7 @@ async function fetchReferralStatusForLookup(code, ownerPhone = "") {
   setStoredReferralLookupCode(normalizedCode);
   return {
     ...payload.referral,
-    code: normalizedCode,
-    ownerPhone: normalizedOwnerPhone || ""
+    code: normalizedCode
   };
 }
 
@@ -3230,7 +3223,6 @@ function bindReferralForm() {
   const lookupInput = document.querySelector("[data-referral-lookup-code]");
   const lookupButton = document.querySelector("[data-check-referral]");
   const rewardsPanel = document.querySelector("[data-referral-status]");
-  const ownerPhoneInput = document.querySelector("[data-referral-owner-phone]");
 
   if (!message || !submit || !output || !codeEl || !linkEl || !lookupInput || !lookupButton || !rewardsPanel) {
     return;
@@ -3272,17 +3264,6 @@ function bindReferralForm() {
     }
 
     return "Recorded";
-  };
-
-  const syncOwnerPhoneInput = (referral) => {
-    if (!ownerPhoneInput || document.activeElement === ownerPhoneInput) {
-      return;
-    }
-
-    const nextPhone = String(referral && referral.ownerPhone ? referral.ownerPhone : "").trim();
-    if (nextPhone) {
-      ownerPhoneInput.value = nextPhone;
-    }
   };
 
   const showReferralLink = (referral) => {
@@ -3362,7 +3343,6 @@ function bindReferralForm() {
     if (latestOwnedReferral) {
       showReferralLink(latestOwnedReferral);
       renderReferralStatus(latestOwnedReferral);
-      syncOwnerPhoneInput(latestOwnedReferral);
     }
 
     if (!isFourDigitClientReferralCode(restoredCode)) {
@@ -3373,22 +3353,14 @@ function bindReferralForm() {
     showReferralLink({ code: restoredCode });
 
     try {
-      const referral = await fetchReferralStatusForLookup(restoredCode, ownerPhoneInput ? ownerPhoneInput.value : "");
+      const referral = await fetchReferralStatusForLookup(restoredCode);
       lookupInput.value = referral.code || restoredCode;
-      syncOwnerPhoneInput(referral);
       showReferralLink(referral);
       renderReferralStatus(referral);
     } catch (_error) {
       // Keep the saved code and existing rewards visible if the refresh check fails.
     }
   };
-
-  if (ownerPhoneInput) {
-    const latestOwnedReferral = getLatestOwnedReferral(true, { allowLegacyCode: true });
-    if (latestOwnedReferral && latestOwnedReferral.ownerPhone) {
-      ownerPhoneInput.value = latestOwnedReferral.ownerPhone;
-    }
-  }
 
   lookupInput.addEventListener("input", () => {
     lookupInput.value = normalizeClientReferralCode(lookupInput.value);
@@ -3408,8 +3380,7 @@ function bindReferralForm() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          ownerToken: latestOwnedReferral ? latestOwnedReferral.ownerToken : "",
-          ownerPhone: ownerPhoneInput ? ownerPhoneInput.value : ""
+          ownerToken: latestOwnedReferral ? latestOwnedReferral.ownerToken : ""
         })
       });
       const result = await response.json().catch(() => ({}));
@@ -3425,8 +3396,7 @@ function bindReferralForm() {
         ...(latestOwnedReferral || {}),
         ...result.referral,
         code: normalizedCode,
-        link: buildClientReferralLink(normalizedCode),
-        ownerPhone: result.referral.ownerPhone || (ownerPhoneInput ? ownerPhoneInput.value : "")
+        link: buildClientReferralLink(normalizedCode)
       });
 
       if (!nextReferral) {
@@ -3436,7 +3406,6 @@ function bindReferralForm() {
       storeOwnedReferral(nextReferral);
       setStoredReferralLookupCode(normalizedCode);
       lookupInput.value = normalizedCode;
-      syncOwnerPhoneInput(nextReferral);
       showReferralLink(nextReferral);
       renderReferralStatus(nextReferral);
       message.textContent = "Referral code ready and saved on this device.";
@@ -3476,9 +3445,8 @@ function bindReferralForm() {
     message.className = "referral-message";
 
     try {
-      const referral = await fetchReferralStatusForLookup(lookupInput.value, ownerPhoneInput ? ownerPhoneInput.value : "");
+      const referral = await fetchReferralStatusForLookup(lookupInput.value);
       lookupInput.value = referral.code || "";
-      syncOwnerPhoneInput(referral);
       showReferralLink(referral);
       renderReferralStatus(referral);
       message.textContent = "Referral rewards loaded.";

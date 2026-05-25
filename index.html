@@ -152,7 +152,6 @@
     }
 
     .topbar-nav .nav-group.is-open .topbar-nav__menu,
-    .topbar-nav .nav-group:hover .topbar-nav__menu,
     .topbar-nav .nav-group:focus-within .topbar-nav__menu {
       display: grid;
     }
@@ -1175,6 +1174,44 @@
         </div>
       </div>
 
+      <section id="referrals" class="section referral-program">
+        <div class="referral-header">
+          <h2>Referral Rewards</h2>
+          <p>Generate a 4-digit referral code that stays valid for 30 days, then come back anytime to check how many rewards you have earned.</p>
+        </div>
+        <div class="referral-grid">
+          <div class="referral-card">
+            <h3>Create Your Referral Code</h3>
+            <p>Share your 4-digit code with friends. When they enter it during checkout and complete their order, your next referral reward will appear here automatically.</p>
+            <div class="referral-form">
+              <div class="referral-message" data-referral-message></div>
+              <button class="btn-email" type="button" data-referral-submit>Generate Referral Code</button>
+              <div class="referral-output" data-referral-output>
+                <strong>Your active referral code</strong>
+                <span class="referral-code-chip" data-referral-code>0000</span>
+                <a class="referral-link" href="#" target="_blank" rel="noopener" data-referral-link></a>
+                <div class="referral-inline-actions">
+                  <button class="btn-secondary" type="button" data-copy-referral-link>Copy Referral Link</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="referral-card">
+            <h3>Check Referral Rewards</h3>
+            <p>Your generated code stays stored locally, so after a refresh you can still check the same referral rewards instead of losing the code.</p>
+            <div class="referral-form">
+              <div class="referral-field">
+                <label for="referral-lookup-code">Referral Code</label>
+                <input id="referral-lookup-code" type="text" maxlength="4" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter your 4-digit code" data-referral-lookup-code />
+                <small>Use your saved 4-digit code to reload your referral reward status at any time.</small>
+              </div>
+              <button class="btn-secondary" type="button" data-check-referral>Check Referral Rewards</button>
+              <div class="referral-status" data-referral-status hidden></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div class="order-hub">
         <section id="online-delivery" class="order-subsection">
           <div id="online-delivery-heading" class="order-label-row">
@@ -1402,51 +1439,6 @@
 
       <div class="shop-btn-wrap">
         <a href="#" class="btn">Shop All</a>
-      </div>
-    </div>
-  </section>
-
-  <section id="referrals" class="section referral-program">
-    <div class="container">
-      <div class="referral-header">
-        <h2>Referral Rewards</h2>
-        <p>Generate a 4-digit referral code that stays valid for 30 days, then come back anytime to check how many rewards you have earned.</p>
-      </div>
-      <div class="referral-grid">
-        <div class="referral-card">
-          <h3>Create Your Referral Code</h3>
-          <p>Share your code with friends. When they order with it, your next rewards will be tracked here and can flow into checkout automatically.</p>
-          <div class="referral-form">
-            <div class="referral-field">
-              <label for="referral-owner-phone">Phone Number</label>
-              <input id="referral-owner-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Optional, but recommended for reward verification" data-referral-owner-phone />
-              <small>Recommended so referral rewards can be matched more safely to your account.</small>
-            </div>
-            <div class="referral-message" data-referral-message></div>
-            <button class="btn-email" type="button" data-referral-submit>Generate Referral Code</button>
-            <div class="referral-output" data-referral-output>
-              <strong>Your active referral code</strong>
-              <span class="referral-code-chip" data-referral-code>0000</span>
-              <a class="referral-link" href="#" target="_blank" rel="noopener" data-referral-link></a>
-              <div class="referral-inline-actions">
-                <button class="btn-secondary" type="button" data-copy-referral-link>Copy Referral Link</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="referral-card">
-          <h3>Check Referral Rewards</h3>
-          <p>Your generated code stays stored locally, so after a refresh you can still check the same referral rewards instead of losing the code.</p>
-          <div class="referral-form">
-            <div class="referral-field">
-              <label for="referral-lookup-code">Referral Code</label>
-              <input id="referral-lookup-code" type="text" maxlength="4" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter your 4-digit code" data-referral-lookup-code />
-              <small>Use your saved 4-digit code to reload your referral reward status at any time.</small>
-            </div>
-            <button class="btn-secondary" type="button" data-check-referral>Check Referral Rewards</button>
-            <div class="referral-status" data-referral-status hidden></div>
-          </div>
-        </div>
       </div>
     </div>
   </section>
