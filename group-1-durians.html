@@ -6,7 +6,7 @@
   <title>Durian Paradise | Group 1 Durians</title>
   <link rel="stylesheet" href="shopping.css?v=20260524-3" />
   <link rel="icon" type="image/png" href="images/favicon.png" />
-  <link rel="preload" as="image" href="images/group1-main-fast-std-trim.jpg" fetchpriority="high" />
+  <link rel="preload" as="image" href="images/group1-main-fast-std-trim.jpg?v=20260525-1" fetchpriority="high" />
   <style>
     * {
       box-sizing: border-box;
@@ -274,7 +274,7 @@
       min-width: var(--thumb-size-desktop);
       height: var(--thumb-size-desktop);
       border: 2px solid transparent;
-      background: #111;
+      background: transparent;
       cursor: pointer;
       overflow: hidden;
       padding: 0;
@@ -429,7 +429,7 @@
       gap: 0;
       flex-wrap: wrap;
       margin-bottom: 22px;
-      background: #111;
+      background: transparent;
       width: fit-content;
       max-width: 100%;
       border: 1px solid rgba(120, 100, 76, 0.16);
@@ -448,7 +448,7 @@
       height: var(--gallery-height-desktop);
       object-fit: contain;
       display: block;
-      background: #111;
+      background: transparent;
       border-right: 1px solid rgba(120, 100, 76, 0.16);
     }
 
@@ -461,11 +461,11 @@
     }
 
     .variety-gallery.solid-black-gallery {
-      background: #111;
+      background: transparent;
     }
 
     .variety-gallery.solid-black-gallery .smart-image-frame {
-      background: #111;
+      background: transparent;
     }
 
     .variety-gallery.solid-black-gallery .smart-image-frame::before {
@@ -473,7 +473,7 @@
     }
 
     .variety-gallery.solid-black-gallery > img {
-      background: #111;
+      background: transparent;
     }
 
     .variety-block p {
@@ -614,29 +614,29 @@
       }
 
       .site-logo img {
-        width: 80px;
-        height: 70px;
+        width: 118px;
+        height: auto;
       }
 
       .topbar-actions {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
+        grid-template-columns: 1fr;
+        justify-items: stretch;
         gap: 10px;
         width: 100%;
-        padding-top: 2px;
+        padding-top: 4px;
       }
 
       .topbar-nav {
-        grid-column: 1;
-        gap: 8px;
+        grid-column: auto;
+        gap: 12px;
         width: 100%;
         flex-wrap: nowrap;
-        justify-content: flex-start;
+        justify-content: center;
         align-items: center;
         overflow-x: auto;
         overflow-y: visible;
-        padding: 2px 4px 2px 0;
+        padding: 2px 0;
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
@@ -647,12 +647,12 @@
 
       .topbar-nav a {
         flex: 0 0 auto;
-        font-size: 10px;
+        font-size: 12px;
       }
 
       .topbar-nav__toggle {
         flex: 0 0 auto;
-        font-size: 10px;
+        font-size: 12px;
         line-height: 1.15;
       }
 
@@ -666,11 +666,11 @@
       }
 
       .header-cart-trigger {
-        grid-column: 2;
+        grid-column: auto;
         justify-self: end;
-        padding: 8px 10px;
-        font-size: 10px;
-        gap: 6px;
+        padding: 10px 14px;
+        font-size: 12px;
+        gap: 8px;
         white-space: nowrap;
       }
 
@@ -751,7 +751,7 @@
   <header class="topbar">
     <div class="container topbar-inner">
       <a class="site-logo" href="index.html" aria-label="DurianParadises.com home">
-        <img src="images/logo-header.png" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" />
+        <img src="images/logo-header.png?v=20260525-1" alt="Durian Paradise logo" width="250" height="264" loading="eager" fetchpriority="high" decoding="async" />
       </a>
       <div class="topbar-actions">
         <nav class="topbar-nav" aria-label="Primary">
@@ -783,7 +783,7 @@
           <img
             id="mainProductImage"
             class="main-image"
-            src="images/group1-main-fast-std-trim.jpg"
+            src="images/group1-main-fast-std-trim.jpg?v=20260525-1"
             alt="Main product placeholder"
             loading="eager"
             fetchpriority="high"
@@ -792,20 +792,20 @@
         </div>
 
         <div class="thumb-row">
-          <button class="thumb active" data-image="images/group1-main-fast-std-trim.jpg">
-            <img src="images/group1-main-fast-std-trim.jpg" alt="Thumbnail 1" loading="eager" fetchpriority="high" decoding="sync" />
+          <button class="thumb active" data-image="images/group1-main-fast-std-trim.jpg?v=20260525-1">
+            <img src="images/group1-main-fast-std-trim.jpg?v=20260525-1" alt="Thumbnail 1" loading="eager" fetchpriority="high" decoding="sync" />
           </button>
 
-          <button class="thumb" data-image="images/group1-thumb-2-std-trim.png">
-            <img src="images/group1-thumb-2-std-trim.png" alt="Thumbnail 2" loading="lazy" decoding="async" />
+          <button class="thumb" data-image="images/group1-thumb-2-std-trim.png?v=20260525-1">
+            <img src="images/group1-thumb-2-std-trim.png?v=20260525-1" alt="Thumbnail 2" loading="lazy" decoding="async" />
           </button>
 
-          <button class="thumb" data-image="images/group1-thumb-3-std-trim.png">
-            <img src="images/group1-thumb-3-std-trim.png" alt="Thumbnail 3" loading="lazy" decoding="async" />
+          <button class="thumb" data-image="images/group1-thumb-3-std-trim.png?v=20260525-1">
+            <img src="images/group1-thumb-3-std-trim.png?v=20260525-1" alt="Thumbnail 3" loading="lazy" decoding="async" />
           </button>
 
-          <button class="thumb" data-image="images/group1-thumb-4-std-trim.png">
-            <img src="images/group1-thumb-4-std-trim.png" alt="Thumbnail 4" loading="lazy" decoding="async" />
+          <button class="thumb" data-image="images/group1-thumb-4-std-trim.png?v=20260525-1">
+            <img src="images/group1-thumb-4-std-trim.png?v=20260525-1" alt="Thumbnail 4" loading="lazy" decoding="async" />
           </button>
         </div>
       </div>
@@ -928,7 +928,7 @@
         <article id="d24" class="variety-block">
           <h3>D24</h3>
           <div class="variety-gallery">
-            <img src="images/d24-1.png" alt="D24 image 1" loading="lazy" decoding="async" />
+            <img src="images/d24-1.png?v=20260525-1" alt="D24 image 1" loading="lazy" decoding="async" />
             <img src="images/d24-2-std.png" alt="D24 image 2" loading="lazy" decoding="async" />
           </div>
           <p>
@@ -1054,7 +1054,7 @@
           <h3>Red Prawn</h3>
           <div class="variety-gallery">
             <img src="images/red-prawn-whole-std.png" alt="Red Prawn durian whole" loading="lazy" decoding="async" />
-            <img src="images/red-prawn-open.png?v=2" alt="Red Prawn durian opened" loading="lazy" decoding="async" />
+            <img src="images/red-prawn-open.png?v=20260525-1" alt="Red Prawn durian opened" loading="lazy" decoding="async" />
           </div>
           <p>
             Don't let the name throw you, there's nothing fishy about <strong>Red Prawn</strong>
@@ -1080,7 +1080,7 @@
           <h3>Kampung Durians</h3>
           <div class="variety-gallery solid-black-gallery">
             <img src="images/group1-thumb-2-std.png?v=4" alt="Kampung durian image 1" loading="lazy" decoding="async" />
-            <img src="images/kampung-durian.png?v=2" alt="Kampung durian image 2" loading="lazy" decoding="async" />
+            <img src="images/kampung-durian.png?v=20260525-1" alt="Kampung durian image 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Wild. Diverse. Full of surprises. Kampung durians aren't from cloned or grafted trees, but
