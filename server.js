@@ -1404,7 +1404,7 @@ function resolveReferralRewardsForCheckout(rewardClaims) {
     normalizeReferralEntry(referral);
     const reward = referral.rewards.find((entry) => entry.id === claim.rewardId);
 
-    if (!reward || reward.status === "claimed") {
+    if (!reward || String(reward.status || "") !== "issued_for_next_purchase") {
       return null;
     }
 
@@ -1435,13 +1435,14 @@ function claimReferralRewards(rewardClaims, orderId) {
 
     normalizeReferralEntry(referral);
 
-    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
+    const hasOwnerProof = Boolean(claim.ownerToken || claim.ownerPhone);
+    if (hasOwnerProof && !isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
       return;
     }
 
     const reward = referral.rewards.find((entry) => entry.id === claim.rewardId);
 
-    if (!reward || reward.status === "claimed") {
+    if (!reward || String(reward.status || "") !== "issued_for_next_purchase") {
       return;
     }
 

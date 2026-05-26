@@ -34,6 +34,7 @@ let partyFormsBound = false;
 let reviewFormBound = false;
 let referralFormBound = false;
 let pendingPaymentStatusRefreshPromise = null;
+let checkoutReferralSyncRequestId = 0;
 const memoryStorage = new Map();
 
 function normalizeOwnedReferralReward(reward) {
@@ -72,7 +73,7 @@ function normalizeOwnedReferralEntry(referral) {
       : []
   };
 
-  if (!normalized.code || !normalized.ownerToken) {
+  if (!normalized.code) {
     return null;
   }
 
@@ -651,9 +652,11 @@ function storeOwnedReferral(referral) {
   );
 
   if (existingIndex >= 0) {
+    const existingEntry = ownedReferrals[existingIndex];
     ownedReferrals[existingIndex] = {
-      ...ownedReferrals[existingIndex],
-      ...nextEntry
+      ...existingEntry,
+      ...nextEntry,
+      ownerToken: nextEntry.ownerToken || existingEntry.ownerToken || ""
     };
   } else {
     ownedReferrals.unshift(nextEntry);
@@ -691,9 +694,15 @@ function getReferralRewardMessage(reward) {
   return getReferralRewardMessageText(reward);
 }
 
-function getActiveOwnedReferralRewards() {
+function getActiveOwnedReferralRewards(referralCode = "") {
+  const normalizedReferralCode = normalizeClientReferralCode(referralCode);
+
   return loadOwnedReferrals().reduce((result, referral) => {
     if (!isFourDigitClientReferralCode(referral.code)) {
+      return result;
+    }
+
+    if (normalizedReferralCode && referral.code !== normalizedReferralCode) {
       return result;
     }
 
@@ -773,8 +782,8 @@ function mergeReferralRewards(rewardGroups) {
   return merged;
 }
 
-function getDisplayableReferralRewards() {
-  return getActiveOwnedReferralRewards();
+function getDisplayableReferralRewards(referralCode = getStoredReferralCode()) {
+  return getActiveOwnedReferralRewards(referralCode);
 }
 
 async function refreshOwnedReferralRewards() {
@@ -938,11 +947,14 @@ async function fetchReferralStatusForLookup(code) {
     throw new Error(payload.error || "Unable to load referral rewards.");
   }
 
-  setStoredReferralLookupCode(normalizedCode);
-  return {
+  const publicReferral = {
     ...payload.referral,
     code: normalizedCode
   };
+
+  storeOwnedReferral(publicReferral);
+  setStoredReferralLookupCode(normalizedCode);
+  return publicReferral;
 }
 
 function captureReferralCode() {
@@ -2669,6 +2681,40 @@ function bindCartTrigger() {
   });
 }
 
+async function syncCheckoutReferralRewards(code, { render = true } = {}) {
+  const normalizedCode = normalizeClientReferralCode(code);
+  const requestId = checkoutReferralSyncRequestId + 1;
+  checkoutReferralSyncRequestId = requestId;
+
+  if (!normalizedCode) {
+    clearStoredReferralCode();
+    if (render) {
+      renderCart();
+    }
+    return [];
+  }
+
+  if (!isFourDigitClientReferralCode(normalizedCode)) {
+    return getDisplayableReferralRewards(normalizedCode);
+  }
+
+  setStoredReferralCode(normalizedCode);
+
+  try {
+    await fetchReferralStatusForLookup(normalizedCode);
+  } catch (_error) {
+    // A referral can still be recorded at checkout, but only loaded rewards affect pricing.
+  }
+
+  const rewards = getDisplayableReferralRewards(normalizedCode);
+
+  if (render && requestId === checkoutReferralSyncRequestId) {
+    renderCart();
+  }
+
+  return rewards;
+}
+
 function bindCartUI() {
   if (cartUiBound) {
     return;
@@ -2759,17 +2805,21 @@ function bindCartUI() {
     referralInput.dataset.inputBound = "true";
     referralInput.addEventListener("input", () => {
       referralInput.value = normalizeClientReferralCode(referralInput.value);
+
+      if (isFourDigitClientReferralCode(referralInput.value)) {
+        syncCheckoutReferralRewards(referralInput.value);
+      }
     });
     referralInput.addEventListener("change", () => {
       const normalizedCode = normalizeClientReferralCode(referralInput.value);
       referralInput.value = normalizedCode;
 
       if (!normalizedCode) {
-        clearStoredReferralCode();
+        syncCheckoutReferralRewards("");
         return;
       }
 
-      setStoredReferralCode(normalizedCode);
+      syncCheckoutReferralRewards(normalizedCode);
     });
   }
 
@@ -2778,27 +2828,31 @@ function bindCartUI() {
       event.preventDefault();
       const cart = loadCart();
       const selectedPaymentMethod = getPaymentMethodConfig(getSelectedCheckoutPaymentMethodKey());
-      const activeReferralRewards = getDisplayableReferralRewards();
-      const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
       const referralCodeInputValue = referralInput ? normalizeClientReferralCode(referralInput.value) : "";
       const effectiveReferralCode = referralCodeInputValue || getStoredReferralCode();
-      const referralRewardClaims = activeReferralRewards.map((reward) => ({
-        referralCode: reward.referralCode,
-        rewardId: reward.id
-      })).filter((claim) => claim.referralCode && claim.rewardId);
 
       if (!cart.length) {
-        return;
-      }
-
-      if (!pricing.minimumDeliveryBoxesMet) {
-        window.alert("Online Delivery requires a minimum of 3 boxes.");
         return;
       }
 
       if (referralInput && referralInput.value && !isFourDigitClientReferralCode(referralCodeInputValue)) {
         window.alert("Please enter a valid 4-digit referral code.");
         referralInput.focus();
+        return;
+      }
+
+      const activeReferralRewards = effectiveReferralCode
+        ? await syncCheckoutReferralRewards(effectiveReferralCode, { render: false })
+        : [];
+      const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
+      const referralRewardClaims = activeReferralRewards.map((reward) => ({
+        referralCode: reward.referralCode,
+        rewardId: reward.id,
+        ownerToken: reward.ownerToken || ""
+      })).filter((claim) => claim.referralCode && claim.rewardId);
+
+      if (!pricing.minimumDeliveryBoxesMet) {
+        window.alert("Online Delivery requires a minimum of 3 boxes.");
         return;
       }
 
@@ -3359,6 +3413,8 @@ function bindReferralForm() {
       lookupInput.value = referral.code || restoredCode;
       showReferralLink(referral);
       renderReferralStatus(referral);
+      setStoredReferralCode(referral.code || restoredCode);
+      renderCart();
     } catch (_error) {
       // Keep the saved code and existing rewards visible if the refresh check fails.
     }
@@ -3406,6 +3462,7 @@ function bindReferralForm() {
       }
 
       storeOwnedReferral(nextReferral);
+      setStoredReferralCode(normalizedCode);
       setStoredReferralLookupCode(normalizedCode);
       lookupInput.value = normalizedCode;
       showReferralLink(nextReferral);
@@ -3451,6 +3508,8 @@ function bindReferralForm() {
       lookupInput.value = referral.code || "";
       showReferralLink(referral);
       renderReferralStatus(referral);
+      setStoredReferralCode(referral.code || lookupInput.value);
+      renderCart();
       message.textContent = "Referral rewards loaded.";
       message.className = "referral-message is-success";
     } catch (error) {
