@@ -1569,6 +1569,20 @@ function injectCartStyles() {
       line-height: 1.4;
     }
 
+    .checkout-referral-heading {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1f1a15;
+    }
+
+    .checkout-referral-tiers {
+      margin: 0;
+      font-size: 12px;
+      color: #5a4a3b;
+      line-height: 1.6;
+    }
+
     .checkout-payment-methods {
       display: grid;
       gap: 10px;
@@ -2257,9 +2271,11 @@ function ensureCartUI() {
         </div>
         <div class="cart-breakdown" data-cart-breakdown></div>
         <div class="checkout-referral">
-          <label for="cart-referral-code">Referral Code (if any)</label>
-          <input id="cart-referral-code" type="text" maxlength="4" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter 4-digit referral code" data-cart-referral-code />
-          <small>If a friend shared a referral code with you, enter it here before payment so the referral reward can be recorded.</small>
+          <strong class="checkout-referral-heading">Claim Your Referral Reward</strong>
+          <p class="checkout-referral-tiers">1st referral: <strong>$5 off</strong> &nbsp;·&nbsp; 2nd: <strong>$10 off</strong> &nbsp;·&nbsp; 3rd: <strong>Free 500g Group 1 box</strong></p>
+          <label for="cart-referral-code">Your Referral Code</label>
+          <input id="cart-referral-code" type="text" maxlength="4" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter 4-digit code" data-cart-referral-code />
+          <small>Enter your 4-digit code — any earned reward will be deducted from this order automatically.</small>
         </div>
         <div class="checkout-payment-methods">
           <h3>Payment Method</h3>
@@ -3282,7 +3298,7 @@ function bindReferralForm() {
   const lookupButton = document.querySelector("[data-check-referral]");
   const rewardsPanel = document.querySelector("[data-referral-status]");
 
-  if (!message || !submit || !output || !codeEl || !linkEl || !lookupInput || !lookupButton || !rewardsPanel) {
+  if (!message || !submit || !output || !codeEl || !linkEl) {
     return;
   }
 
@@ -3342,6 +3358,10 @@ function bindReferralForm() {
   };
 
   const renderReferralStatus = (referral) => {
+    if (!rewardsPanel) {
+      return;
+    }
+
     if (!referral || !referral.code) {
       rewardsPanel.hidden = true;
       rewardsPanel.innerHTML = "";
@@ -3407,12 +3427,12 @@ function bindReferralForm() {
       return;
     }
 
-    lookupInput.value = restoredCode;
+    if (lookupInput) lookupInput.value = restoredCode;
     showReferralLink({ code: restoredCode });
 
     try {
       const referral = await fetchReferralStatusForLookup(restoredCode);
-      lookupInput.value = referral.code || restoredCode;
+      if (lookupInput) lookupInput.value = referral.code || restoredCode;
       showReferralLink(referral);
       renderReferralStatus(referral);
       setStoredReferralCode(referral.code || restoredCode);
@@ -3422,9 +3442,11 @@ function bindReferralForm() {
     }
   };
 
-  lookupInput.addEventListener("input", () => {
-    lookupInput.value = normalizeClientReferralCode(lookupInput.value);
-  });
+  if (lookupInput) {
+    lookupInput.addEventListener("input", () => {
+      lookupInput.value = normalizeClientReferralCode(lookupInput.value);
+    });
+  }
 
   submit.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -3466,7 +3488,7 @@ function bindReferralForm() {
       storeOwnedReferral(nextReferral);
       setStoredReferralCode(normalizedCode);
       setStoredReferralLookupCode(normalizedCode);
-      lookupInput.value = normalizedCode;
+      if (lookupInput) lookupInput.value = normalizedCode;
       showReferralLink(nextReferral);
       renderReferralStatus(nextReferral);
       message.textContent = "Referral code ready and saved on this device.";
@@ -3500,25 +3522,27 @@ function bindReferralForm() {
     });
   }
 
-  lookupButton.addEventListener("click", async (event) => {
-    event.preventDefault();
-    message.textContent = "Checking referral rewards...";
-    message.className = "referral-message";
+  if (lookupButton) {
+    lookupButton.addEventListener("click", async (event) => {
+      event.preventDefault();
+      message.textContent = "Checking referral rewards...";
+      message.className = "referral-message";
 
-    try {
-      const referral = await fetchReferralStatusForLookup(lookupInput.value);
-      lookupInput.value = referral.code || "";
-      showReferralLink(referral);
-      renderReferralStatus(referral);
-      setStoredReferralCode(referral.code || lookupInput.value);
-      renderCart();
-      message.textContent = "Referral rewards loaded.";
-      message.className = "referral-message is-success";
-    } catch (error) {
-      message.textContent = error && error.message ? error.message : "Unable to load referral rewards.";
-      message.className = "referral-message is-error";
-    }
-  });
+      try {
+        const referral = await fetchReferralStatusForLookup(lookupInput ? lookupInput.value : "");
+        if (lookupInput) lookupInput.value = referral.code || "";
+        showReferralLink(referral);
+        renderReferralStatus(referral);
+        setStoredReferralCode(referral.code || (lookupInput ? lookupInput.value : ""));
+        renderCart();
+        message.textContent = "Referral rewards loaded.";
+        message.className = "referral-message is-success";
+      } catch (error) {
+        message.textContent = error && error.message ? error.message : "Unable to load referral rewards.";
+        message.className = "referral-message is-error";
+      }
+    });
+  }
 
   restoreReferralState();
 }
