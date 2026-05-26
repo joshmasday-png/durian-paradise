@@ -2607,7 +2607,9 @@ function renderPaymentRequestCard(pendingPayment) {
 
 function renderCart() {
   const cart = loadCart();
-  const activeReferralRewards = getDisplayableReferralRewards();
+  const referralInput = document.querySelector("[data-cart-referral-code]");
+  const referralInputCode = referralInput ? normalizeClientReferralCode(referralInput.value) : "";
+  const activeReferralRewards = getDisplayableReferralRewards(referralInputCode);
   const countEls = document.querySelectorAll("[data-cart-count]");
   const body = document.querySelector("[data-cart-body]");
   const totalEl = document.querySelector("[data-cart-total]");
@@ -2615,7 +2617,6 @@ function renderCart() {
   const checkoutButton = document.querySelector("[data-cart-checkout]");
   const paymentRequest = document.querySelector("[data-payment-request]");
   const breakdownEl = document.querySelector("[data-cart-breakdown]");
-  const referralInput = document.querySelector("[data-cart-referral-code]");
   const pendingPayment = loadPendingPayment();
   const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
   syncCartTriggerState(cart, pendingPayment);
@@ -2623,10 +2624,6 @@ function renderCart() {
   countEls.forEach((el) => {
     el.textContent = String(getCartCount(cart));
   });
-
-  if (referralInput && document.activeElement !== referralInput) {
-    referralInput.value = getStoredReferralCode();
-  }
 
   if (!body || !totalEl || !itemsLabel || !checkoutButton) {
     return;
@@ -2845,8 +2842,8 @@ function bindCartUI() {
         return;
       }
 
-      const activeReferralRewards = effectiveReferralCode
-        ? await syncCheckoutReferralRewards(effectiveReferralCode, { render: false })
+      const activeReferralRewards = referralCodeInputValue
+        ? await syncCheckoutReferralRewards(referralCodeInputValue, { render: false })
         : [];
       const pricing = applyReferralRewardsToPricing(calculateCartPricing(cart), activeReferralRewards);
       const referralRewardClaims = activeReferralRewards.map((reward) => ({
