@@ -268,7 +268,7 @@
     .main-image {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
 
     .thumb-row {
@@ -485,6 +485,16 @@
 
     .variety-gallery.solid-black-gallery > img {
       background: var(--image-surface);
+    }
+
+    .variety-gallery.white-gallery,
+    .variety-gallery.white-gallery > img {
+      background: #ffffff;
+    }
+
+    .variety-gallery.solo-gallery > img {
+      width: calc(var(--gallery-width-desktop) * 2);
+      height: calc(var(--gallery-height-desktop) * 2);
     }
 
     .variety-block p {
@@ -726,6 +736,11 @@
         height: var(--gallery-height-mobile);
       }
 
+      .variety-gallery.solo-gallery > img {
+        width: 100%;
+        height: calc(var(--gallery-height-mobile) * 2);
+      }
+
       .thumb {
         width: var(--thumb-size-mobile);
         min-width: var(--thumb-size-mobile);
@@ -795,16 +810,16 @@
             <img src="images/group1-main-fast-std-trim.jpg?v=20260526-1" alt="Thumbnail 1" loading="eager" fetchpriority="high" decoding="sync" />
           </button>
 
-          <button class="thumb" data-image="images/group1-thumb-2-std-trim.png?v=20260525-1">
-            <img src="images/group1-thumb-2-std-trim.png?v=20260525-1" alt="Thumbnail 2" loading="lazy" decoding="async" />
+          <button class="thumb" data-image="images/group1-thumb-2-std-trim.jpg?v=20260526-2">
+            <img src="images/group1-thumb-2-std-trim.jpg?v=20260526-2" alt="Thumbnail 2" loading="lazy" decoding="async" />
           </button>
 
-          <button class="thumb" data-image="images/group1-thumb-3-std-trim.png?v=20260525-1">
-            <img src="images/group1-thumb-3-std-trim.png?v=20260525-1" alt="Thumbnail 3" loading="lazy" decoding="async" />
+          <button class="thumb" data-image="images/group1-thumb-3-std-trim.jpg?v=20260526-2">
+            <img src="images/group1-thumb-3-std-trim.jpg?v=20260526-2" alt="Thumbnail 3" loading="lazy" decoding="async" />
           </button>
 
-          <button class="thumb" data-image="images/group1-thumb-4-std-trim.png?v=20260525-1">
-            <img src="images/group1-thumb-4-std-trim.png?v=20260525-1" alt="Thumbnail 4" loading="lazy" decoding="async" />
+          <button class="thumb" data-image="images/group1-thumb-4-std-trim.jpg?v=20260526-2">
+            <img src="images/group1-thumb-4-std-trim.jpg?v=20260526-2" alt="Thumbnail 4" loading="lazy" decoding="async" />
           </button>
         </div>
       </div>
@@ -855,8 +870,8 @@
         <article id="cheh-kak" class="variety-block">
           <h3>D145 Cheh Kah</h3>
           <div class="variety-gallery">
-            <img src="images/cheh-kak-1-std.png" alt="D145 Cheh Kah image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/cheh-kak-2-std.png" alt="D145 Cheh Kah image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/cheh-kak-1-std.jpg" alt="D145 Cheh Kah image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/cheh-kak-2-std.jpg" alt="D145 Cheh Kah image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Old-school charm. Rich and earthy. D145 Cheh Kah is positioned here as a classic, traditional
@@ -873,8 +888,8 @@
         <article id="d2" class="variety-block">
           <h3>D2 – Dato Nina</h3>
           <div class="variety-gallery">
-            <img src="images/d2-dato-nina-1-std.png" alt="D2 Dato Nina image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/d2-dato-nina-2-std.png" alt="D2 Dato Nina image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/d2-dato-nina-1-std.jpg" alt="D2 Dato Nina image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d2-dato-nina-2-std.jpg" alt="D2 Dato Nina image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Elegant, delicate and more niche. D2 – Dato Nina is presented as a refined option with a softer,
@@ -891,8 +906,8 @@
         <article id="d13" class="variety-block">
           <h3>D13</h3>
           <div class="variety-gallery">
-            <img src="images/d13-1-std.png" alt="D13 image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/d13-2-std.png" alt="D13 image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/d13-1-std.jpg" alt="D13 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d13-2-std.jpg" alt="D13 image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Sweet, bright and crowd-friendly. D13 is a beginner-friendly durian variant with a more
@@ -909,8 +924,8 @@
         <article id="d135" class="variety-block">
           <h3>D13.5</h3>
           <div class="variety-gallery">
-            <img src="images/d13-5-1-std.png" alt="D13.5 image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/d13-5-2-std.png?v=2" alt="D13.5 image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/d13-5-1-std.jpg" alt="D13.5 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d13-5-2-std.jpg?v=20260526-2" alt="D13.5 image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Richer and bolder than D13. D13.5 is positioned as a natural next step for those who want
@@ -926,9 +941,9 @@
 
         <article id="d24" class="variety-block">
           <h3>D24</h3>
-          <div class="variety-gallery">
-            <img src="images/d24-1.png?v=20260525-1" alt="D24 image 1" loading="lazy" decoding="async" />
-            <img src="images/d24-2-std.png" alt="D24 image 2" loading="lazy" decoding="async" />
+          <div class="variety-gallery white-gallery">
+            <img src="images/d24-1.jpg?v=20260526-2" alt="D24 image 1" loading="lazy" decoding="async" />
+            <img src="images/d24-2-std.jpg" alt="D24 image 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Classic. Reliable. Always hits the spot. D24, also known as Sultan, is the go-to durian for those who appreciate balance.
@@ -946,8 +961,8 @@
         <article id="d78" class="variety-block">
           <h3>D78</h3>
           <div class="variety-gallery">
-            <img src="images/d78-1-std.png" alt="D78 image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/d78-2-std.png?v=2" alt="D78 image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/d78-1-std.jpg" alt="D78 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d78-2-std.jpg?v=20260526-2" alt="D78 image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Balanced. Creamy. Quietly addictive. D78 does not boast, but it delivers — a dependable mid-range durian that often flies under the radar.
@@ -964,8 +979,8 @@
         <article id="d88" class="variety-block">
           <h3>D88</h3>
           <div class="variety-gallery">
-            <img src="images/d88-1-std.png?v=2" alt="D88 image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/d88-2-std.png?v=3" alt="D88 image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/d88-1-std.jpg?v=20260526-2" alt="D88 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d88-2-std.jpg?v=20260526-2" alt="D88 image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Bold. Buttery. No-nonsense. D88 is for those who like their durians with a bit of punch.
@@ -982,8 +997,8 @@
         <article id="d100" class="variety-block">
           <h3>D100</h3>
           <div class="variety-gallery">
-            <img src="images/d100-1-std.png" alt="D100 image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/d100-2-std.png?v=2" alt="D100 image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/d100-1-std.jpg" alt="D100 image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d100-2-std.jpg?v=20260526-2" alt="D100 image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Silky. Sweet. Sneakily addictive. D100 is the smooth talker of the durian world — gentle on the nose, but rich on the tongue.
@@ -999,8 +1014,8 @@
 
         <article id="d101" class="variety-block">
           <h3>D101</h3>
-          <div class="variety-gallery">
-            <img src="images/d101-1-std.png" alt="D101 image placeholder 1" loading="lazy" decoding="async" />
+          <div class="variety-gallery white-gallery solo-gallery">
+            <img src="images/d101-1-std.jpg" alt="D101 image placeholder 1" loading="lazy" decoding="async" />
           </div>
           <p>
             Smooth. Sweet. Super likeable. D101 is the ultimate people-pleaser — mild enough for beginners,
@@ -1016,8 +1031,8 @@
 
         <article id="d160" class="variety-block">
           <h3>D160 – Tek Kah (Green Bamboo)</h3>
-          <div class="variety-gallery">
-            <img src="images/d160-tek-kah-1-std.png" alt="D160 Tek Kah image placeholder 1" loading="lazy" decoding="async" />
+          <div class="variety-gallery white-gallery solo-gallery">
+            <img src="images/d160-tek-kah-1-std.jpg" alt="D160 Tek Kah image placeholder 1" loading="lazy" decoding="async" />
           </div>
           <p>
             Clean. Cool. Confident. D160, better known as Tek Kah or Green Bamboo, stands out with a sharp, refined flavour profile that durian purists love.
@@ -1034,8 +1049,8 @@
         <article id="d162" class="variety-block">
           <h3>D162 – Tawa</h3>
           <div class="variety-gallery">
-            <img src="images/d162-tawa-1-std.png" alt="D162 Tawa image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/d162-tawa-2-std.png?v=2" alt="D162 Tawa image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/d162-tawa-1-std.jpg" alt="D162 Tawa image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/d162-tawa-2-std.jpg?v=20260526-2" alt="D162 Tawa image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Strong. Sharp. Not for the faint-hearted. D162 is a bold, assertive durian that speaks directly to hardcore fans.
@@ -1052,8 +1067,7 @@
         <article id="red-prawn" class="variety-block">
           <h3>Red Prawn</h3>
           <div class="variety-gallery">
-            <img src="images/red-prawn-whole-std.png" alt="Red Prawn durian whole" loading="lazy" decoding="async" />
-            <img src="images/red-prawn-open.png?v=20260525-1" alt="Red Prawn durian opened" loading="lazy" decoding="async" />
+            <img src="images/red-prawn-whole-std.jpg" alt="Red Prawn durian" loading="lazy" decoding="async" />
           </div>
           <p>
             Don't let the name throw you, there's nothing fishy about <strong>Red Prawn</strong>
@@ -1077,9 +1091,9 @@
 
         <article id="kampung-durians" class="variety-block">
           <h3>Kampung Durians</h3>
-          <div class="variety-gallery solid-black-gallery">
-            <img src="images/group1-thumb-2-std.png?v=4" alt="Kampung durian image 1" loading="lazy" decoding="async" />
-            <img src="images/kampung-durian.png?v=20260525-1" alt="Kampung durian image 2" loading="lazy" decoding="async" />
+          <div class="variety-gallery">
+            <img src="images/group1-thumb-2-std.jpg?v=20260526-2" alt="Kampung durian image 1" loading="lazy" decoding="async" />
+            <img src="images/kampung-durian.jpg?v=20260526-2" alt="Kampung durian image 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Wild. Diverse. Full of surprises. Kampung durians aren't from cloned or grafted trees, but
@@ -1107,8 +1121,8 @@
         <article id="lao-tai-po" class="variety-block">
           <h3>Lao Tai Po</h3>
           <div class="variety-gallery">
-            <img src="images/lao-tai-po-1-std.png" alt="Lao Tai Po image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/lao-tai-po-2-std.png?v=2" alt="Lao Tai Po image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/lao-tai-po-1-std.jpg" alt="Lao Tai Po image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/lao-tai-po-2-std.jpg?v=20260526-2" alt="Lao Tai Po image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Old-school. Bold. Packed with attitude. Lao Tai Po, which means "Old Grandmother", lives up to
@@ -1134,8 +1148,8 @@
         <article id="mini-msw" class="variety-block">
           <h3>Mini Mao Shan Wang (MSW)</h3>
           <div class="variety-gallery">
-            <img src="images/mini-msw-std.png?v=2" alt="Mini Mao Shan Wang durian" loading="lazy" decoding="async" />
-            <img src="images/mini-msw-2-std.png" alt="Mini Mao Shan Wang durian image 2" loading="lazy" decoding="async" />
+            <img src="images/mini-msw-std.jpg?v=20260526-20260526-1" alt="Mini Mao Shan Wang durian" loading="lazy" decoding="async" />
+            <img src="images/mini-msw-2-std.jpg" alt="Mini Mao Shan Wang durian image 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Prepare your senses for the king of all kings - <em>Mao Shan Wang</em>, also known as
@@ -1160,9 +1174,9 @@
 
         <article id="golden-phoenix" class="variety-block">
           <h3>Golden Phoenix</h3>
-          <div class="variety-gallery solid-black-gallery">
-            <img src="images/golden-phoenix-1-std.png" alt="Golden Phoenix image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/golden-phoenix-2-std.png" alt="Golden Phoenix image placeholder 2" loading="lazy" decoding="async" />
+          <div class="variety-gallery">
+            <img src="images/golden-phoenix-1-std.jpg" alt="Golden Phoenix image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/golden-phoenix-2-std.jpg?v=20260526-1" alt="Golden Phoenix image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Light. Lush. Deceptively potent. Golden Phoenix, or <em>Jin Feng</em>, may look dainty with its
@@ -1186,8 +1200,8 @@
         <article id="kasap-merah" class="variety-block">
           <h3>Kasap Merah</h3>
           <div class="variety-gallery">
-            <img src="images/kasap-merah-1-std.png" alt="Kasap Merah image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/kasap-merah-2-std.png?v=2" alt="Kasap Merah image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/kasap-merah-1-std.jpg" alt="Kasap Merah image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/kasap-merah-2-std.jpg?v=20260526-2" alt="Kasap Merah image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Rare. Rustic. Strikingly unique. Kasap Merah stands out with its distinctive reddish-orange
@@ -1212,8 +1226,8 @@
         <article id="xo" class="variety-block">
           <h3>XO</h3>
           <div class="variety-gallery">
-            <img src="images/xo-1-std.png" alt="XO image placeholder 1" loading="lazy" decoding="async" />
-            <img src="images/xo-2-std.png?v=2" alt="XO image placeholder 2" loading="lazy" decoding="async" />
+            <img src="images/xo-1-std.jpg" alt="XO image placeholder 1" loading="lazy" decoding="async" />
+            <img src="images/xo-2-std.jpg?v=20260526-2" alt="XO image placeholder 2" loading="lazy" decoding="async" />
           </div>
           <p>
             Sharp. Boozy. Not for beginners. XO is the rebellious, late-night version of durian - rich
