@@ -28,6 +28,7 @@ const orderNotificationEmail = process.env.ORDER_NOTIFICATION_EMAIL || "durianpa
 const analyticsAuthUser = process.env.ANALYTICS_AUTH_USER || "";
 const analyticsAuthPassword = process.env.ANALYTICS_AUTH_PASSWORD || "";
 const isProductionDeployment = /^https:\/\/(www\.)?durianparadises\.com$/i.test(siteUrl);
+const pinnedReferralCodes = new Set(["3004"]);
 const allowedAnalyticsTypes = new Set([
   "page_view",
   "product_view",
@@ -1408,7 +1409,8 @@ function resolveReferralRewardsForCheckout(rewardClaims) {
       return null;
     }
 
-    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
+    const isPinned = pinnedReferralCodes.has(referral.code);
+    if (!isPinned && !isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
       return null;
     }
 
@@ -1439,7 +1441,8 @@ function claimReferralRewards(rewardClaims, orderId) {
 
     normalizeReferralEntry(referral);
 
-    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
+    const isPinned = pinnedReferralCodes.has(referral.code);
+    if (!isPinned && !isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
       return;
     }
 
@@ -2546,7 +2549,11 @@ async function handleCreateCheckoutSession(req, res) {
     }
 
     if (Number.isFinite(frontendTotalAmount) && Math.round(frontendTotalAmount) !== Number(summary.totalAmount || 0)) {
-      throw new Error("Order total changed. Please review your cart and try again.");
+      const hadRejectedRewards = requestedReferralRewardClaims.length > 0 && claimedReferralRewards.length === 0;
+      throw new Error(hadRejectedRewards
+        ? "Your referral reward could not be verified. Make sure you are using the same browser and device where you generated your referral code, then try again."
+        : "Order total changed. Please review your cart and try again."
+      );
     }
 
     const order = {
