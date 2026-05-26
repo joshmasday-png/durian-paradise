@@ -697,12 +697,16 @@ function getReferralRewardMessage(reward) {
 function getActiveOwnedReferralRewards(referralCode = "") {
   const normalizedReferralCode = normalizeClientReferralCode(referralCode);
 
+  if (!normalizedReferralCode) {
+    return [];
+  }
+
   return loadOwnedReferrals().reduce((result, referral) => {
     if (!isFourDigitClientReferralCode(referral.code)) {
       return result;
     }
 
-    if (normalizedReferralCode && referral.code !== normalizedReferralCode) {
+    if (referral.code !== normalizedReferralCode) {
       return result;
     }
 
@@ -816,7 +820,7 @@ async function refreshOwnedReferralRewards() {
     }
   }));
 
-  saveOwnedReferrals(updatedReferrals);
+  updatedReferrals.forEach((entry) => storeOwnedReferral(entry));
   renderCart();
 }
 
