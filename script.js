@@ -2352,24 +2352,6 @@ function renderCartBreakdown(breakdown, isCents = false) {
     </div>
   `);
 
-  rewardMessages.forEach((message) => {
-    lines.push(`
-      <div class="cart-breakdown-line is-reward">
-        <strong>Referral Reward</strong>
-        <span>${escapeHtml(message)}</span>
-      </div>
-    `);
-  });
-
-  if (convert(breakdown.referralCashDiscount) > 0) {
-    lines.push(`
-      <div class="cart-breakdown-line is-discount">
-        <span>Referral discount</span>
-        <span>-${escapeHtml(formatCheckoutMoney(convert(breakdown.referralCashDiscount)))}</span>
-      </div>
-    `);
-  }
-
   if (breakdown.deliveryBoxCount > 0) {
     lines.push(`
       <div class="cart-breakdown-line">
@@ -2432,6 +2414,24 @@ function renderCartBreakdown(breakdown, isCents = false) {
       <div class="cart-breakdown-line is-highlight">
         <strong>Free box applied</strong>
         <span>${escapeHtml(`${paidBoxes} ${paidLabel} + ${freeBoxes} ${freeLabel}. Total: ${totalBoxes} ${totalLabel}.`)}</span>
+      </div>
+    `);
+  }
+
+  rewardMessages.forEach((message) => {
+    lines.push(`
+      <div class="cart-breakdown-line is-reward">
+        <strong>Referral Reward</strong>
+        <span>${escapeHtml(message)}</span>
+      </div>
+    `);
+  });
+
+  if (convert(breakdown.referralCashDiscount) > 0) {
+    lines.push(`
+      <div class="cart-breakdown-line is-discount">
+        <span>Referral discount</span>
+        <span>-${escapeHtml(formatCheckoutMoney(convert(breakdown.referralCashDiscount)))}</span>
       </div>
     `);
   }
