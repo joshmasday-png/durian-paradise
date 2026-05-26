@@ -2905,6 +2905,7 @@ function bindCartUI() {
           throw new Error(payload.error || "Unable to start payment.");
         }
 
+        markOwnedReferralRewardsAsClaimed(referralRewardClaims, payload.order.id || "");
         savePendingPayment({
           order: payload.order,
           reference: payload.order.id || "",

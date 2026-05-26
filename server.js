@@ -1408,6 +1408,10 @@ function resolveReferralRewardsForCheckout(rewardClaims) {
       return null;
     }
 
+    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
+      return null;
+    }
+
     return {
       ...reward,
       referralCode: referral.code
@@ -1435,8 +1439,7 @@ function claimReferralRewards(rewardClaims, orderId) {
 
     normalizeReferralEntry(referral);
 
-    const hasOwnerProof = Boolean(claim.ownerToken || claim.ownerPhone);
-    if (hasOwnerProof && !isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
+    if (!isReferralOwnerMatch(referral, claim.ownerToken, claim.ownerPhone)) {
       return;
     }
 
