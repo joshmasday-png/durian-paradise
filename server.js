@@ -663,6 +663,29 @@ function orderDisplayNumber(order) {
   return (order && order.orderNumber) ? order.orderNumber : (order && order.id ? order.id : "");
 }
 
+// Clean, short order id used as the pre-payment reference the customer types
+// into their PayNow transfer (e.g. REF-9QX4K7). Distinct from the sequential
+// DP-NNNN order number, which is only assigned once the order is paid. Uses a
+// readable alphabet (no O/0/I/1/L) and is checked for uniqueness.
+function makeOrderReference(existingOrders) {
+  const orders = Array.isArray(existingOrders) ? existingOrders : [];
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const generate = () => {
+    let code = "";
+    for (let index = 0; index < 6; index += 1) {
+      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return `REF-${code}`;
+  };
+
+  let reference = generate();
+  while (orders.some((order) => order && order.id === reference)) {
+    reference = generate();
+  }
+
+  return reference;
+}
+
 function getReferralReward(referralCount) {
   const cyclePosition = ((referralCount - 1) % 3) + 1;
   const cycleNumber = Math.floor((referralCount - 1) / 3) + 1;
@@ -2431,7 +2454,7 @@ app.post("/api/payment-orders", async (req, res) => {
   try {
     const items = normalizeCartItems(req.body && req.body.items);
     const orders = readOrders();
-    const orderId = makeRecordId("order");
+    const orderId = makeOrderReference(orders);
     const customer = req.body && req.body.customer ? req.body.customer : {};
     const customerPhone = String(customer.phone || "").trim();
     const customerEmail = String(customer.email || "").trim();
@@ -2551,7 +2574,7 @@ async function handleCreateCheckoutSession(req, res) {
   try {
     const items = normalizeCartItems(req.body && req.body.items);
     const orders = readOrders();
-    const orderId = makeRecordId("order");
+    const orderId = makeOrderReference(orders);
     const referralCode = sanitizeReferralCode(req.body && req.body.referralCode);
     const voucherCode = sanitizeText(req.body && req.body.voucherCode, 80);
     const paymentMethodKey = normalizePaymentMethodKey(req.body && req.body.paymentMethodKey);
