@@ -2605,10 +2605,10 @@ function renderPaymentRequestCard(pendingPayment) {
           <span>Payment Method</span>
           <strong>${escapeHtml(paymentMethod.title)}</strong>
         </div>
-        <div class="payment-detail">
-          <span>${order.orderNumber ? "Order No" : "Payment Reference"}</span>
-          <strong>${escapeHtml(order.orderNumber || pendingPayment.reference || order.id || "")}</strong>
-        </div>
+        ${order.orderNumber ? `<div class="payment-detail">
+          <span>Order No</span>
+          <strong>${escapeHtml(order.orderNumber)}</strong>
+        </div>` : ""}
       </div>
       ${(items.length || breakdown) ? `<div class="payment-order-summary"><h3>Order Summary</h3>${orderLines}</div>` : ""}
       <p>${escapeHtml(pendingPayment.message || "")}</p>
