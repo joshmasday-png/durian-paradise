@@ -179,8 +179,6 @@ app.post("/stripe-webhook", express.raw({ type: "application/json" }), async (re
       order.paymentStatus = "paid";
       order.status = "paid";
       order.paidAt = order.paidAt || new Date().toISOString();
-      // Assign the customer-facing order number now that payment is confirmed.
-      order.orderNumber = order.orderNumber || makeOrderNumber(orders);
       order.stripe = {
         ...(order.stripe || {}),
         checkoutSessionId: session.id,
@@ -638,14 +636,10 @@ function buildReferralLink(req, code) {
   return `${getPublicSiteUrl(req)}/referral.html?code=${encodeURIComponent(String(code || "").trim())}`;
 }
 
-// Sequential customer-facing order number (DP-1001, DP-1002, ...). Only paid
-// orders carry an `orderNumber`, so the sequence is derived from that field and
-// is never consumed by unpaid/abandoned carts. Seeded at 1000 so the first paid
-// order is DP-1001.
-function makeOrderNumber(existingOrders) {
+function makeOrderId(existingOrders) {
   const orders = Array.isArray(existingOrders) ? existingOrders : [];
   const highestOrderNumber = orders.reduce((max, order) => {
-    const match = /^DP-(\d+)$/.exec(String(order && order.orderNumber ? order.orderNumber : "").trim());
+    const match = /^DP-(\d+)$/.exec(String(order && order.id ? order.id : "").trim());
     if (!match) {
       return max;
     }
@@ -655,35 +649,6 @@ function makeOrderNumber(existingOrders) {
   }, 1000);
 
   return `DP-${highestOrderNumber + 1}`;
-}
-
-// The number/reference shown to the customer and business. Falls back to the
-// internal id for orders created before a payment number was assigned.
-function orderDisplayNumber(order) {
-  return (order && order.orderNumber) ? order.orderNumber : (order && order.id ? order.id : "");
-}
-
-// Clean, short order id used as the pre-payment reference the customer types
-// into their PayNow transfer (e.g. REF-9QX4K7). Distinct from the sequential
-// DP-NNNN order number, which is only assigned once the order is paid. Uses a
-// readable alphabet (no O/0/I/1/L) and is checked for uniqueness.
-function makeOrderReference(existingOrders) {
-  const orders = Array.isArray(existingOrders) ? existingOrders : [];
-  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  const generate = () => {
-    let code = "";
-    for (let index = 0; index < 6; index += 1) {
-      code += alphabet[Math.floor(Math.random() * alphabet.length)];
-    }
-    return `REF-${code}`;
-  };
-
-  let reference = generate();
-  while (orders.some((order) => order && order.id === reference)) {
-    reference = generate();
-  }
-
-  return reference;
 }
 
 function getReferralReward(referralCount) {
@@ -1717,11 +1682,11 @@ function buildOrderEmail(order) {
     .join("");
 
   return {
-    subject: `Order summary - ${orderDisplayNumber(order)}`,
+    subject: `Order summary - ${order.id}`,
     text: [
       "Order summary",
       "",
-      `Order reference: ${orderDisplayNumber(order)}`,
+      `Order reference: ${order.id}`,
       `Payment method: ${paymentMethod}`,
       `Items subtotal: ${formatAmount(breakdown.subtotalBeforeAdjustments || order.summary.totalAmount)}`,
       breakdown.deliveryFee ? `Delivery fee: ${formatAmount(breakdown.deliveryFee)}` : "Delivery fee: Free",
@@ -1750,7 +1715,7 @@ function buildOrderEmail(order) {
         <div style="max-width:640px;margin:0 auto;background:#fffaf4;border-radius:18px;padding:24px;border:1px solid #eadfce;">
           <h1 style="margin:0 0 12px;font-size:28px;">Order summary</h1>
           <p style="margin:0 0 18px;">This is the order summary captured by Durian Paradise.</p>
-          <p><strong>Order reference:</strong> ${escapeEmailHtml(orderDisplayNumber(order))}</p>
+          <p><strong>Order reference:</strong> ${escapeEmailHtml(order.id)}</p>
           <p><strong>Payment method:</strong> ${escapeEmailHtml(paymentMethod)}</p>
           <p><strong>Items subtotal:</strong> ${escapeEmailHtml(formatAmount(breakdown.subtotalBeforeAdjustments || order.summary.totalAmount))}</p>
           <p><strong>Delivery fee:</strong> ${escapeEmailHtml(breakdown.deliveryFee ? formatAmount(breakdown.deliveryFee) : "Free")}</p>
@@ -1803,11 +1768,11 @@ function buildPaidNotificationEmail(order) {
         : "";
 
   return {
-    subject: `Payment received - ${orderDisplayNumber(order)}`,
+    subject: `Payment received - ${order.id}`,
     text: [
       "Stripe has confirmed payment for this order.",
       "",
-      `Order reference: ${orderDisplayNumber(order)}`,
+      `Order reference: ${order.id}`,
       `Payment method: ${paymentMethod}`,
       stripeSessionId ? `Stripe session: ${stripeSessionId}` : null,
       stripePaymentIntentId ? `Stripe payment intent: ${stripePaymentIntentId}` : null,
@@ -1827,7 +1792,7 @@ function buildPaidNotificationEmail(order) {
         <div style="max-width:680px;margin:0 auto;background:#fffaf4;border-radius:18px;padding:24px;border:1px solid #eadfce;">
           <h1 style="margin:0 0 12px;font-size:28px;">Payment received through Stripe</h1>
           <p style="margin:0 0 18px;">Stripe Checkout has confirmed payment for this order.</p>
-          <p><strong>Order reference:</strong> ${escapeEmailHtml(orderDisplayNumber(order))}</p>
+          <p><strong>Order reference:</strong> ${escapeEmailHtml(order.id)}</p>
           <p><strong>Total:</strong> ${escapeEmailHtml(order.summary.totalDisplay)}</p>
           <p><strong>Payment method:</strong> ${escapeEmailHtml(paymentMethod)}</p>
           ${stripeSessionId ? `<p><strong>Stripe session:</strong> ${escapeEmailHtml(stripeSessionId)}</p>` : ""}
@@ -2366,7 +2331,6 @@ app.get("/api/payment-orders/:orderId", (req, res) => {
   return res.json({
     order: {
       id: order.id,
-      orderNumber: order.orderNumber || "",
       status: order.status,
       paymentStatus: order.paymentStatus,
       createdAt: order.createdAt,
@@ -2425,8 +2389,6 @@ app.post("/api/payment-orders/:orderId/paid", async (req, res) => {
 
   order.status = "customer_marked_paid";
   order.paymentStatus = "customer_marked_paid";
-  // Assign the customer-facing order number now that the customer has paid.
-  order.orderNumber = order.orderNumber || makeOrderNumber(orders);
   order.customerPaymentAcknowledgement = {
     status: "customer_marked_paid",
     message: "Payment Acknowledgement sent. Business still needs to verify the bank transfer.",
@@ -2454,7 +2416,7 @@ app.post("/api/payment-orders", async (req, res) => {
   try {
     const items = normalizeCartItems(req.body && req.body.items);
     const orders = readOrders();
-    const orderId = makeOrderReference(orders);
+    const orderId = makeOrderId(orders);
     const customer = req.body && req.body.customer ? req.body.customer : {};
     const customerPhone = String(customer.phone || "").trim();
     const customerEmail = String(customer.email || "").trim();
@@ -2488,7 +2450,6 @@ app.post("/api/payment-orders", async (req, res) => {
 
     const order = {
       id: orderId,
-      orderNumber: "",
       createdAt: new Date().toISOString(),
       status: "pending_payment",
       paymentStatus: "awaiting_provider_setup",
@@ -2557,7 +2518,6 @@ app.post("/api/checkout-sessions/:sessionId/status", (req, res) => {
     paymentStatus: order.paymentStatus,
     order: {
       id: order.id,
-      orderNumber: order.orderNumber || "",
       status: order.status,
       paymentStatus: order.paymentStatus,
       paidAt: order.paidAt || "",
@@ -2574,7 +2534,7 @@ async function handleCreateCheckoutSession(req, res) {
   try {
     const items = normalizeCartItems(req.body && req.body.items);
     const orders = readOrders();
-    const orderId = makeOrderReference(orders);
+    const orderId = makeOrderId(orders);
     const referralCode = sanitizeReferralCode(req.body && req.body.referralCode);
     const voucherCode = sanitizeText(req.body && req.body.voucherCode, 80);
     const paymentMethodKey = normalizePaymentMethodKey(req.body && req.body.paymentMethodKey);
@@ -2598,7 +2558,6 @@ async function handleCreateCheckoutSession(req, res) {
 
     const order = {
       id: orderId,
-      orderNumber: "",
       createdAt: new Date().toISOString(),
       status: "checkout_created",
       paymentStatus: "checkout_pending",

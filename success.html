@@ -77,10 +77,7 @@
           const payload = await response.json();
 
           if (response.ok && payload && payload.paymentStatus === "paid") {
-            const orderNumber = payload.order && payload.order.orderNumber ? payload.order.orderNumber : "";
-            statusMessage.textContent = orderNumber
-              ? `Your payment has been confirmed and your durian order is locked in. Your order number is ${orderNumber}.`
-              : "Your payment has been confirmed and your durian order is locked in.";
+            statusMessage.textContent = "Your payment has been confirmed and your durian order is locked in.";
             return;
           }
         } catch (_error) {
