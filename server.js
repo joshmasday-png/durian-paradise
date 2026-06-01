@@ -2623,7 +2623,7 @@ async function handleCreateCheckoutSession(req, res) {
         amount_off: totalDiscountAmount,
         currency: "sgd",
         duration: "once",
-        name: `Order ${order.id} adjustment`.slice(0, 40),
+        name: "Order adjustment",
         metadata
       });
       couponId = coupon.id;
