@@ -28,7 +28,7 @@ const orderNotificationEmail = process.env.ORDER_NOTIFICATION_EMAIL || "durianpa
 const analyticsAuthUser = process.env.ANALYTICS_AUTH_USER || "";
 const analyticsAuthPassword = process.env.ANALYTICS_AUTH_PASSWORD || "";
 const isProductionDeployment = /^https:\/\/(www\.)?durianparadises\.com$/i.test(siteUrl);
-const pinnedReferralCodes = new Set(["3004"]);
+const pinnedReferralCodes = new Set([]);
 const allowedAnalyticsTypes = new Set([
   "page_view",
   "product_view",
@@ -2704,9 +2704,6 @@ app.get("/checkout-cancelled", (_req, res) => {
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
-
-ensurePinnedReferralCode("3004");
-ensurePinnedReferralRewardState("3004", 1);
 
 app.listen(port, () => {
   console.log(`Durian Paradise server running on ${siteUrl}`);
