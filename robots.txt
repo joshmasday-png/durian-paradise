@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Post-checkout transactional pages — no need to index
+Disallow: /success.html
+Disallow: /success
+Disallow: /cancel.html
+Disallow: /cancel
+
+Sitemap: https://www.durianparadises.com/sitemap.xml
