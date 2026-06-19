@@ -75,7 +75,7 @@ const productCatalog = {
   "delivery-group2|800g": {
     name: "Group 2 Durians",
     variantLabel: "800g box",
-    unitAmount: 7200,
+    unitAmount: 6900,
     orderType: "Online Delivery"
   },
   "delivery-group3|650g": {
@@ -87,7 +87,7 @@ const productCatalog = {
   "delivery-group3|800g": {
     name: "Group 3 Durians",
     variantLabel: "800g box",
-    unitAmount: 7500,
+    unitAmount: 7300,
     orderType: "Online Delivery"
   },
   "party-group1|g1-21": {
@@ -128,20 +128,20 @@ const productCatalog = {
   },
   "party-group3|g3-21": {
     name: "Group 3 Durians - Black Gold, Black Thorns Orchee",
-    variantLabel: "8 pax - 21kg (est 11 to 13 durians) at $18/kg",
-    unitAmount: 37800,
+    variantLabel: "8 pax - 21kg (est 11 to 13 durians) at $16/kg",
+    unitAmount: 33600,
     orderType: "Durian Party"
   },
   "party-group3|g3-24": {
     name: "Group 3 Durians - Black Gold, Black Thorns Orchee",
-    variantLabel: "13 pax - 24kg (est 14 to 17 durians) at $18/kg",
-    unitAmount: 43200,
+    variantLabel: "13 pax - 24kg (est 14 to 17 durians) at $16/kg",
+    unitAmount: 38400,
     orderType: "Durian Party"
   },
   "party-group3|g3-27": {
     name: "Group 3 Durians - Black Gold, Black Thorns Orchee",
-    variantLabel: "18 pax - 27kg (est 16 to 19 durians) at $16/kg",
-    unitAmount: 43200,
+    variantLabel: "18 pax - 27kg (est 16 to 19 durians) at $14/kg",
+    unitAmount: 37800,
     orderType: "Durian Party"
   }
 };
