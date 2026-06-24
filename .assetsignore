@@ -1,6 +1,10 @@
-node_modules
-.git
-wrangler.jsonc
-package.json
-package-lock.json
+node_modules/
+.git/
+.claude/
 *.log
+*.bak
+package-lock.json
+render.yaml
+DEPLOY_RENDER.md
+CLAUDE.md
+.env.example
