@@ -8,3 +8,10 @@ render.yaml
 DEPLOY_RENDER.md
 CLAUDE.md
 .env.example
+.env
+orders.json
+analytics.json
+referrals.json
+reviews.json
+server.js
+package.json
