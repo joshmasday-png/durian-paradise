@@ -10,7 +10,7 @@ const LEGACY_STORAGE_KEYS = [
 ];
 const STORAGE_MIGRATION_KEY = `durianParadiseStorageMigration:${STORAGE_VERSION}`;
 const CART_STORAGE_KEY = `durianParadiseCart:${STORAGE_VERSION}`;
-const API_BASE = "https://durian-paradise-production.up.railway.app";
+const API_BASE = "";
 const REVIEWS_API_PATH = `${API_BASE}/api/reviews`;
 const PAYMENT_ORDERS_API_PATH = `${API_BASE}/api/payment-orders`;
 const STRIPE_CHECKOUT_SESSION_API_PATH = `${API_BASE}/create-checkout-session`;
@@ -916,7 +916,7 @@ async function fetchReferralStatusForLookup(code) {
 
   if (ownedReferral && ownedReferral.ownerToken) {
     try {
-      const ownerStatusUrl = new URL(`${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}/owner-status`);
+      const ownerStatusUrl = new URL(`${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}/owner-status`, window.location.origin);
       ownerStatusUrl.searchParams.set("ownerToken", ownedReferral.ownerToken);
 
       const response = await fetch(ownerStatusUrl.toString(), {
