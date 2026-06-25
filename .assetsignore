@@ -15,3 +15,8 @@ referrals.json
 reviews.json
 server.js
 package.json
+scripts/
+.DS_Store
+.gitignore
+.assetsignore
+wrangler.jsonc
