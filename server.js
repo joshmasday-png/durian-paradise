@@ -28,6 +28,35 @@ const orderNotificationEmail = process.env.ORDER_NOTIFICATION_EMAIL || "durianpa
 const analyticsAuthUser = process.env.ANALYTICS_AUTH_USER || "";
 const analyticsAuthPassword = process.env.ANALYTICS_AUTH_PASSWORD || "";
 const isProductionDeployment = /^https:\/\/(www\.)?durianparadises\.com$/i.test(siteUrl);
+
+// CORS — the storefront frontend may be served from a different origin than
+// this API host (the frontend calls an absolute API_BASE). Allow known site
+// origins and answer preflight OPTIONS so browser fetches aren't blocked.
+const allowedCorsOrigins = new Set([
+  siteUrl,
+  "https://www.durianparadises.com",
+  "https://durianparadises.com",
+  "https://durian-paradise-production.up.railway.app",
+  "http://localhost:3000"
+].filter(Boolean));
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedCorsOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
+
 const pinnedReferralCodes = new Set([]);
 const allowedAnalyticsTypes = new Set([
   "page_view",
