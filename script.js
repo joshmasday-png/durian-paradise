@@ -10,11 +10,12 @@ const LEGACY_STORAGE_KEYS = [
 ];
 const STORAGE_MIGRATION_KEY = `durianParadiseStorageMigration:${STORAGE_VERSION}`;
 const CART_STORAGE_KEY = `durianParadiseCart:${STORAGE_VERSION}`;
-const REVIEWS_API_PATH = "/api/reviews";
-const PAYMENT_ORDERS_API_PATH = "/api/payment-orders";
-const STRIPE_CHECKOUT_SESSION_API_PATH = "/create-checkout-session";
-const REFERRALS_API_PATH = "/api/referrals";
-const ANALYTICS_EVENTS_API_PATH = "/api/analytics/events";
+const API_BASE = "https://durian-paradise-production.up.railway.app";
+const REVIEWS_API_PATH = `${API_BASE}/api/reviews`;
+const PAYMENT_ORDERS_API_PATH = `${API_BASE}/api/payment-orders`;
+const STRIPE_CHECKOUT_SESSION_API_PATH = `${API_BASE}/create-checkout-session`;
+const REFERRALS_API_PATH = `${API_BASE}/api/referrals`;
+const ANALYTICS_EVENTS_API_PATH = `${API_BASE}/api/analytics/events`;
 const PENDING_PAYMENT_STORAGE_KEY = `durianParadisePendingPayment:${STORAGE_VERSION}`;
 const REFERRAL_STORAGE_KEY = `durianParadiseReferral:${STORAGE_VERSION}`;
 const REFERRAL_LOOKUP_STORAGE_KEY = `durianParadiseReferralLookup:${STORAGE_VERSION}`;
@@ -549,7 +550,7 @@ async function refreshPendingPaymentStatusIfNeeded(force = false) {
 
   pendingPaymentStatusRefreshPromise = (async () => {
     try {
-      const response = await fetch(`/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`);
+      const response = await fetch(`${API_BASE}/api/checkout-sessions/${encodeURIComponent(sessionId)}/status`);
       const payload = await response.json();
 
       if (!response.ok) {
@@ -915,7 +916,7 @@ async function fetchReferralStatusForLookup(code) {
 
   if (ownedReferral && ownedReferral.ownerToken) {
     try {
-      const ownerStatusUrl = new URL(`${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}/owner-status`, window.location.origin);
+      const ownerStatusUrl = new URL(`${REFERRALS_API_PATH}/${encodeURIComponent(normalizedCode)}/owner-status`);
       ownerStatusUrl.searchParams.set("ownerToken", ownedReferral.ownerToken);
 
       const response = await fetch(ownerStatusUrl.toString(), {
