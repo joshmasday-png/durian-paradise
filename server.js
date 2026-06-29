@@ -41,6 +41,13 @@ const allowedCorsOrigins = new Set([
 ].filter(Boolean));
 
 app.use((req, res, next) => {
+  if (req.headers.host && req.headers.host.startsWith('www.')) {
+    return res.redirect(301, 'https://' + req.headers.host.slice(4) + req.url);
+  }
+  next();
+});
+
+app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && allowedCorsOrigins.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
